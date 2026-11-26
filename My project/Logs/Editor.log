@@ -1,0 +1,1355 @@
+VBCSCompilerPreWarmer: watching VBCSCompiler (PID 34472)
+VBCSCompilerPreWarmer: pre-warm launched (dotnet PID 10492)
+VBCSCompiler prewarm took 81.48 ms
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.6/staging' branch; Version is '6000.6.10f1 (40e81493c67d) revision 4253716'; Using compiler version '194234433'; Build Type 'Release'
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-PRIDE OSTRICH" at "2026-11-26T20:50:12.5080417Z"
+OS: 'Windows 11  (10.0.26200) Professional' Language: 'es' Physical Memory: 16179 MB
+BatchMode: 0, IsHumanControllingUs: 1, StartBugReporterOnCrash: 1, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-11-26T20:50:12Z
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 21200, path: "C:/Program Files/WindowsApps/UnityTechnologies.UnityHub_4.0.2.65535_x64__2vrhnee42bhxm/app/UnityLicensingClient_V1/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.19.0+4cc3dda
+  Session Id:              7e0ea385abd642bc9dbc5ad5b596bfca
+  Correlation Id:          c6a282141843b8c6fa7dca1957276ef0
+  External correlation Id: 9147089583599129283
+  Machine Id:              Ix8ZCLfSg7aoEbc27FFPV5qiQzk=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-PRIDE OSTRICH" (connect: 0.00s, validation: 0.01s, handshake: 0.16s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-PRIDE OSTRICH-notifications" at "2026-11-26T20:50:12.6816626Z"
+[Licensing::Client] Successfully updated the access token
+[Licensing::Module] Successfully updated the access token 9O1f37wLei...
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: 4673377929422-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] Licensing Background thread has ended after 0.25s
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.6.10f1\Editor\Unity.exe
+-projectpath
+C:\Users\PRIDE OSTRICH\My project
+-acceptSoftwareTermsForThisRunOnly
+-useHub
+-hubIPC
+-cloudEnvironment
+production
+-licensingIpc
+LicenseClient-PRIDE OSTRICH
+-hubSessionId
+9969d653-2b4c-43c5-af43-7aae3a643873
+-accessToken
+9O1f37wLeipjvY4LiYvoTEYR7IKTeIbMXrym1avATgY004f
+Successfully changed project path to: C:\Users\PRIDE OSTRICH\My project
+C:/Users/PRIDE OSTRICH/My project
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+    "memorysetup-temp-allocator-size-gfx=262144"
+    "memorysetup-remapper-allocator-initial-capacity=32768"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-main-allocator-mimalloc-enabled=1"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+Player connection [25128]  Target information:
+
+Player connection [25128]  * "[IP] 192.168.0.25 [Port] 55504 [Flags] 2 [Guid] 189264755 [EditorId] 189264755 [Version] 1048832 [Id] WindowsEditor(7,G-Man) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [25128] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [25128] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+[Package Manager] Connected to IPC stream "Upm-31012" after 1.0 seconds.
+[Licensing::Client] Successfully resolved entitlement details
+Library Redirect Path: Library/
+Initialising UDS system complete:
+  - System type: Client
+  - Resource namespace: f975b3b96b02738b42b570be172d189f
+  - Shared memory size: 1073741824
+  - Command buffer id: 1052576
+  - Command buffer size: 8192
+  - Hashmap size: 4194304
+  - Service connected: false
+Launching Unity Data Store - C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Data/Tools/Unity.DataStore.exe 
+Unity Data Store artifact dir = Library/DataStore, working dir = C:/Users/PRIDE OSTRICH/My projectUnity Data Store running and initialised
+Refreshing native plugins compatible for Editor in 2.24 ms, found 0 plugins.
+[Physics::Module] Selected backend (deferred post-plugins).
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+Initialize engine version: 6000.6.10f1 (40e81493c67d)
+[EntityIdStore] init: VM path (explicit commit), pageSize=4096, blockCount=262144, entitiesPerBlock=1024, blocksPerSlotPage=0, slots reserved=4294967296 bytes
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path C:/Users/PRIDE OSTRICH/My project/Assets
+[D3D12 Device Filter] Vendor Name: NVIDIA
+[D3D12 Device Filter] Device Name: NVIDIA GeForce RTX 5050
+[D3D12 Device Filter] Driver Version: 32.0.16.2124
+[D3D12 Device Filter] Feature Level: 12.2
+[D3D12 Device Filter] Graphics Memory: 7911 MB
+[D3D12 Device Filter] Processor Count: 12
+[D3D12 Device Filter] Device Type: Discrete
+GfxDevice: creating device client; kGfxThreadingModeSplitJobs
+d3d12: failed to query info queue interface (0x80004002).
+Direct3D:
+    Version:         Direct3D 12 [level 12.2]
+    Renderer:        NVIDIA GeForce RTX 5050 (ID=0x2d83)
+    Vendor:          NVIDIA
+    VRAM:            7911 MB
+    App VRAM Budget: 7143 MB
+    Driver:          32.0.16.2124
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Data/BCLExtensions/runtime/netstandard2.1'
+Mono path[2] = 'C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56012
+CodeReloadManager initialized
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Data/PlaybackEngines/WebGLSupport/UnityEditor.WebGL.Extensions.dll
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.6.10f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+Registered in 0.008458 seconds.
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+Package Manager log level set to [2]
+ScheduleIndexationOnStartup MainProcess:False IndexOnStartup:True
+Scripting: successfully reloaded assembly
+- Finished resetting the current domain, in  1.601 seconds
+Domain Reload Profiling: 2499ms
+	BeginReloadAssembly (261ms)
+		CreateAndSetChildDomain (38ms)
+	RebuildCommonClasses (9ms)
+	RebuildNativeTypeToScriptingClass (31ms)
+	initialDomainReloadingComplete (139ms)
+	LoadAllAssembliesAndSetupDomain (456ms)
+		LoadAssemblies (212ms)
+		TypeCache.Refresh (304ms)
+			TypeCache.ScanAssembly (284ms)
+		AnalyzeDomain (1ms)
+	FinalizeReload (1603ms)
+		SetupLoadedEditorAssemblies (0ms)
+			InitializePlatformSupportModulesInManaged (4ms)
+			BeforeProcessingInitializeOnLoad (165ms)
+			ProcessInitializeOnLoadAttributes (162ms)
+			ProcessInitializeOnLoadMethodAttributes (1009ms)
+[Licensing::Client] Successfully resolved entitlement details
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 56 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.collab-proxy@2.14.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.collab-proxy@ac5a9def1e96)
+    com.unity.ide.rider@3.1.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.ide.rider@570989d4a882)
+    com.unity.ide.visualstudio@2.0.28 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.ide.visualstudio@b5edea5f33f4)
+    com.unity.inputsystem@1.20.1 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.inputsystem@2436e68c60c4)
+    com.unity.searcher@4.9.5 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.searcher@a463122f2c00)
+    com.unity.profiling.core@1.0.3 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.profiling.core@8a49f7027d06)
+    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+  Built-in packages:
+    com.unity.render-pipelines.universal@17.6.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.render-pipelines.universal@bb605c4bc710)
+    com.unity.ugui@2.6.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.ugui@e13c0366db78)
+    com.unity.modules.accessibility@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.adaptiveperformance@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.adaptiveperformance)
+    com.unity.modules.ai@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.ai)
+    com.unity.modules.androidjni@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.cloth@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.cloth)
+    com.unity.modules.director@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.director)
+    com.unity.modules.imageconversion@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.physics2d@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.physics2d)
+    com.unity.modules.physicscore2d@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.physicscore2d)
+    com.unity.modules.screencapture@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.terrain@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.modules.terrainphysics@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.terrainphysics)
+    com.unity.modules.tetgen@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.tetgen)
+    com.unity.modules.tilemap@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.tilemap)
+    com.unity.modules.timelinefoundation@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.timelinefoundation)
+    com.unity.modules.ui@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.umbra@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.umbra)
+    com.unity.modules.unityanalytics@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequestassetbundle@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.unitywebrequestassetbundle)
+    com.unity.modules.unitywebrequestaudio@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.unitywebrequestaudio)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.unitywebrequestwww@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.unitywebrequestwww)
+    com.unity.modules.vectorgraphics@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.vectorgraphics)
+    com.unity.modules.vehicles@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.vehicles)
+    com.unity.modules.video@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.wind@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.wind)
+    com.unity.modules.xr@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.render-pipelines.core@17.6.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.render-pipelines.core@edeb2f5104db)
+    com.unity.shadergraph@17.6.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.shadergraph@807b608040c3)
+    com.unity.render-pipelines.universal-config@17.6.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.render-pipelines.universal-config@561422b74439)
+    com.unity.test-framework@1.8.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.test-framework@01a8b42f9cf6)
+    com.unity.graph-authoring@1.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.graph-authoring@cfd2588851ee)
+    com.unity.burst@2.0.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.burst@626e66ab421b)
+    com.unity.collections@6.6.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.collections@c70d71c1212e)
+    com.unity.ext.nunit@2.1.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.ext.nunit@0198eae3b53e)
+    com.unity.test-framework.performance@6.6.0 (location: C:\Users\PRIDE OSTRICH\My project\Library\PackageCache\com.unity.test-framework.performance@816c370aad5b)
+[Subsystems] No new subsystems found in resolved package list.
+[Package Manager] Done registering packages in 0.17 seconds
+Starting: C:\Program Files\Unity\Hub\Editor\6000.6.10f1\Editor\Data\Tools\BuildPipeline\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1900b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: C:/Users/PRIDE OSTRICH/My project
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.runtime.interopservices.windowsruntime has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.6.10f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\Facades\System.Runtime.InteropServices.WindowsRuntime.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.6.10f1\Editor\Data\NetStandard\Extensions\2.0.0\System.Runtime.InteropServices.WindowsRuntime.dll"
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.componentmodel.composition has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.6.10f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\System.ComponentModel.Composition.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.6.10f1\Editor\Data\NetStandard\compat\2.1.0\shims\netfx\System.ComponentModel.Composition.dll"
+ExitCode: 0 Duration: 1s298ms
+[630/801    0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+[793/801    0s] Csc Library/Bee/artifacts/1900b0aE.dag/Assembly-CSharp.dll (+2 others)
+Assets\Scripts\Sim\GeneradorGraficas.cs(20,44): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+
+Assets\Scripts\Sim\PanelUI.cs(31,44): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+
+Assets\Scripts\Sim\PanelUI.cs(32,42): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+
+Assets\Scripts\Sim\PanelBuild.cs(45,44): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+
+Assets\Scripts\Sim\PanelBuild.cs(47,13): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+
+Assets\Scripts\Sim\PanelUI.cs(44,13): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+*** Tundra build success (1.14 seconds), 2 items updated, 801 evaluated
+Assets\Scripts\Sim\GeneradorGraficas.cs(20,44): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+Assets\Scripts\Sim\PanelUI.cs(31,44): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+Assets\Scripts\Sim\PanelUI.cs(32,42): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+Assets\Scripts\Sim\PanelBuild.cs(45,44): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+Assets\Scripts\Sim\PanelBuild.cs(47,13): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+Assets\Scripts\Sim\PanelUI.cs(44,13): warning CS0618: 'Object.FindFirstObjectByType<T>()' is obsolete: 'FindFirstObjectByType has been deprecated because it relies on instance ID ordering. Use FindAnyObjectByType instead, which does not depend on ordering.'
+AssetDatabase: script compilation time: 2.577572s
+Begin MonoManager ReloadAssembly
+Total cache size 113980708
+Total cache size after purge 113980708, took 00:00:00.3891517
+'Packages/com.unity.render-pipelines.core/Editor/Deprecated.cs' contains partial class of Unity.Object, exactly 1 of the partial classes needs to be in a file with the same filename. This is to know the one that can be referenced from ie. GameObjects
+'Packages/com.unity.render-pipelines.core/Editor/Deprecated.cs' contains partial class of Unity.Object, exactly 1 of the partial classes needs to be in a file with the same filename. This is to know the one that can be referenced from ie. GameObjects
+Refreshing native plugins compatible for Editor in 8.78 ms, found 3 plugins.
+Native extension for WindowsStandalone target not found
+Native extension for WebGL target not found
+ScheduleIndexationOnStartup MainProcess:True IndexOnStartup:True
+Scripting: successfully reloaded assembly
+- Finished resetting the current domain, in  1.278 seconds
+Domain Reload Profiling: 2768ms
+	BeginReloadAssembly (413ms)
+		DisableScriptedObjects (63ms)
+		CreateAndSetChildDomain (70ms)
+	RebuildCommonClasses (11ms)
+	RebuildNativeTypeToScriptingClass (17ms)
+	initialDomainReloadingComplete (116ms)
+	LoadAllAssembliesAndSetupDomain (933ms)
+		LoadAssemblies (629ms)
+		TypeCache.Refresh (173ms)
+			TypeCache.ScanAssembly (159ms)
+		AnalyzeDomain (60ms)
+			BuildScriptInfoCaches (55ms)
+			ResolveRequiredComponents (3ms)
+	FinalizeReload (1279ms)
+		SetupLoadedEditorAssemblies (0ms)
+			InitializePlatformSupportModulesInManaged (3ms)
+			BeforeProcessingInitializeOnLoad (120ms)
+			ProcessInitializeOnLoadAttributes (367ms)
+			ProcessInitializeOnLoadMethodAttributes (99ms)
+			AfterProcessingInitializeOnLoad (19ms)
+			EditorAssembliesLoaded (3ms)
+		AwakeInstancesAfterBackupRestoration (28ms)
+Starting new worker id: 0 with log in C:/Users/PRIDE OSTRICH/My project/Logs/AssetImportWorkerHW0.log
+
+Asset Pipeline Refresh (id=51d7c58cbcce1584b957897a5130883f): Total: 6.867 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	(Values over 0.05ms)
+	Summary:
+		Imports: total=0 (actual=0, local cache=0, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=2320 ms
+		Asset DB Callback time: managed=49 ms, native=178 ms
+		Scripting: domain reloads=1, domain reload time=1646 ms, compile time=2582 ms, other=90 ms
+		Project Asset Count: scripts=1089, non-scripts=2107
+		Asset File Changes: new=0, changed=0, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokePackagesCallback: 182.306ms
+	ApplyChangesToAssetFolders: 1.298ms
+	Scan: 409.258ms
+	Collect global state as custom dependencies: 51.268ms
+	CategorizeScriptCompilationAssets: 45.620ms
+	ProcessAssetsWithTransientArtifactChanges: 74.168ms
+	CategorizeAssets: 58.641ms
+	CompileScripts: 2581.767ms
+	ImportOutOfDateAssets: 1400.371ms (1298.263ms without children)
+		ReloadNativeAssets: 0.440ms
+		UnloadImportedAssets: 2.551ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 0.780ms
+		ImportSchedulerStart: 98.335ms
+	PostProcessAllAssets: 49.719ms
+		MonoPostProcessAllAssets: 49.614ms
+			UniversalRenderPipelineGlobalSettingsPostprocessor.OnPostprocessAllAssets 20.688ms
+			SyncVS.PostprocessSyncProject 4.780ms
+			WindowAssetPostprocessingWatcher.OnPostprocessAllAssets 2.431ms
+			SpeedTree9Postprocessor.OnPostprocessAllAssets 1.927ms
+			RenderPipelineGlobalSettingsPostprocessor.OnPostprocessAllAssets 1.422ms
+			ShaderReflectionAssetPostProcessor.OnPostprocessAllAssets 1.404ms
+			EditModeScopePostprocessor.OnPostprocessAllAssets 1.044ms
+			ReferencedClipsPostProcessor.OnPostprocessAllAssets 0.365ms
+			InputActionAssetPostprocessor.OnPostprocessAllAssets 0.329ms
+			ProjectSettingsPostprocessor.OnPostprocessAllAssets 0.278ms
+			TerrainToolbarOverlayPostProcessor.OnPostprocessAllAssets 0.227ms
+			AssetDatabaseCallbacks.OnPostprocessAllAssets 0.199ms
+	UnloadStreamsBegin: 1.433ms
+	PersistCurrentRevisions: 0.116ms
+	GenerateScriptTypeHashes: 2.648ms
+	GenerateScriptTypeSerializationHashes: 4.375ms
+	Untracked: 1988.443ms
+
+Application.AssetDatabase Initial Refresh End
+Launched and connected shader compiler UnityShaderCompiler.exe after 0.07 seconds
+Scanning for USB devices : 10.727ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-My project
+Unloading 65 Unused Serialized files (Serialized files now loaded: 0)
+Loaded scene 'Assets/Scenes/SampleScene.unity'
+	Deserialize:            11.903 ms
+	Integration:            47.075 ms
+	Integration of assets:  0.002 ms
+	Thread Wait Time:       0.027 ms
+	Total Operation Time:   59.007 ms
+Unloading 4713 unused Assets / (11.6 MB). Loaded Objects now: 5664.
+Memory consumption went from 390.1 MB to 378.4 MB.
+Total: 17.226500 ms (FindLiveObjects: 0.859500 ms CreateObjectMapping: 0.230200 ms MarkObjects: 10.367700 ms  DeleteObjects: 5.178000 ms)
+
+[LAYOUT] About to load UserSettings\Layouts\default-6000.dwlt, keepMainWindow=False
+[LAYOUT] About to save layout C:\Users\PRIDE OSTRICH\My project\UserSettings\Layouts\default-6000.dwlt
+[LAYOUT] About to save layout C:/Users/PRIDE OSTRICH/AppData/Roaming/Unity/Editor-5.x/Preferences\Layouts\current\default-6000.dwlt
+[MODES] ModeService[default].InitializeCurrentMode
+[MODES] ModeService[default].RaiseModeChanged(default, default)
+This project uses Input Manager, which is marked for deprecation. To manage input in your project, use the <a href="https://docs.unity3d.com/Packages/com.unity.inputsystem@latest">Input System package</a> instead.
+<RI> Initializing input.
+Using Windows.Gaming.Input
+<RI> Input initialized.
+[Project] Loading completed in 16.320 seconds
+	Project init time: 				13.903 seconds
+		Template init time: 		0.000 seconds
+		Package Manager init time: 		0.969 seconds
+		Asset Database init time: 		1.290 seconds
+		Global illumination init time: 	0.019 seconds
+		Assemblies load time: 			2.632 seconds
+		Unity extensions init time: 	0.031 seconds
+		Asset Database refresh time: 	6.869 seconds
+	Scene opening time: 			1.855 seconds
+##utp:{"type":"ProjectInfo","version":2,"phase":"Immediate","time":1795726228675,"processId":31012,"projectLoad":16.319661,"projectInit":13.9030384,"templateInit":0.0,"packageManagerInit":0.9688693,"assetDatabaseInit":1.2898332,"globalIlluminationInit":0.0192423,"assembliesLoad":2.6317015,"unityExtensionsInit":0.0311267,"assetDatabaseRefresh":6.8689362,"sceneOpening":1.8554808}
+##utp:{"type":"EditorInfo","version":2,"phase":"Immediate","time":1795726228676,"processId":31012,"editorVersion":"6000.6.10f1 (40e81493c67d)","branch":"6000.6/staging","buildType":"Release","platform":"Windows"}
+Worker ready: AssetImportWorkerHW0 0
+Created GICache directory at C:/Users/PRIDE OSTRICH/AppData/LocalLow/Unity/Caches/GiCache. Took: 0.052s, timestamps: [18.268 - 18.320]
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Client] Successfully updated the access token
+[Licensing::Module] Successfully updated access token: "9O1f37wL"... (expires: 2026-11-26T21:36:56Z)
+[Licensing::Client] Successfully resolved entitlement details
+UPID Received '55a1370c-74b3-4b07-b0e1-1893a1ac80e4'.
+[Licensing::Client] Successfully resolved entitlement details
+Start Indexing on Editor startup
+[Indexing] Starting Initial Indexing for Assets
+Starting new worker id: 1 with log in C:/Users/PRIDE OSTRICH/My project/Logs/AssetImportWorkerHW1.log
+[Worker0] Imported GUID: 99c9720ab356a0642a771bea13969a05 - Path: Assets/Scenes/SampleScene.unity - Importer: ScriptedImporter/UnityEditor.QuickSearchModule:UnityEditor.Search:ASIAI0B -> (ImportResultId: '62f038da512c9ca29f9d666e6e393138') in 0.11531 seconds
+Worker ready: AssetImportWorkerHW1 1
+TrimDiskCacheJob: Current cache size 0mb
+Entering Playmode with Reload Domain disabled.
+If you experience any issues, please disable "Enter Play Mode Options" in Editor Settings
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            1.640 ms
+	Integration:            70.074 ms
+	Integration of assets:  0.002 ms
+	Thread Wait Time:       0.074 ms
+	Total Operation Time:   71.791 ms
+Nueva composta: Compostera doméstica, 1 kg (rango 40-50), fase caliente ~12°C
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Reiniciar () (at Assets/Scripts/Sim/SimuladorComposta.cs:72)
+PanelBuild:Iniciar () (at Assets/Scripts/Sim/PanelBuild.cs:86)
+UnityEngine.Events.InvokableCall:Invoke ()
+UnityEngine.Events.UnityEvent:Invoke ()
+UnityEngine.UI.Button:Press () (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/UI/Core/Button.cs:71)
+UnityEngine.UI.Button:OnPointerClick (UnityEngine.EventSystems.PointerEventData) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/UI/Core/Button.cs:115)
+UnityEngine.EventSystems.ExecuteEvents:Execute (UnityEngine.EventSystems.IPointerClickHandler,UnityEngine.EventSystems.BaseEventData) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/ExecuteEvents.cs:57)
+UnityEngine.EventSystems.ExecuteEvents:Execute<UnityEngine.EventSystems.IPointerClickHandler> (UnityEngine.GameObject,UnityEngine.EventSystems.BaseEventData,UnityEngine.EventSystems.ExecuteEvents/EventFunction`1<UnityEngine.EventSystems.IPointerClickHandler>) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/ExecuteEvents.cs:272)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:ProcessPointerButton (UnityEngine.InputSystem.UI.PointerModel/ButtonState&,UnityEngine.EventSystems.PointerEventData) (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:728)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:ProcessPointer (UnityEngine.InputSystem.UI.PointerModel&) (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:487)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:Process () (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:2406)
+UnityEngine.EventSystems.EventSystem:Update () (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/EventSystem.cs:527)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 72)
+
+[ALERTA/Aviso] Temperatura baja: 1.3°C → Agregar material rico en nitrógeno
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[ALERTA/Critico] Humedad baja: 20.3% → Regar
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[PERFIL/Aviso] Peso 1 kg fuera del rango de Compostera doméstica (40-50 kg) → Cambiar de perfil o ajustar el peso
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ Temperatura volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[Compostera doméstica 1 kg] Día 1 [Mesofilica] medido T:8.4°C pH:6.25 H:20% O2:19%  |  real T:8.4°C pH:6.26 H:20% O2:19%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[ALERTA/Critico→Aviso] Humedad baja: 35.4% → Regar
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:140)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 140)
+
+✔ Humedad volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[Compostera doméstica 1 kg] Día 2 [Mesofilica] medido T:6.9°C pH:6.09 H:51% O2:17%  |  real T:6.7°C pH:6.10 H:51% O2:18%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[Compostera doméstica 1 kg] Día 3 [Mesofilica] medido T:8.5°C pH:6.05 H:59% O2:16%  |  real T:8.4°C pH:6.04 H:59% O2:16%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+Sensores recalibrados
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:RepararSensores () (at Assets/Scripts/Sim/SimuladorComposta.cs:153)
+UnityEngine.Events.InvokableCall:Invoke ()
+UnityEngine.Events.UnityEvent:Invoke ()
+UnityEngine.UI.Button:Press () (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/UI/Core/Button.cs:71)
+UnityEngine.UI.Button:OnPointerClick (UnityEngine.EventSystems.PointerEventData) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/UI/Core/Button.cs:115)
+UnityEngine.EventSystems.ExecuteEvents:Execute (UnityEngine.EventSystems.IPointerClickHandler,UnityEngine.EventSystems.BaseEventData) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/ExecuteEvents.cs:57)
+UnityEngine.EventSystems.ExecuteEvents:Execute<UnityEngine.EventSystems.IPointerClickHandler> (UnityEngine.GameObject,UnityEngine.EventSystems.BaseEventData,UnityEngine.EventSystems.ExecuteEvents/EventFunction`1<UnityEngine.EventSystems.IPointerClickHandler>) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/ExecuteEvents.cs:272)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:ProcessPointerButton (UnityEngine.InputSystem.UI.PointerModel/ButtonState&,UnityEngine.EventSystems.PointerEventData) (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:728)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:ProcessPointer (UnityEngine.InputSystem.UI.PointerModel&) (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:487)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:Process () (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:2406)
+UnityEngine.EventSystems.EventSystem:Update () (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/EventSystem.cs:527)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 153)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[Compostera doméstica 1 kg] Día 4 [Mesofilica] medido T:8.3°C pH:6.02 H:58% O2:15%  |  real T:8.4°C pH:6.02 H:58% O2:15%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[Compostera doméstica 1 kg] Día 5 [Mesofilica] medido T:8.7°C pH:6.04 H:58% O2:14%  |  real T:8.7°C pH:6.03 H:58% O2:14%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Aviso] Temperatura baja: 2.7°C → Agregar material rico en nitrógeno
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[Compostera doméstica 1 kg] Día 6 [Mesofilica] medido T:2.5°C pH:6.04 H:54% O2:20%  |  real T:2.7°C pH:6.02 H:54% O2:20%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ Temperatura volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[ALERTA/Aviso] Humedad alta: 67.4% → Voltear y agregar material seco
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[ALERTA/Aviso→Critico] Humedad alta: 75.0% → Voltear y agregar material seco
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:140)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 140)
+
+[Compostera doméstica 1 kg] Día 7 [Mesofilica] medido T:7.3°C pH:6.02 H:75% O2:19%  |  real T:7.2°C pH:6.00 H:75% O2:19%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[ALERTA/Aviso] Temperatura baja: 2.0°C → Agregar material rico en nitrógeno
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Critico→Aviso] Humedad alta: 69.4% → Voltear y agregar material seco
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:140)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 140)
+
+[Compostera doméstica 1 kg] Día 8 [Mesofilica] medido T:5.3°C pH:6.06 H:63% O2:20%  |  real T:5.4°C pH:6.06 H:63% O2:20%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+✔ Temperatura volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[Compostera doméstica 1 kg] Día 9 [Mesofilica] medido T:8.8°C pH:6.03 H:63% O2:19%  |  real T:8.5°C pH:6.01 H:63% O2:18%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[Compostera doméstica 1 kg] Día 10 [Mesofilica] medido T:8.3°C pH:5.99 H:62% O2:17%  |  real T:8.4°C pH:6.00 H:62% O2:17%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[Compostera doméstica 1 kg] Día 11 [Mesofilica] medido T:8.3°C pH:6.05 H:62% O2:16%  |  real T:8.2°C pH:6.06 H:62% O2:16%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[Compostera doméstica 1 kg] Día 12 [Mesofilica] medido T:8.9°C pH:6.01 H:62% O2:15%  |  real T:8.7°C pH:6.03 H:62% O2:15%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[Compostera doméstica 1 kg] Día 13 [Mesofilica] medido T:9.2°C pH:5.96 H:61% O2:13%  |  real T:8.8°C pH:5.97 H:61% O2:13%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[Compostera doméstica 1 kg] Día 14 [Mesofilica] medido T:9.0°C pH:5.99 H:61% O2:12%  |  real T:8.8°C pH:5.99 H:61% O2:12%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[PREDICCIÓN/Aviso] Oxígeno llegaría a 8% en ~67 h → Voltear
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[ALERTA/Aviso] pH baja: 6.0 → Agregar material alcalino (ceniza o cal)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+[Compostera doméstica 1 kg] Día 15 [Enfriamiento] medido T:7.6°C pH:6.05 H:60% O2:11%  |  real T:7.5°C pH:6.06 H:60% O2:11%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[AUTO] Voltear (O2 medido 10.8%)
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:112)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 112)
+
+[ALERTA/Aviso] Temperatura baja: 0.5°C → Agregar material rico en nitrógeno
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ pH volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+✔ Predicción Oxígeno (baja) volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+✔ Humedad volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[Compostera doméstica 1 kg] Día 16 [Enfriamiento] medido T:4.1°C pH:6.77 H:59% O2:19%  |  real T:3.9°C pH:6.75 H:58% O2:19%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[Compostera doméstica 1 kg] Día 17 [Enfriamiento] medido T:4.0°C pH:7.08 H:58% O2:18%  |  real T:4.1°C pH:7.07 H:58% O2:18%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[Compostera doméstica 1 kg] Día 18 [Enfriamiento] medido T:4.0°C pH:7.25 H:58% O2:16%  |  real T:3.8°C pH:7.26 H:58% O2:16%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[Compostera doméstica 1 kg] Día 19 [Enfriamiento] medido T:4.3°C pH:7.34 H:57% O2:15%  |  real T:4.2°C pH:7.33 H:58% O2:15%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+[Compostera doméstica 1 kg] Día 20 [Enfriamiento] medido T:4.2°C pH:7.37 H:58% O2:14%  |  real T:4.2°C pH:7.38 H:57% O2:14%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+Nueva composta: Compostera doméstica, 45 kg (rango 40-50), fase caliente ~28°C
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Reiniciar () (at Assets/Scripts/Sim/SimuladorComposta.cs:72)
+PanelBuild:Iniciar () (at Assets/Scripts/Sim/PanelBuild.cs:86)
+UnityEngine.Events.InvokableCall:Invoke ()
+UnityEngine.Events.UnityEvent:Invoke ()
+UnityEngine.UI.Button:Press () (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/UI/Core/Button.cs:71)
+UnityEngine.UI.Button:OnPointerClick (UnityEngine.EventSystems.PointerEventData) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/UI/Core/Button.cs:115)
+UnityEngine.EventSystems.ExecuteEvents:Execute (UnityEngine.EventSystems.IPointerClickHandler,UnityEngine.EventSystems.BaseEventData) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/ExecuteEvents.cs:57)
+UnityEngine.EventSystems.ExecuteEvents:Execute<UnityEngine.EventSystems.IPointerClickHandler> (UnityEngine.GameObject,UnityEngine.EventSystems.BaseEventData,UnityEngine.EventSystems.ExecuteEvents/EventFunction`1<UnityEngine.EventSystems.IPointerClickHandler>) (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/ExecuteEvents.cs:272)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:ProcessPointerButton (UnityEngine.InputSystem.UI.PointerModel/ButtonState&,UnityEngine.EventSystems.PointerEventData) (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:728)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:ProcessPointer (UnityEngine.InputSystem.UI.PointerModel&) (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:487)
+UnityEngine.InputSystem.UI.InputSystemUIInputModule:Process () (at ./Library/PackageCache/com.unity.inputsystem@2436e68c60c4/InputSystem/Runtime/Plugins/UI/InputSystemUIInputModule.cs:2406)
+UnityEngine.EventSystems.EventSystem:Update () (at ./Library/PackageCache/com.unity.ugui@e13c0366db78/Runtime/UGUI/EventSystem/EventSystem.cs:527)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 72)
+
+[ALERTA/Aviso] Temperatura baja: 2.6°C → Agregar material rico en nitrógeno
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:LogWarning (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:138)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 138)
+
+✔ Temperatura volvió a la normalidad
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:LogEvento (Composta.Core.EventoAlerta) (at Assets/Scripts/Sim/SimuladorComposta.cs:142)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:116)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 142)
+
+[Compostera doméstica 45 kg] Día 1 [Mesofilica] medido T:18.7°C pH:6.25 H:55% O2:19%  |  real T:18.8°C pH:6.26 H:55% O2:19%
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+SimuladorComposta:Paso () (at Assets/Scripts/Sim/SimuladorComposta.cs:124)
+SimuladorComposta:Update () (at Assets/Scripts/Sim/SimuladorComposta.cs:101)
+
+(Filename: Assets/Scripts/Sim/SimuladorComposta.cs Line: 124)
+
+Unloading 23 Unused Serialized files (Serialized files now loaded: 0)
+Loaded scene 'Temp/__Backupscenes/0.backup'
+	Deserialize:            1.045 ms
+	Integration:            17.744 ms
+	Integration of assets:  0.001 ms
+	Thread Wait Time:       0.012 ms
+	Total Operation Time:   18.803 ms
+Unloading 75 unused Assets / (17.4 MB). Loaded Objects now: 6722.
+Memory consumption went from 0.57 GB to 0.55 GB.
+Total: 17.733400 ms (FindLiveObjects: 0.441400 ms CreateObjectMapping: 0.124600 ms MarkObjects: 13.490200 ms  DeleteObjects: 3.518500 ms)
+
+[Licensing::Client] Successfully resolved entitlement details
+Asset Pipeline Refresh (id=29eeda33729a3a344a4daff2fd5394ba): Total: 0.104 seconds - Initiated by RefreshV2(AllowForceSynchronousImport)
+[Licensing::Client] Successfully updated the access token
+[Licensing::Module] Successfully updated access token: "kaxK-JUw"... (expires: 2026-11-26T23:36:14Z)
+UPID Received '55a1370c-74b3-4b07-b0e1-1893a1ac80e4'.
+[Licensing::Client] Successfully resolved entitlement details
+Asset Pipeline Refresh (id=611838ea230a50d489f21874383924d3): Total: 0.008 seconds - Initiated by RefreshV2(AllowForceSynchronousImport)
+[Licensing::Client] Successfully resolved entitlement details
+Scanning for USB devices : 9.107ms
+Scanning for USB devices : 9.817ms
+Scanning for USB devices : 8.873ms
+Asset Pipeline Refresh (id=cdce2f90f5914c842a8aa7e340657970): Total: 0.012 seconds - Initiated by RefreshV2(AllowForceSynchronousImport)
+Asset Pipeline Refresh (id=de3e34d1a45f04b47a18ad6a8c3cd1e1): Total: 0.007 seconds - Initiated by RefreshV2(AllowForceSynchronousImport)
+Asset Pipeline Refresh (id=86135e4aab937ae4fac3b7b0789e5bbe): Total: 0.008 seconds - Initiated by RefreshV2(AllowForceSynchronousImport)
+Asset Pipeline Refresh (id=73d6695c6da55c149879f576b4eb83ee): Total: 0.008 seconds - Initiated by RefreshV2(AllowForceSynchronousImport)
+Asset Pipeline Refresh (id=8ca9d3f3f75cabd4c8b489d52072c262): Total: 0.006 seconds - Initiated by RefreshV2(AllowForceSynchronousImport)
+MonoPathRemapper: Attempts to remap: 27700; Successful remaps: 14638
+Serialized file version minimum: 23, current 23
+[LAYOUT] About to save layout C:\Users\PRIDE OSTRICH\My project\UserSettings\Layouts\default-6000.dwlt
+[LAYOUT] About to save layout C:/Users/PRIDE OSTRICH/AppData/Roaming/Unity/Editor-5.x/Preferences\Layouts\current\default-6000.dwlt
+Importing 'GUID: 00000000000000009000000000000000 - Path: ProjectSettings/QualitySettings.asset' with importer (LibraryAssetImporter)
+Imported 'GUID: 00000000000000009000000000000000' -> (Import Result ID: '4c4863529adc9ac14970731e8a5da60e') in 0.021 seconds [static dependencies only]. Details - ImportResultOutputID=2a108b3da874f726c62fbe5f12be4a8a DependenciesID=e27b047e3559935d81d11e8d5dd7411e StaticDependenciesID=a4661aca7a2be7b6d5e28438e344ffeb 
+Refreshing native plugins compatible for Editor in 3.80 ms, found 3 plugins.
+Asset Pipeline Refresh (id=73ac02b95828e494d81a42610f99376f): Total: 0.179 seconds - Initiated by StopAssetImportingV2(NoUpdateAssetOptions)
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+'Packages/com.unity.render-pipelines.core/Editor/Deprecated.cs' contains partial class of Unity.Object, exactly 1 of the partial classes needs to be in a file with the same filename. This is to know the one that can be referenced from ie. GameObjects
+'Packages/com.unity.render-pipelines.core/Editor/Deprecated.cs' contains partial class of Unity.Object, exactly 1 of the partial classes needs to be in a file with the same filename. This is to know the one that can be referenced from ie. GameObjects
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+[Licensing::IpcConnector] LicenseClient-PRIDE OSTRICH-notifications channel disconnected successfully.
+[Licensing::IpcConnector] LicenseClient-PRIDE OSTRICH channel disconnected successfully.
+Lingering sessions upon destruction of worker manager
+Unity Data Store service was successfully shut down
+UDS shutting down local client system
+Shut down UDS service system complete
+AcceleratorClientConnectionCallback - disconnected - :0
+Cleanup mono
+CodeReloadManager destroyed
+abort_threads: Failed aborting id: 0000000000003A70, mono_thread_manage will ignore it
+
+abort_threads: Failed aborting id: 0000000000003A70, mono_thread_manage will ignore it
+
+debugger-agent: Unable to listen on 5008
+VBCSCompilerPreWarmer: requested VBCSCompiler shutdown
+Checking for leaked weakptr:
+  Found no leaked weakptrs.
+[Package Manager] Server process was shutdown
+##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1795731716312,"processId":31012,"allocatedMemory":17002634,"memoryLabels":[{"Default":199019},{"Permanent":15516},{"NewDelete":70705},{"Thread":4205600},{"Manager":820192},{"VertexData":8},{"Geometry":824},{"Texture":24},{"Shader":860638},{"Material":132},{"GfxDevice":63624},{"Animation":952},{"Audio":408},{"FreeType":8},{"FontEngine":736},{"Physics":1970},{"Physics2D":16},{"Serialization":198680},{"Input":45280},{"JobScheduler":264},{"TextLib":25323},{"Mono":48},{"MonoCode":64},{"ScriptingNativeRuntime":1363976},{"BaseObject":48912},{"Resource":1444},{"Renderer":2504},{"Transform":4781},{"File":22250},{"WebCam":616},{"Culling":32},{"Terrain":11442},{"Wind":24},{"STL":40},{"String":561263},{"StaticString":3808},{"Utility":2674458},{"Curl":48},{"PoolAlloc":2360},{"AI":80},{"TypeTree":17165},{"ScriptManager":12688},{"CodeReload":448},{"RuntimeInitializeOnLoadManager":64},{"Sprites":102},{"SpriteAtlas":120},{"GI":7816},{"Director":8296},{"CloudService":7296},{"WebRequest":9809},{"VR":49650},{"SceneManager":608},{"Video":208},{"LazyScriptCache":32},{"NativeArray":936},{"Camera":729},{"Secure":2377},{"SerializationCache":9256},{"APIUpdating":10320},{"Subsystems":336},{"VirtualTexturing":57888},{"StaticSafetyDebugInfo":278528},{"Analytics":768},{"Hierarchy":1188},{"UIElements":40},{"CoreStats":14536},{"Identifiers":7152},{"EntityIdStore":33088},{"Gui":268079},{"EditorUtility":409363},{"VersionControl":8},{"Undo":931},{"AssetDatabase":4518183},{"AssetImporter":40},{"EditorGi":328},{"UnityConnect":36918},{"Upm":1988},{"UpmDiagnostics":8},{"AssetCompliance":96},{"DrivenProperties":72},{"LocalIPC":276},{"ProfilerEditor":9746},{"CoreBusinessMetrics":3608},{"Windowing":456},{"Licensing":12957},{"AssetReference":32},{"IPCStream":32}]}

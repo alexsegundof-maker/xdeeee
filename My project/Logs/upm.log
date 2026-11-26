@@ -1,0 +1,33 @@
+[2026-11-26T20:50:13.775Z][INFO] Command-line: 'C:\\Program Files\\Unity\\Hub\\Editor\\6000.6.10f1\\Editor\\Data\\Resources\\PackageManager\\Server\\UnityPackageManager.exe' server -s 31012 --ipc-path Unity-Upm-31012 -l 2 --log-file 'C:\\Users\\PRIDE OSTRICH\\My project/Logs/upm.log'
+[2026-11-26T20:50:13.876Z][INFO] IPC server started (IPC path=Unity-Upm-31012).
+[2026-11-26T20:50:13.876Z][INFO] Hint: To connect to this UPM instance, launch Unity with the command-line parameter -upmIpcPath Upm-31012.
+[2026-11-26T20:50:17.687Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-11-26T20:50:17.831Z][INFO] config:project:get-registries <-- Request received
+params: {}
+[2026-11-26T20:50:17.877Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-11-26T20:50:18.262Z][INFO] config:project:get-registries --> 200 (431 ms)
+[2026-11-26T20:50:18.316Z][INFO] project:list-packages --> 200 (629 ms)
+[2026-11-26T20:50:18.318Z][INFO] project:list-packages --> 200 (441 ms)
+[2026-11-26T20:50:24.874Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-11-26T20:50:24.919Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-11-26T20:50:25.072Z][INFO] project:list-packages --> 200 (198 ms)
+[2026-11-26T20:50:25.128Z][INFO] project:list-packages --> 200 (209 ms)
+[2026-11-26T20:50:25.281Z][INFO] config:project:get-registries <-- Request received
+params: {}
+[2026-11-26T20:50:25.287Z][INFO] config:project:get-registries --> 200 (6 ms)
+[2026-11-26T20:50:28.558Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-11-26T20:50:28.735Z][INFO] project:list-packages --> 200 (177 ms)
+[2026-11-26T20:50:32.611Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-11-26T20:50:33.769Z][INFO] project:list-packages --> 200 (1158 ms)
+[2026-11-26T21:36:59.689Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-11-26T21:37:00.117Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-11-26T21:37:00.875Z][INFO] project:list-packages --> 200 (758 ms)
+[2026-11-26T21:37:00.876Z][INFO] project:list-packages --> 200 (1189 ms)
