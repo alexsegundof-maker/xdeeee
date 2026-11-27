@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using Composta.Core.Textos;
 
 namespace Composta.Core
 {
@@ -89,7 +90,7 @@ namespace Composta.Core
             {
                 var l = Lecturas[i]; var r = Reales[i];
                 sb.AppendLine(string.Format(c, "{0},{1:F2},{2},{3:F2},{4:F2},{5:F2},{6:F2},{7:F2},{8:F2},{9:F2},{10:F2},{11:F2}",
-                    l.Tick, l.Dias, l.Etapa, l.Temperatura, l.PH, l.Humedad, l.Oxigeno,
+                    l.Tick, l.Dias, Lotes.ExportadorCsv.Campo(Nombres.Etapa(l.Etapa)), l.Temperatura, l.PH, l.Humedad, l.Oxigeno,
                     r.Temperatura, r.PH, r.Humedad, r.Oxigeno, r.MasaKg));
             }
             return sb.ToString();

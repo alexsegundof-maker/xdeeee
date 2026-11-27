@@ -10,7 +10,8 @@ namespace Composta.Core.Persistencia
         bool Existe(string clave);
         string Leer(string clave);
         string LeerRespaldo(string clave);              // null si no hay respaldo
-        void Escribir(string clave, string contenido);  // debe ser atómico
+        void Escribir(string clave, string contenido);  // debe ser atómico (UTF-8 sin BOM)
+        void EscribirBytes(string clave, byte[] datos);  // atómico; para archivos binarios o con BOM (exportaciones)
         IReadOnlyList<string> Listar(string carpeta, string extension);
         string RutaAbsoluta(string clave);
         // Borrado recuperable: mueve el archivo (y su respaldo) a "papelera/" con fecha; devuelve la clave nueva

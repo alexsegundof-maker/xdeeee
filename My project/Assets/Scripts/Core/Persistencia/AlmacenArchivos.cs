@@ -12,7 +12,7 @@ namespace Composta.Core.Persistencia
     public sealed class AlmacenArchivos : IAlmacenDatos
     {
         static readonly Regex ClaveValida =
-            new Regex(@"^[a-z0-9_\-]+(/[a-z0-9_\-]+)*\.(json|csv)$", RegexOptions.CultureInvariant);
+            new Regex(@"^[a-z0-9_\-]+(/[a-z0-9_\-]+)*\.(json|csv|xlsx)$", RegexOptions.CultureInvariant);
         static readonly Encoding Utf8SinBom = new UTF8Encoding(false);
 
         readonly string raiz;
@@ -41,7 +41,9 @@ namespace Composta.Core.Persistencia
             lock (candado) return File.Exists(ruta) ? File.ReadAllText(ruta, Encoding.UTF8) : null;
         }
 
-        public void Escribir(string clave, string contenido)
+        public void Escribir(string clave, string contenido) => EscribirBytes(clave, Utf8SinBom.GetBytes(contenido ?? ""));
+
+        public void EscribirBytes(string clave, byte[] datos)
         {
             string ruta = Ruta(clave);
             string tmp = ruta + ".tmp", bak = ruta + ".bak";
@@ -49,10 +51,8 @@ namespace Composta.Core.Persistencia
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(ruta));
                 using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
-                using (var w = new StreamWriter(fs, Utf8SinBom))
                 {
-                    w.Write(contenido ?? "");
-                    w.Flush();
+                    if (datos != null && datos.Length > 0) fs.Write(datos, 0, datos.Length);
                     fs.Flush(true);                      // forzar a disco antes de reemplazar
                 }
 

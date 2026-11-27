@@ -1,12 +1,25 @@
 ﻿using System;
 using System.Globalization;
 using System.Text;
+using Composta.Core.Textos;
 
 namespace Composta.Core.Lotes
 {
     public static class ExportadorCsv
     {
         static readonly CultureInfo C = CultureInfo.InvariantCulture;
+        static readonly UTF8Encoding Utf8ConBom = new UTF8Encoding(true);
+
+        // Bytes listos para guardar: UTF-8 con BOM, así Excel muestra bien acentos y la ñ al abrir el CSV
+        public static byte[] ABytes(string csv)
+        {
+            var preambulo = Utf8ConBom.GetPreamble();
+            var cuerpo = Utf8ConBom.GetBytes(csv ?? "");
+            var datos = new byte[preambulo.Length + cuerpo.Length];
+            Buffer.BlockCopy(preambulo, 0, datos, 0, preambulo.Length);
+            Buffer.BlockCopy(cuerpo, 0, datos, preambulo.Length, cuerpo.Length);
+            return datos;
+        }
 
         // Escapa comas, comillas y saltos de línea, y neutraliza "inyección de fórmulas"
         // (una nota que empiece con = + - @ se ejecutaría como fórmula al abrirla en Excel)
@@ -24,14 +37,15 @@ namespace Composta.Core.Lotes
 
         public static string Bitacora(Lote l)
         {
-            var sb = new StringBuilder("fecha_utc,tick,dia,usuario,accion,valor\n");
+            var sb = new StringBuilder("fecha_utc,tick,dia,usuario,accion,valor,detalle\n");
             foreach (var c in l.Comandos)
                 if (c != null) sb.Append(Fecha(c.FechaUtc)).Append(',')
                   .Append(c.Tick.ToString(C)).Append(',')
                   .Append((c.Tick / 24f).ToString("F2", C)).Append(',')
                   .Append(Campo(c.Usuario)).Append(',')
-                  .Append(c.Tipo).Append(',')
-                  .Append(c.Valor.ToString("0.####", C)).Append('\n');
+                  .Append(Campo(Nombres.Comando(c.Tipo))).Append(',')
+                  .Append(c.Valor.ToString("0.####", C)).Append(',')
+                  .Append(Campo(Nombres.DetalleComando(c))).Append('\n');
             return sb.ToString();
         }
 
@@ -45,7 +59,7 @@ namespace Composta.Core.Lotes
                   .Append(a.Tick.ToString(C)).Append(',')
                   .Append((a.Tick / 24f).ToString("F2", C)).Append(',')
                   .Append(a.Kg.ToString("F2", C)).Append(',')
-                  .Append(a.Material).Append(',')
+                  .Append(Campo(Nombres.Material(a.Material))).Append(',')
                   .Append(Campo(a.Usuario)).Append(',')
                   .Append(Campo(a.Nota)).Append(',')
                   .Append(Campo(a.EditadoPor)).Append(',')
@@ -81,19 +95,13 @@ namespace Composta.Core.Lotes
                 if (c == null) continue;
                 sb.Append(Fecha(c.FechaUtc)).Append(',')
                   .Append(Campo(c.Usuario)).Append(',')
-                  .Append(NombreAccion(c.Accion)).Append(',')
-                  .Append(NombreEntidad(c.Entidad)).Append(',')
+                  .Append(Nombres.Accion(c.Accion)).Append(',')
+                  .Append(Nombres.Entidad(c.Entidad)).Append(',')
                   .Append(Campo(c.IdEntidad)).Append(',')
                   .Append(Campo(c.Detalle)).Append('\n');
             }
             return sb.ToString();
         }
-
-        public static string NombreAccion(AccionCambio a)
-            => a == AccionCambio.Creacion ? "creación" : a == AccionCambio.Edicion ? "edición" : "eliminación";
-
-        public static string NombreEntidad(EntidadCambio e)
-            => e == EntidadCambio.Medicion ? "medición" : e == EntidadCambio.Aporte ? "aporte" : "lote";
 
         public static string Resumen(Lote l)
         {
@@ -101,9 +109,9 @@ namespace Composta.Core.Lotes
             void Fila(string k, string v) => sb.Append(k).Append(',').Append(Campo(v)).Append('\n');
             Fila("lote", l.Nombre);
             Fila("id", l.Id);
-            Fila("estado", l.Estado.ToString());
-            Fila("modo", RangosParametros.Nombre(l.Modo));
-            Fila("tipo", l.Tipo.ToString());
+            Fila("estado", Nombres.Estado(l.Estado));
+            Fila("modo", Nombres.Modo(l.Modo));
+            Fila("tipo", Nombres.Tipo(l.Tipo));
             Fila("peso_inicial_kg", l.PesoKg.ToString("F1", C));
             Fila("relacion_cn", l.RelacionCN.ToString("F1", C));
             Fila("humedad_inicial", l.HumedadInicial.ToString("F1", C));

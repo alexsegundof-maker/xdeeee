@@ -330,7 +330,7 @@ public class SimuladorComposta : MonoBehaviour
         {
             string sello = DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             string ruta = System.IO.Path.Combine(Application.persistentDataPath, $"historial_composta_{sello}.csv");
-            System.IO.File.WriteAllText(ruta, Historial.ToCsv());
+            System.IO.File.WriteAllBytes(ruta, Composta.Core.Lotes.ExportadorCsv.ABytes(Historial.ToCsv()));   // con BOM: acentos bien en Excel
             Informar($"CSV guardado en: {ruta}", TipoMensaje.Exito);
         }
         catch (Exception e)   // archivo abierto en Excel, disco lleno, sin permisos...

@@ -292,53 +292,75 @@ namespace Composta.App
             }
         }
 
-        public bool Exportar(out string carpeta, out string error)
+        // Exporta el lote abierto: un libro de Excel (.xlsx) para personas y los CSV para otros programas.
+        // Nunca falla por "no hay datos": un lote vacío se exporta con sus encabezados y se avisa.
+        public bool Exportar(out ResultadoExportacion resultado, out string error)
         {
-            carpeta = null; error = null;
+            resultado = null; error = null;
             if (!svc.Sesion.Puede(Permiso.Exportar)) { error = "Tu rol no permite exportar."; return false; }
             if (LoteActual == null) { error = "No hay un lote para exportar."; return false; }
             try
             {
-                Guardar();
-                string sello = svc.Reloj.UtcAhora.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-                string baseClave = $"exportaciones/{LoteActual.Id}_{sello}/";
-                var archivos = new System.Collections.Generic.List<(string nombre, string contenido)>
+                var r = new ResultadoExportacion();
+                if (!Guardar()) r.Avisos.Add("No se pudo guardar el lote antes de exportar: los archivos reflejan lo que ves en pantalla.");
+                var lote = LoteActual;
+                var historial = sistemaDelLote?.Historial;
+                var ahora = AhoraUtc;
+                DateTime ahoraLocal;
+                try { ahoraLocal = TimeZoneInfo.ConvertTimeFromUtc(ahora, Zona); }
+                catch (ArgumentException) { ahoraLocal = ahora; }
+                string sello = ahoraLocal.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+                string slug = Core.Exportacion.NombreArchivo.Slug(lote.Nombre, 40);
+                string carpetaClave = $"exportaciones/{sello}_{slug}/";
+                r.NombreExcel = $"{slug}_{sello}.xlsx";
+
+                var csv = new System.Collections.Generic.List<(string nombre, byte[] datos)>
                 {
-                    ("resumen.csv", ExportadorCsv.Resumen(LoteActual)),
-                    ("aportes.csv", ExportadorCsv.Aportes(LoteActual)),
-                    ("cambios.csv", ExportadorCsv.Cambios(LoteActual))
+                    ("resumen.csv", ExportadorCsv.ABytes(ExportadorCsv.Resumen(lote))),
+                    ("aportes.csv", ExportadorCsv.ABytes(ExportadorCsv.Aportes(lote))),
+                    ("cambios.csv", ExportadorCsv.ABytes(ExportadorCsv.Cambios(lote)))
                 };
-                if (EsLoteManual) archivos.Add(("mediciones.csv", ExportadorCsv.Mediciones(LoteActual)));
+                if (lote.Modo == ModoLote.Manual) csv.Add(("mediciones.csv", ExportadorCsv.ABytes(ExportadorCsv.Mediciones(lote))));
                 else
                 {
-                    archivos.Add(("bitacora.csv", ExportadorCsv.Bitacora(LoteActual)));
-                    archivos.Add(("historial.csv", sistemaDelLote.Historial.ToCsv()));
+                    csv.Add(("bitacora.csv", ExportadorCsv.ABytes(ExportadorCsv.Bitacora(lote))));
+                    csv.Add(("historial.csv", ExportadorCsv.ABytes(historial != null ? historial.ToCsv() : "")));
                 }
+                byte[] excel = Core.Exportacion.ExportadorExcel.Generar(lote, historial, Zona, ahora, Application.version);
 
-                // Copia interna (respaldo de la app)
-                foreach (var (nombre, contenido) in archivos) svc.Almacen.Escribir(baseClave + nombre, contenido);
-                carpeta = System.IO.Path.GetDirectoryName(svc.Almacen.RutaAbsoluta(baseClave + "resumen.csv"));
+                // Lotes sin datos: se exportan igual (con encabezados), pero se dice claramente
+                if (lote.Modo == ModoLote.Manual && (lote.Informes == null || lote.Informes.Count == 0))
+                    r.Avisos.Add("El lote todavía no tiene mediciones: la hoja «Mediciones» solo tiene los encabezados.");
+                if (lote.Modo != ModoLote.Manual && (historial == null || historial.Lecturas.Count == 0))
+                    r.Avisos.Add("La simulación aún no ha avanzado: la hoja «Historial» está vacía.");
+                if (lote.Aportes == null || lote.Aportes.Count == 0)
+                    r.Avisos.Add("No hay aportes registrados: la hoja «Aportes» solo tiene los encabezados.");
 
-                // Android: copia en Descargas/Composta/..., visible en la app Archivos y fácil de compartir
+                // Copia interna (respaldo de la app; en PC es la carpeta que se abre)
+                svc.Almacen.EscribirBytes(carpetaClave + r.NombreExcel, excel);
+                foreach (var (nombre, datos) in csv) svc.Almacen.EscribirBytes(carpetaClave + nombre, datos);
+                r.RutaExcel = svc.Almacen.RutaAbsoluta(carpetaClave + r.NombreExcel);
+                r.Carpeta = System.IO.Path.GetDirectoryName(r.RutaExcel);
+
+                // Android: el libro en Descargas/Composta y los CSV en una subcarpeta, visibles en la app Archivos
                 if (DescargasAndroid.Disponible)
                 {
-                    string sub = $"Composta/{sello}_{(EsLoteManual ? "manual" : "simulacion")}";
-                    var bom = new System.Text.UTF8Encoding(true);       // con BOM: Excel muestra bien los acentos
-                    foreach (var (nombre, contenido) in archivos)
+                    if (!DescargasAndroid.Guardar("Composta", r.NombreExcel, Core.Exportacion.ExportadorExcel.TipoMime, excel, out string errDesc))
+                        r.AvisoDescargas = "No se pudo copiar a Descargas (" + errDesc + "). Los archivos quedaron en la carpeta interna de la app.";
+                    else
                     {
-                        var bytes = bom.GetPreamble();
-                        var cuerpo = System.Text.Encoding.UTF8.GetBytes(contenido);
-                        var datos = new byte[bytes.Length + cuerpo.Length];
-                        Buffer.BlockCopy(bytes, 0, datos, 0, bytes.Length);
-                        Buffer.BlockCopy(cuerpo, 0, datos, bytes.Length, cuerpo.Length);
-                        if (!DescargasAndroid.Guardar(sub, nombre, "text/csv", datos, out string errDesc))
-                        {
-                            error = "Se guardaron en la carpeta interna de la app, pero no en Descargas: " + errDesc;
-                            return true;
-                        }
+                        string sub = $"Composta/CSV/{sello}_{slug}";
+                        foreach (var (nombre, datos) in csv)
+                            if (!DescargasAndroid.Guardar(sub, nombre, "text/csv", datos, out errDesc))
+                            {
+                                r.AvisoDescargas = "El libro de Excel está en Descargas, pero los CSV no se pudieron copiar: " + errDesc;
+                                break;
+                            }
+                        r.Carpeta = "Descargas › Composta";
+                        r.EnDescargas = true;
                     }
-                    carpeta = "Descargas › " + sub.Replace("/", " › ");
                 }
+                resultado = r;
                 return true;
             }
             catch (Exception e)
@@ -348,5 +370,15 @@ namespace Composta.App
                 return false;
             }
         }
+    }
+
+    public sealed class ResultadoExportacion
+    {
+        public string Carpeta;            // ruta en PC, o "Descargas › Composta" en Android
+        public string RutaExcel;          // copia interna del .xlsx (en PC se puede abrir directamente)
+        public string NombreExcel;
+        public bool EnDescargas;          // Android: el libro quedó en la carpeta pública Descargas
+        public string AvisoDescargas;     // Android: algo no se pudo copiar a Descargas
+        public readonly System.Collections.Generic.List<string> Avisos = new System.Collections.Generic.List<string>();
     }
 }

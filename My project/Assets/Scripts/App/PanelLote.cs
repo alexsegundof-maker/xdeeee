@@ -4,6 +4,7 @@ using System.Globalization;
 using Composta.Core;
 using Composta.Core.Lotes;
 using Composta.Core.Seguridad;
+using Composta.Core.Textos;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -158,7 +159,7 @@ namespace Composta.App
                 var fila = listaCambios.Fila(layoutCompacto ? 112f : 64f, Tema.SuperficieAlta);
                 Color col = c.Accion == AccionCambio.Eliminacion ? Tema.Critico : c.Accion == AccionCambio.Edicion ? Tema.Aviso : Tema.Exito;
                 var t = UIFabrica.Texto(fila, "Texto", Vector2.zero, Vector2.one, 14, TextAnchor.MiddleLeft, Tema.TextoPrimario);
-                t.text = $"<color={Tema.HexDe(col)}>●</color> <b>{Capital(ExportadorCsv.NombreAccion(c.Accion))} de {ExportadorCsv.NombreEntidad(c.Entidad)}</b>" +
+                t.text = $"<color={Tema.HexDe(col)}>●</color> <b>{Capital(Nombres.Accion(c.Accion))} de {Nombres.Entidad(c.Entidad)}</b>" +
                          $"  <color={tenue}>{ValidadorFechaMedicion.Formatear(c.FechaUtc, zona)} · {UIFabrica.SinRich(c.Usuario)}</color>\n" +
                          $"<color={Tema.HexDe(Tema.TextoSecundario)}>{UIFabrica.SinRich(c.Detalle)}</color>";
                 t.verticalOverflow = VerticalWrapMode.Truncate;

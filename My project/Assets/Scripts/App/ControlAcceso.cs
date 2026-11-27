@@ -474,19 +474,43 @@ namespace Composta.App
 
         void Exportar()
         {
-            if (lotes.Exportar(out string carpeta, out string error))
-                Notificador.Dialogo("Exportación lista",
-                    $"Se guardaron los archivos CSV en:\n<b>{carpeta}</b>" +
-                    (Application.isMobilePlatform && error == null
-                        ? "\n\nÁbrelos con la app Archivos (Descargas › Composta). Desde ahí puedes compartirlos por WhatsApp, correo o Drive."
-                        : "") +
-                    (error != null ? "\n\n" + error : ""),
-                    // En Android no hay explorador de carpetas al que saltar: los archivos quedan en el almacenamiento de la app
-                    Application.isMobilePlatform ? new OpcionDialogo("Entendido")
-                                                 : new OpcionDialogo("Abrir carpeta", () => Application.OpenURL(new Uri(carpeta).AbsoluteUri)),
-                    new OpcionDialogo("Aceptar", null, true));
-            else
+            if (lotes == null) return;
+            if (!lotes.Exportar(out var r, out string error))
+            {
                 Notificador.Mostrar("No se pudo exportar: " + error, TipoMensaje.Error);
+                return;
+            }
+            bool manual = lotes.EsLoteManual;
+            string hojas = manual ? "Resumen, Mediciones, Aportes y Cambios" : "Resumen, Bitácora, Historial, Aportes y Cambios";
+            var cuerpo = new System.Text.StringBuilder();
+            cuerpo.Append($"Libro de Excel: <b>{UIFabrica.SinRich(r.NombreExcel)}</b>\nHojas: {hojas}.\n");
+            cuerpo.Append("También se guardaron los mismos datos en CSV, para otros programas.\n\n");
+            cuerpo.Append($"Carpeta: <b>{UIFabrica.SinRich(r.Carpeta)}</b>");
+            if (r.EnDescargas)
+                cuerpo.Append("\n\nÁbrelo desde la app Archivos (Descargas › Composta) con Excel, Google Sheets o WPS. " +
+                              "Desde ahí puedes compartirlo por WhatsApp, correo o Drive. Los CSV están en «Composta › CSV».");
+            string aviso = Tema.HexDe(Tema.Aviso);
+            foreach (var a in r.Avisos) cuerpo.Append($"\n<color={aviso}>• {a}</color>");
+            if (r.AvisoDescargas != null) cuerpo.Append($"\n<color={aviso}>• {UIFabrica.SinRich(r.AvisoDescargas)}</color>");
+
+            if (Application.isMobilePlatform)
+                Notificador.Dialogo("Exportación lista", cuerpo.ToString(), new OpcionDialogo("Entendido", null, true));
+            else
+                Notificador.Dialogo("Exportación lista", cuerpo.ToString(),
+                    new OpcionDialogo("Abrir carpeta", () => AbrirRuta(r.Carpeta)),
+                    new OpcionDialogo("Cerrar"),
+                    new OpcionDialogo("Abrir en Excel", () => AbrirRuta(r.RutaExcel), true));
+        }
+
+        // Abre un archivo o carpeta con el programa predeterminado del sistema (Excel, Explorador, Finder...)
+        static void AbrirRuta(string ruta)
+        {
+            try { Application.OpenURL(new Uri(ruta).AbsoluteUri); }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Notificador.Mostrar("No se pudo abrir: " + e.Message, TipoMensaje.Error);
+            }
         }
 
         public void CerrarSesion(string motivo)

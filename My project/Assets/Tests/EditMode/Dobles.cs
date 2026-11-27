@@ -33,6 +33,9 @@ namespace Composta.Tests
 
         public string RutaAbsoluta(string clave) => "/memoria/" + clave;
 
+        public readonly Dictionary<string, byte[]> Binarios = new Dictionary<string, byte[]>();
+        public void EscribirBytes(string clave, byte[] datos) => Binarios[clave] = datos ?? new byte[0];
+
         public string MoverAPapelera(string clave, DateTime ahoraUtc)
         {
             if (!Archivos.TryGetValue(clave, out var v)) throw new System.IO.FileNotFoundException("No existe", clave);

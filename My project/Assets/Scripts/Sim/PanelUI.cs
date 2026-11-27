@@ -242,16 +242,7 @@ public class PanelUI : MonoBehaviour
                            (simulador.pausado ? $"  <color={Tema.HexDe(Tema.Aviso)}><b>· EN PAUSA</b></color>" : "");
     }
 
-    public static string NombreEtapa(Etapa e)
-    {
-        switch (e)
-        {
-            case Etapa.Mesofilica: return "Fase mesofílica";
-            case Etapa.Termofilica: return "Fase termofílica (caliente)";
-            case Etapa.Enfriamiento: return "Enfriamiento";
-            default: return "Maduración";
-        }
-    }
+    public static string NombreEtapa(Etapa e) => Composta.Core.Textos.Nombres.Etapa(e);
 
     // Tras reanudar un lote o crear uno nuevo, forzar el redibujado completo
     public void Invalidar() => tickMostrado = -1;

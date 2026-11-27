@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace Composta.App
@@ -21,7 +21,9 @@ namespace Composta.App
             {
                 int sdk;
                 using (var version = new AndroidJavaClass("android.os.Build$VERSION")) sdk = version.GetStatic<int>("SDK_INT");
-                return sdk >= 29 ? GuardarMediaStore(subcarpeta, nombre, tipoMime, datos) : GuardarDirecto(subcarpeta, nombre, datos, out error);
+                bool ok = sdk >= 29 ? GuardarMediaStore(subcarpeta, nombre, tipoMime, datos) : GuardarDirecto(subcarpeta, nombre, datos, out error);
+                if (!ok && string.IsNullOrEmpty(error)) error = "Android no permitió crear el archivo en Descargas.";
+                return ok;
             }
             catch (Exception e)
             {

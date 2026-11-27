@@ -69,7 +69,7 @@ Los permisos se comprueban dos veces: en la UI (botones deshabilitados) y en `Si
 usuarios.json(.bak)                 cuentas: hash PBKDF2-SHA256 (100k iteraciones) + sal; nunca la contraseña
 lotes/{id}.json(.bak)               un archivo por lote: parámetros, semilla, bitácora, aportes, mediciones y auditoría
 papelera/{id}-{fecha}.json(.bak)    lotes eliminados (para recuperar uno, cópialo de vuelta a lotes/{id}.json)
-exportaciones/{id}_{fecha}/*.csv    resumen, aportes, cambios y, según el modo, mediciones o bitácora + historial
+exportaciones/{fecha}_{lote}/       libro {lote}_{fecha}.xlsx + CSV: resumen, aportes, cambios y mediciones o bitácora + historial
 ```
 
 **Cómo se reanuda un lote:** el modelo es determinista (semilla + mismas acciones a la misma hora
@@ -155,3 +155,29 @@ hereda el estilo; cambiar la identidad visual es editar `Tema.cs`.
 - **Integridad**: `EditorLote` (Core, sin Unity) valida y aplica cada cambio; `GestorLotes` guarda y,
   si el guardado falla, devuelve el lote exactamente a su estado anterior (copia profunda previa).
   Indicadores, fase estimada, tendencias y recomendaciones se recalculan siempre desde los datos guardados.
+
+## Exportación a Excel (versión 1.1.2)
+
+«Exportar» genera un **libro de Excel (.xlsx)** y, junto a él, los mismos datos en **CSV**.
+
+- **Por qué .xlsx y no solo CSV:** Excel abre un CSV con el separador de la configuración regional
+  (coma en México, punto y coma en España) y, sin BOM, rompe los acentos. Un .xlsx no depende de la
+  región: los números se guardan como números (cada quien ve su separador decimal), las fechas como
+  fechas reales en hora local del dispositivo y el texto en UTF-8. Abre en Excel, Google Sheets,
+  LibreOffice y WPS (Android).
+- **Hojas:** Resumen (datos del lote, totales, situación y recomendaciones, zona horaria y versión) ·
+  Mediciones (Control Manual) o Bitácora + Historial (Simulación) · Aportes · Cambios (auditoría).
+  Encabezados en español, fila de títulos fija, filtros y ajuste de impresión a una página de ancho.
+- **Hojas sin datos:** llevan una nota visible («Todavía no hay mediciones…») y el aviso aparece
+  también en el mensaje de exportación. Nunca se bloquea exportar un lote vacío.
+- **CSV:** UTF-8 con BOM (acentos correctos en Excel también en PC), separados por comas, fechas en
+  UTC y punto decimal: el formato estable para otros programas. Los valores van en español
+  («Riego», «Café (carbono)», «Fase termofílica (caliente)»).
+- **Dónde quedan:** en PC, `datos/exportaciones/{fecha}_{lote}/` (el aviso ofrece «Abrir en Excel» y
+  «Abrir carpeta»). En Android, el libro en **Descargas › Composta** y los CSV en
+  **Descargas › Composta › CSV › {fecha}_{lote}**.
+- **Nombres de archivo:** sin acentos ni símbolos («Huerto Ñandú» → `huerto-nandu_20261127_103000.xlsx`).
+- **Implementación:** `Core/Exportacion` (sin Unity): `LibroExcel` escribe SpreadsheetML y
+  `ZipSinCompresion` empaqueta sin depender de bibliotecas nativas de compresión (IL2CPP);
+  `ExportadorExcel` arma las hojas; `Core/Textos/Nombres` da los nombres en español que usan
+  pantallas, Excel y CSV.

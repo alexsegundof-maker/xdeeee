@@ -187,7 +187,7 @@ namespace Composta.Core.Lotes
                 Kg = Redondear(kg, 2), Material = material, Nota = ValidadorAporte.LimpiarNota(nota), Usuario = usuario
             };
             l.Aportes.Add(a);
-            Anotar(l, AccionCambio.Creacion, EntidadCambio.Aporte, a.Id, $"Aporte de {Num(a.Kg)} kg ({ValidadorAporte.Nombre(material)})", usuario, ahoraUtc);
+            Anotar(l, AccionCambio.Creacion, EntidadCambio.Aporte, a.Id, $"Aporte de {Num(a.Kg)} kg, material {ValidadorAporte.Nombre(material)}", usuario, ahoraUtc);
             return ResultadoEdicion.Ok(string.Format(C, "Aporte registrado: {0:0.##} kg ({1}).", a.Kg, ValidadorAporte.Nombre(material)), a.Id);
         }
 
@@ -222,7 +222,7 @@ namespace Composta.Core.Lotes
             var a = l.Aportes[i];
             l.Aportes.RemoveAt(i);
             Anotar(l, AccionCambio.Eliminacion, EntidadCambio.Aporte, a.Id,
-                   $"Eliminó el aporte de {Num(a.Kg)} kg ({ValidadorAporte.Nombre(a.Material)}) del {Fecha(a.FechaUtc)}", usuario, ahoraUtc);
+                   $"Eliminó el aporte de {Num(a.Kg)} kg, material {ValidadorAporte.Nombre(a.Material)}, del {Fecha(a.FechaUtc)}", usuario, ahoraUtc);
             return ResultadoEdicion.Ok("Aporte eliminado.", a.Id);
         }
 
