@@ -152,41 +152,120 @@ namespace Composta.Tests
         }
 
         [Test]
-        public void Plan_EstadosSegunCalendario()
+        public void Plan_SinRegistros_AlDia_Pendiente_Atrasado()
         {
             var ahora = new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc);
             var l = Lote.Crear(PerfilComposta.Crear(TipoComposta.PilaAbierta), 1, "x", ahora, ModoLote.Manual);
-            l.RitmoReal = true;
-            Assert.AreEqual(EstadoInforme.AlDia, PlanInformes.Evaluar(l, ahora.AddDays(3), 0).Estado);
-            Assert.AreEqual(EstadoInforme.Pendiente, PlanInformes.Evaluar(l, ahora.AddDays(6.5), 0).Estado);
-            Assert.AreEqual(EstadoInforme.Atrasado, PlanInformes.Evaluar(l, ahora.AddDays(10), 0).Estado);
+            Assert.AreEqual(EstadoInforme.SinRegistros, PlanInformes.Evaluar(l, ahora.AddDays(30)).Estado);
 
-            l.Informes.Add(new InformeCampo { FechaUtc = ahora.AddDays(9).Ticks });
-            Assert.AreEqual(EstadoInforme.AlDia, PlanInformes.Evaluar(l, ahora.AddDays(10), 0).Estado);
-        }
-
-        [Test]
-        public void Plan_EnDemostracionUsaHorasSimuladas()
-        {
-            var l = Lote.Crear(PerfilComposta.Crear(TipoComposta.PilaAbierta), 1, "x", DateTime.UtcNow, ModoLote.Manual);
-            Assert.AreEqual(EstadoInforme.AlDia, PlanInformes.Evaluar(l, DateTime.UtcNow.AddYears(1), 100).Estado);
-            Assert.AreEqual(EstadoInforme.Atrasado, PlanInformes.Evaluar(l, DateTime.UtcNow, 200).Estado);
+            l.Informes.Add(new InformeCampo { FechaUtc = ahora.Ticks });
+            Assert.AreEqual(EstadoInforme.AlDia, PlanInformes.Evaluar(l, ahora.AddDays(3)).Estado);
+            Assert.AreEqual(EstadoInforme.Pendiente, PlanInformes.Evaluar(l, ahora.AddDays(6.5)).Estado);
+            Assert.AreEqual(EstadoInforme.Atrasado, PlanInformes.Evaluar(l, ahora.AddDays(10)).Estado);
         }
 
         [Test]
         public void Validador_ErroresYAdvertencias()
         {
-            var m = new ModeloComposta(PerfilComposta.Crear(TipoComposta.PilaAbierta), 1, true);
+            var perfil = PerfilComposta.Crear(TipoComposta.Domestica);
             var adv = new List<string>();
-            Assert.IsFalse(ValidadorInforme.Validar("abc", "50", "400", m, 500f, out _, out _, out _, out var e1, adv));
+            Assert.IsFalse(ValidadorInforme.Validar("abc", "50", "20", perfil, null, out _, out _, out _, out var e1, adv));
             Assert.IsNotNull(e1);
-            Assert.IsFalse(ValidadorInforme.Validar("50", "120", "400", m, 500f, out _, out _, out _, out _, adv));
-            Assert.IsTrue(ValidadorInforme.Validar("60,5", "55", "480", m, 500f, out var t, out _, out _, out _, adv));
-            Assert.AreEqual(60.5f, t, 1e-4f);
-            Assert.IsTrue(adv.Count > 0);                // 60 °C frente a 22 estimados: pide confirmación
+            Assert.IsFalse(ValidadorInforme.Validar("50", "120", "20", perfil, null, out _, out _, out _, out _, adv));
+
+            Assert.IsTrue(ValidadorInforme.Validar("40,5", "55", "20", perfil, null, out var t, out _, out _, out _, adv));
+            Assert.AreEqual(40.5f, t, 1e-4f);
+            Assert.IsEmpty(adv);                                    // 20 kg en una compostera doméstica es normal
+
+            Assert.IsTrue(ValidadorInforme.Validar("40", "55", "300", perfil, null, out _, out _, out _, out _, adv));
+            Assert.IsTrue(adv.Exists(a => a.StartsWith("PESO EXAGERADO")));
+
             adv.Clear();
-            Assert.IsTrue(ValidadorInforme.Validar("25", "55", "650", m, 500f, out _, out _, out _, out _, adv));
+            var anterior = new InformeCampo { Temperatura = 30, Humedad = 55, PesoKg = 20 };
+            Assert.IsTrue(ValidadorInforme.Validar("31", "55", "25", perfil, anterior, out _, out _, out _, out _, adv));
             Assert.IsTrue(adv.Exists(a => a.Contains("subió")));
+        }
+
+        // ---------------- Pesos realistas ----------------
+        [TestCase(TipoComposta.Domestica, 20f, NivelPeso.Optimo)]
+        [TestCase(TipoComposta.Domestica, 10f, NivelPeso.FueraDeOptimo)]
+        [TestCase(TipoComposta.Domestica, 1f, NivelPeso.Exagerado)]
+        [TestCase(TipoComposta.Domestica, 300f, NivelPeso.Exagerado)]
+        [TestCase(TipoComposta.Vermicomposta, 30f, NivelPeso.Optimo)]
+        [TestCase(TipoComposta.PilaAbierta, 1500f, NivelPeso.FueraDeOptimo)]
+        [TestCase(TipoComposta.Industrial, 200f, NivelPeso.Exagerado)]
+        public void NivelesDePeso(TipoComposta tipo, float kg, NivelPeso esperado)
+            => Assert.AreEqual(esperado, PerfilComposta.Crear(tipo).EvaluarPeso(kg));
+
+        [Test]
+        public void RangosDePeso_SonCoherentes()
+        {
+            foreach (TipoComposta t in Enum.GetValues(typeof(TipoComposta)))
+            {
+                var p = PerfilComposta.Crear(t);
+                Assert.Less(p.ExtremoMin, p.PesoMin, t.ToString());
+                Assert.Less(p.PesoMin, p.PesoMax, t.ToString());
+                Assert.Less(p.PesoMax, p.ExtremoMax, t.ToString());
+                Assert.AreEqual(NivelPeso.Optimo, p.NivelPesoActual, t + ": el peso por defecto debe ser óptimo");
+            }
+        }
+
+        // ---------------- Análisis de registros reales (sin simulación) ----------------
+        static Lote LoteManual(TipoComposta tipo, params (float dia, float t, float h, float kg)[] regs)
+        {
+            var inicio = new DateTime(2026, 3, 1, 9, 0, 0, DateTimeKind.Utc);
+            var l = Lote.Crear(PerfilComposta.Crear(tipo), 1, "x", inicio, ModoLote.Manual);
+            foreach (var (dia, t, h, kg) in regs)
+                l.Informes.Add(new InformeCampo { FechaUtc = inicio.AddDays(dia).Ticks, Temperatura = t, Humedad = h, PesoKg = kg });
+            return l;
+        }
+
+        [Test]
+        public void Analisis_SinRegistros_NoInventaNada()
+        {
+            var e = AnalisisCampo.Analizar(LoteManual(TipoComposta.PilaAbierta));
+            Assert.AreEqual(0, e.Registros);
+            Assert.IsNull(e.Fase);
+            Assert.IsEmpty(e.Recomendaciones);
+        }
+
+        [Test]
+        public void Analisis_FasesSegunRegistros()
+        {
+            Assert.AreEqual(Etapa.Mesofilica, AnalisisCampo.Analizar(LoteManual(TipoComposta.PilaAbierta, (0, 25, 55, 500))).Fase);
+            Assert.AreEqual(Etapa.Termofilica, AnalisisCampo.Analizar(LoteManual(TipoComposta.PilaAbierta, (0, 25, 55, 500), (7, 58, 52, 470))).Fase);
+            Assert.AreEqual(Etapa.Enfriamiento, AnalisisCampo.Analizar(LoteManual(TipoComposta.PilaAbierta,
+                (0, 25, 55, 500), (7, 58, 52, 470), (14, 40, 50, 440))).Fase);
+            Assert.AreEqual(Etapa.Maduracion, AnalisisCampo.Analizar(LoteManual(TipoComposta.PilaAbierta,
+                (0, 25, 55, 500), (7, 58, 52, 470), (14, 40, 50, 440), (21, 30, 48, 400), (28, 26, 47, 398))).Fase);
+        }
+
+        [Test]
+        public void Analisis_TendenciasYRecomendaciones()
+        {
+            var e = AnalisisCampo.Analizar(LoteManual(TipoComposta.PilaAbierta, (0, 25, 55, 500), (7, 50, 25, 450)));
+            Assert.AreEqual(25f, e.DeltaTemp.Value, 1e-4f);
+            Assert.AreEqual(10f, e.PerdidaSemanalPct.Value, 1e-3f);
+            Assert.AreEqual(10f, e.PerdidaPesoTotalPct.Value, 1e-3f);
+            Assert.AreEqual(NivelEstado.Critico, e.NivelHum);                  // 25 % < mínimo crítico (30 %)
+            Assert.IsTrue(e.Recomendaciones.Exists(r => r.Titulo == "Regar"));
+        }
+
+        [Test]
+        public void Analisis_PesoExagerado_GeneraAlertaCritica()
+        {
+            var e = AnalisisCampo.Analizar(LoteManual(TipoComposta.Domestica, (0, 25, 55, 300)));
+            Assert.AreEqual(NivelEstado.Critico, e.NivelPeso);
+            Assert.IsTrue(e.Recomendaciones.Exists(r => r.Titulo == "PESO EXAGERADO"));
+        }
+
+        [Test]
+        public void Analisis_OrdenaPorFecha_AunqueSeGuardenDesordenados()
+        {
+            var l = LoteManual(TipoComposta.PilaAbierta, (7, 58, 52, 470), (0, 25, 55, 500));
+            var e = AnalisisCampo.Analizar(l);
+            Assert.AreEqual(58f, e.Ultimo.Temperatura);
+            Assert.AreEqual(33f, e.DeltaTemp.Value, 1e-4f);
         }
     }
 }

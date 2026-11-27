@@ -41,7 +41,7 @@ namespace Composta.Tests
         {
             Assert.AreEqual(50000f, PerfilComposta.Crear(TipoComposta.PilaAbierta, 50000f, true).PesoKg);
             Assert.AreEqual(0.5f, PerfilComposta.Crear(TipoComposta.Domestica, 0.2f, true).PesoKg);
-            Assert.AreEqual(600f, PerfilComposta.Crear(TipoComposta.PilaAbierta, 50000f, false).PesoKg);   // sin libertad: rango del tipo
+            Assert.AreEqual(1000f, PerfilComposta.Crear(TipoComposta.PilaAbierta, 50000f, false).PesoKg);  // sin libertad: rango recomendado del tipo
         }
 
         [Test]

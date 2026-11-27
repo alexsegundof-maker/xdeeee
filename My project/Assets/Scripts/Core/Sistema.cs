@@ -72,7 +72,7 @@ namespace Composta.Core
                 {
                     Variable = "Perfil",
                     Nivel = Nivel.Aviso,
-                    Mensaje = $"Peso {Perfil.PesoKg:F0} kg fuera del rango de {Perfil.Nombre} ({Perfil.PesoMin:F0}-{Perfil.PesoMax:F0} kg)",
+                    Mensaje = $"Peso {Perfil.PesoKg:F0} kg absurdo para {Perfil.Nombre} (límites {Perfil.ExtremoMin:F0}-{Perfil.ExtremoMax:F0} kg)",
                     Accion = "Cambiar de perfil o ajustar el peso"
                 });
             res.Eventos = Monitor.Actualizar(alertas);

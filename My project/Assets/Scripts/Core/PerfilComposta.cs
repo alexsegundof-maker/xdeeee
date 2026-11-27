@@ -4,6 +4,9 @@ namespace Composta.Core
 {
     public enum TipoComposta { Domestica, Cerrada, PilaAbierta, Industrial, Vermicomposta }
 
+    // Tres niveles de peso: dentro del óptimo, algo fuera (solo un consejo) y absurdo para el recipiente
+    public enum NivelPeso { Optimo, FueraDeOptimo, Exagerado }
+
     // Una "build" de composta: tipo, peso y rangos propios
     public class PerfilComposta
     {
@@ -13,6 +16,9 @@ namespace Composta.Core
         public float PesoMax { get; private set; }
         public float PesoDefecto { get; private set; }
         public float PesoKg { get; private set; }
+        // Límites físicos del recipiente: fuera de ellos el peso es absurdo ("PESO EXAGERADO")
+        public float ExtremoMin { get; private set; }
+        public float ExtremoMax { get; private set; }
 
         public float RelacionCN  = 28f;      // ideal ~25-30
         public float TempAmbiente = 22f;
@@ -21,7 +27,12 @@ namespace Composta.Core
         public float CalorMax = 62f;        // temperatura de la fase caliente en una pila de 500 kg
         public float AmplitudPH = 1f;       // 1 = cambios de pH normales; <1 = más estable
 
-        public bool PesoExagerado => PesoKg < PesoMin || PesoKg > PesoMax;
+        // PesoMin/PesoMax = rango RECOMENDADO (barra verde). "Exagerado" solo fuera de los extremos físicos.
+        public NivelPeso EvaluarPeso(float kg)
+            => kg < ExtremoMin || kg > ExtremoMax ? NivelPeso.Exagerado
+             : kg < PesoMin || kg > PesoMax ? NivelPeso.FueraDeOptimo : NivelPeso.Optimo;
+        public NivelPeso NivelPesoActual => EvaluarPeso(PesoKg);
+        public bool PesoExagerado => NivelPesoActual == NivelPeso.Exagerado;
         public float LitrosPorRiego => 0.08f * PesoKg;   // riego estándar: agua = 8% del peso
 
         readonly float[,] lim = new float[4, 4];    // [magnitud]: avisoMin, avisoMax, criticoMin, criticoMax
@@ -47,32 +58,32 @@ namespace Composta.Core
             {
                 case TipoComposta.Domestica:
                     p.Nombre = "Compostera doméstica";
-                    p.FijarRango(40f, 50f, 45f);
+                    p.FijarRango(15f, 60f, 45f, 3f, 120f);        // bote/compostera de 80-300 L
                     p.FijarLimites(Magnitud.Temperatura, 5f, 50f, 0f, 60f);
                     p.FijarZona(Magnitud.Temperatura, 25f, 45f);
                     break;
 
                 case TipoComposta.Cerrada:
                     p.Nombre = "Compostera cerrada";
-                    p.FijarRango(80f, 150f, 100f);
+                    p.FijarRango(50f, 200f, 100f, 10f, 400f);     // compostera cerrada/rotativa de 200-600 L
                     p.Aislamiento = 1.3f;
                     p.FijarZona(Magnitud.Temperatura, 45f, 60f);
                     break;
 
                 case TipoComposta.PilaAbierta:
                     p.Nombre = "Pila abierta";
-                    p.FijarRango(300f, 600f, 500f);
+                    p.FijarRango(200f, 1000f, 500f, 50f, 3000f);  // ~1 m³ de pila ≈ 500 kg
                     break;
 
                 case TipoComposta.Industrial:
                     p.Nombre = "Hilera industrial";
-                    p.FijarRango(2000f, 10000f, 5000f);
+                    p.FijarRango(2000f, 20000f, 5000f, 500f, 100000f);
                     p.FijarLimites(Magnitud.Temperatura, 10f, 70f, 0f, 75f);
                     break;
 
                 case TipoComposta.Vermicomposta:
                     p.Nombre = "Vermicomposta";
-                    p.FijarRango(5f, 35f, 20f);
+                    p.FijarRango(5f, 50f, 20f, 1f, 150f);          // contenedores de lombricomposta
                     p.CalorMax = 28f;
                     p.AmplitudPH = 0.3f;
                     p.HumedadInicial = 75f;
@@ -119,7 +130,11 @@ namespace Composta.Core
 
         public (float min, float max) ZonaIdeal(Magnitud m) => (zona[(int)m, 0], zona[(int)m, 1]);
 
-        void FijarRango(float min, float max, float defecto) { PesoMin = min; PesoMax = max; PesoDefecto = defecto; }
+        void FijarRango(float min, float max, float defecto, float extremoMin, float extremoMax)
+        {
+            PesoMin = min; PesoMax = max; PesoDefecto = defecto;
+            ExtremoMin = extremoMin; ExtremoMax = extremoMax;
+        }
 
         void FijarLimites(Magnitud m, float aMin, float aMax, float cMin, float cMax)
         {

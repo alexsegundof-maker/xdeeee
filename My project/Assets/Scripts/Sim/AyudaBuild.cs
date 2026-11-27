@@ -5,40 +5,52 @@
 public static class AyudaBuild
 {
     public static string Tipo(PerfilComposta perfil)
-        => $"{Descripcion(perfil.Tipo)} Rango recomendado: {perfil.PesoMin:F0}-{perfil.PesoMax:F0} kg.";
+        => $"{Descripcion(perfil.Tipo)} Rango recomendado: {perfil.PesoMin:0.#}-{perfil.PesoMax:0.#} kg. " +
+           $"Fuera de {perfil.ExtremoMin:0.#}-{perfil.ExtremoMax:0.#} kg el peso se considera exagerado para este recipiente.";
 
     static string Descripcion(TipoComposta t)
     {
         switch (t)
         {
-            case TipoComposta.Domestica: return "Un bote en casa.";
-            case TipoComposta.Cerrada: return "Recipiente con tapa, retiene más calor.";
-            case TipoComposta.PilaAbierta: return "Montón al aire libre.";
-            case TipoComposta.Industrial: return "Planta grande.";
+            case TipoComposta.Domestica: return "Un bote en casa (80-300 L).";
+            case TipoComposta.Cerrada: return "Recipiente con tapa o rotativo, retiene más calor.";
+            case TipoComposta.PilaAbierta: return "Montón al aire libre (~1 m³ ≈ 500 kg).";
+            case TipoComposta.Industrial: return "Hilera de planta de compostaje.";
             default: return "Con lombrices. Se mantiene fría (máx. ~28 °C) y más húmeda.";
         }
     }
 
+    public static string Monograma(TipoComposta t)
+    {
+        switch (t)
+        {
+            case TipoComposta.Domestica: return "CD";
+            case TipoComposta.Cerrada: return "CC";
+            case TipoComposta.PilaAbierta: return "PA";
+            case TipoComposta.Industrial: return "HI";
+            default: return "VC";
+        }
+    }
+
     public const string Modo =
-        "Simular: modo guiado. Rangos recomendados, el aviso PESO EXAGERADO bloquea el inicio y el control automático " +
-        "voltea y riega por ti.\n\nManual: variables libres para experimentar (valores fuera de rango, escritos a mano). " +
-        "Los avisos solo informan, el control automático empieza apagado y no hay sensores físicos: cada semana registras " +
-        "temperatura, humedad y peso medidos a mano, y el simulador se recalibra con esos datos. " +
-        "En ambos modos el simulador calcula temperatura, humedad y fases en tiempo real.";
+        "Simulación: el motor calcula hora a hora temperatura, humedad, oxígeno, pH y fases a partir de los parámetros. " +
+        "Rangos guiados; un peso exagerado bloquea el inicio.\n\n" +
+        "Control manual: SIN simulación. El tablero empieza vacío (\"Esperando primer registro\") y muestra solo lo que " +
+        "midas en la pila: temperatura, humedad y peso, una vez por semana. Fase y recomendaciones se deducen de tus datos.";
 
     public const string Resumen =
-        "Indica qué pasará con la configuración actual. Si dice 'No alcanza fase caliente (máx. ~28 °C)', " +
-        "significa que con ese peso no se calentará lo suficiente (necesita llegar a ~45 °C para matar patógenos y semillas).";
+        "Indica qué pasará con la configuración actual. Si dice 'no alcanza fase caliente', con ese peso la pila no llegará " +
+        "a ~45 °C, la temperatura necesaria para eliminar patógenos y semillas.";
 
     public const string PesoExagerado =
-        "Aparece cuando el peso está fuera del rango recomendado del tipo seleccionado (por arriba o por abajo). " +
-        "Muévelo dentro de la barra verde del control de Peso para que desaparezca y alcance la fase caliente.";
+        "Aparece solo cuando el peso es físicamente absurdo para el tipo de recipiente (por ejemplo 300 kg en una compostera " +
+        "doméstica). Si el peso está algo fuera del rango ideal verás un consejo, pero no un bloqueo.";
 
-    // Mismo orden que PanelBuild.Etiquetas: Peso, Relación C/N, Humedad inicial, Aislamiento, Temp. ambiente
+    // Mismo orden que los parámetros: Peso, Relación C/N, Humedad inicial, Aislamiento, Temp. ambiente
     public static readonly string[] Parametros =
     {
-        "Kilos de residuos en el lote. La barra verde marca el rango recomendado. " +
-        "Efecto: Más masa = se calienta más y se seca menos; una pila chica pierde calor.",
+        "Kilos de residuos en el lote. Verde = rango recomendado; ámbar = funciona pero no es ideal; gris = exagerado para " +
+        "este recipiente. Más masa = se calienta más y se seca menos; una pila chica pierde calor.",
 
         "Carbono (hojas secas, cartón) vs. nitrógeno (restos de comida, pasto). Ideal: 25-30:1 (barra verde). " +
         "Con poco carbono es más activa y huele a amoníaco; con mucho carbono es lenta.",
@@ -51,35 +63,27 @@ public static class AyudaBuild
         "Temperatura del lugar. La composta parte de esta temperatura y nunca baja de ella."
     };
 
-    // ---- Modo Manual: preguntas fáciles en lugar de parámetros difíciles de medir ----
-    public static readonly string[] EtiquetasSimples = { "Peso", "Material predominante", "Humedad inicial", "¿Tapada o cubierta?", "Temp. ambiente" };
+    // ---- Control manual: preguntas fáciles en lugar de parámetros difíciles de medir ----
+    public static (string texto, float valor)[] OpcionesMaterial()
+        => new[] { ("Restos de cocina", 18f), ("Mezcla", 28f), ("Hojas secas / cartón", 40f) };
 
-    public static (string texto, float valor)[] OpcionesSimples(int parametro)
-    {
-        if (parametro == 1)   // relación C/N equivalente
-            return new[] { ("Restos de cocina", 18f), ("Mezcla", 28f), ("Hojas secas / cartón", 40f) };
-        return new[] { ("Sí, tapada o cubierta", 1.3f), ("No, al aire libre", 1f) };   // aislamiento equivalente
-    }
+    public static (string texto, float valor)[] OpcionesTapada()
+        => new[] { ("Sí, tapada o cubierta", 1.3f), ("No, al aire libre", 1f) };
 
-    public static readonly string[] AyudaSimple =
-    {
-        "", 
-        "Elige lo que más abunda. Restos de cocina = mucho nitrógeno (C/N ~18, más activa); hojas secas o cartón = mucho carbono " +
-        "(C/N ~40, más lenta); mezcla = equilibrio (C/N ~28). Es solo un punto de partida: los informes semanales lo corrigen.",
-        "",
-        "Si la pila está en un contenedor con tapa o cubierta con lona, retiene más calor y se seca menos. " +
-        "Es solo un punto de partida: los informes semanales lo corrigen.",
-        ""
-    };
+    public const string AyudaMaterial =
+        "Elige lo que más abunda. Se usa para interpretar tus mediciones (por ejemplo, si la pila no se calienta, " +
+        "te sugerirá agregar material verde). No hace falta conocer la relación C/N.";
 
-    public const string Ritmo =
-        "Calendario real: la simulación avanza al ritmo del reloj (1 hora simulada = 1 hora real) y el informe semanal " +
-        "se pide cada 7 días de calendario. Úsalo con una pila real.\n\nDemostración: el tiempo va acelerado y cada semana " +
-        "simulada la simulación se pausa para pedir el informe. Útil para probar o enseñar.";
+    public const string AyudaTapada =
+        "Una pila tapada o cubierta retiene calor y humedad. Se usa para interpretar tus mediciones.";
 
     public const string Cancelar =
-        "Cierra esta ventana sin cambiar nada. Solo aparece si ya tienes una composta en curso.";
+        "Cierra esta ventana sin cambiar nada. Solo aparece si ya tienes un lote en curso.";
 
-    public const string Iniciar =
-        "Crea un lote nuevo que queda guardado y se reanuda al volver a entrar. Si había otro lote activo, se archiva automáticamente.";
+    public const string IniciarSimulacion =
+        "Crea un lote de simulación que queda guardado y se reanuda al volver a entrar. Si había otro lote activo, se archiva.";
+
+    public const string IniciarManual =
+        "Crea un lote de control manual vacío (sin simulación). Después registra la primera medición desde el tablero. " +
+        "Si había otro lote activo, se archiva.";
 }

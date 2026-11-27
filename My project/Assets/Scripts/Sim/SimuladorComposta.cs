@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Composta.App;
 using Composta.Core;
-using Composta.Core.Campo;
 using Composta.Core.Lotes;
 using Composta.Core.Seguridad;
 
@@ -30,10 +29,11 @@ public class SimuladorComposta : MonoBehaviour
     [Header("Modo del lote")]
     [Tooltip("Simular = guiado con rangos recomendados; Manual = variables libres. Lo fija la ventana Nueva composta.")]
     public ModoLote modo = ModoLote.Simular;
-    [Tooltip("Solo lotes Manual: 1 hora simulada = 1 hora de calendario (los informes semanales son reales)")]
-    public bool ritmoReal;
-    public DateTime inicioRitmoUtc;            // inicio del lote (lo fija GestorLotes)
-    const int MaxTicksPorFramePonerseAlDia = 2000;
+
+    // El motor solo corre con un lote de SIMULACIÓN. Con un lote de Control Manual queda detenido:
+    // no se generan horas, curvas ni valores sintéticos.
+    public bool MotorActivo { get; private set; } = true;
+    public void DetenerMotor() { MotorActivo = false; Ultimo = null; }
 
     [Header("Control y sensores")]
     public bool modoAutomatico = false;
@@ -96,7 +96,9 @@ public class SimuladorComposta : MonoBehaviour
     public void Reiniciar()
     {
         if (!Autorizado(Permiso.CrearLote, "crear una composta nueva")) return;
-        Sistema = new SistemaComposta(ConstruirPerfil(), semilla, modo == ModoLote.Manual);
+        modo = ModoLote.Simular;                  // el simulador solo crea lotes de simulación
+        MotorActivo = true;
+        Sistema = new SistemaComposta(ConstruirPerfil(), semilla);
         Ultimo = null;
         acumulado = 0f;
         AplicarAjustes();
@@ -110,6 +112,7 @@ public class SimuladorComposta : MonoBehaviour
     public void CargarSistema(SistemaComposta sistema, ResultadoPaso ultimo, int semillaLote)
     {
         Sistema = sistema ?? throw new ArgumentNullException(nameof(sistema));
+        MotorActivo = true;
         Ultimo = ultimo;
         acumulado = 0f;
         semilla = semillaLote;
@@ -143,20 +146,12 @@ public class SimuladorComposta : MonoBehaviour
 
     void Update()
     {
-        if (Sistema == null) return;
+        if (Sistema == null || !MotorActivo) return;
         if (!SesionPermiteSimular) return;
         if (GuardiaEntrada.AtajosPermitidos) LeerTeclas();
         SincronizarAjustes();
         if (pausado) return;
 
-        // Ritmo real: la simulación va al paso del calendario y, al abrir la app, se pone al día
-        if (ritmoReal)
-        {
-            if (inicioRitmoUtc.Ticks == 0) inicioRitmoUtc = DateTime.UtcNow.AddHours(-Modelo.Ticks);   // defensa: sin fecha de inicio
-            int objetivo = (int)Math.Min(ReproductorLote.MaxTicks, Math.Floor((DateTime.UtcNow - inicioRitmoUtc).TotalHours));
-            for (int k = 0; Modelo.Ticks < objetivo && k < MaxTicksPorFramePonerseAlDia; k++) Paso();
-            return;
-        }
 
         if (horasPorSegundo <= 0f) return;      // configuración inválida: evita división por cero
 
@@ -298,21 +293,10 @@ public class SimuladorComposta : MonoBehaviour
         return true;
     }
 
-    // Informe semanal de campo: recalibra el modelo y queda en la bitácora (se reaplica al reanudar)
-    public ResultadoCalibracion AplicarInforme(InformeCampo informe, int indice)
-    {
-        if (!Autorizado(Permiso.RegistrarInformes, "registrar informes de campo")) return null;
-        if (Sistema.Calibracion == null) { Informar("Los informes de campo son para lotes en modo Manual.", TipoMensaje.Info); return null; }
-        var r = Sistema.Calibracion.Aplicar(informe);
-        AlComando?.Invoke(TipoComando.Informe, indice);
-        return r;
-    }
-
     public void AlternarPausa() => pausado = !pausado;
 
     public void CambiarVelocidad()
     {
-        if (ritmoReal) { Informar("En ritmo de calendario real la velocidad no se puede cambiar.", TipoMensaje.Info); return; }
         if (velocidades == null || velocidades.Length == 0) return;
         idxVel = (idxVel + 1) % velocidades.Length;
     }
@@ -327,7 +311,6 @@ public class SimuladorComposta : MonoBehaviour
     public void InyectarFalla()
     {
         if (!Autorizado(Permiso.InyectarFallas, "inyectar fallas de prueba")) return;
-        if (Sistema.SinSensores) { Informar("Este lote no tiene sensores físicos conectados.", TipoMensaje.Info); return; }
         Informar(Sistema.Sensores.InyectarAleatoria(), TipoMensaje.Aviso);
         AlComando?.Invoke(TipoComando.InyectarFalla, 0f);
     }
@@ -335,7 +318,6 @@ public class SimuladorComposta : MonoBehaviour
     public void RepararSensores()
     {
         if (!Autorizado(Permiso.RepararSensores, "recalibrar sensores")) return;
-        if (Sistema.SinSensores) { Informar("Este lote no tiene sensores físicos conectados.", TipoMensaje.Info); return; }
         Sistema.Sensores.RepararTodo();
         Informar("Sensores recalibrados", TipoMensaje.Exito);
         AlComando?.Invoke(TipoComando.RepararSensores, 0f);

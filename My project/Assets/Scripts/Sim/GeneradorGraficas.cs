@@ -68,20 +68,8 @@ public class GeneradorGraficas : MonoBehaviour
         {
             var serie = Agregador.Construir(simulador.Historial.Lecturas, Todas[i], granularidad);
             // Reutiliza la textura: antes se creaba y destruía una de 640x320 cuatro veces cada 12 horas simuladas
-            texturas[i] = DibujanteGrafica.Dibujar(serie, ancho, alto, simulador.Sistema.Perfil.ZonaIdeal(Todas[i]), texturas[i],
-                                                   MarcasDeInformes(Todas[i]));
+            texturas[i] = DibujanteGrafica.Dibujar(serie, ancho, alto, simulador.Sistema.Perfil.ZonaIdeal(Todas[i]), texturas[i]);
         }
-    }
-
-    // Puntos medidos a mano (informes semanales): solo temperatura y humedad se miden en campo
-    System.Collections.Generic.List<(float x, float v)> MarcasDeInformes(Magnitud m)
-    {
-        var cal = simulador.Sistema.Calibracion;
-        if (cal == null || cal.CantidadInformes == 0 || (m != Magnitud.Temperatura && m != Magnitud.Humedad)) return null;
-        var lista = new System.Collections.Generic.List<(float, float)>();
-        foreach (var inf in cal.Aplicados)
-            lista.Add((inf.Tick / 24f, m == Magnitud.Temperatura ? inf.Temperatura : inf.Humedad));
-        return lista;
     }
 
     // La UI usará esto para pintar cada gráfica en un RawImage

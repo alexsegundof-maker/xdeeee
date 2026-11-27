@@ -34,10 +34,9 @@ namespace Composta.App
         PanelSesion barra;
         PanelAportes aportes;
         PanelUsuarios usuarios;
-        PanelAjustesManuales ajustes;
-        PanelCampo campo;
-        PanelInformeSemanal informe;
-        float proximoRefrescoCampo;
+        TableroManual tableroManual;           // vista del modo Control Manual (sin simulación)
+        PanelRegistroCampo registro;           // formulario de medición de campo
+        float proximoRefrescoManual;
 
         Usuario pendienteDeCambio;
         float ultimaActividad;
@@ -62,10 +61,12 @@ namespace Composta.App
             barra = gameObject.AddComponent<PanelSesion>();
             aportes = gameObject.AddComponent<PanelAportes>();
             usuarios = gameObject.AddComponent<PanelUsuarios>();
-            ajustes = gameObject.AddComponent<PanelAjustesManuales>();
-            campo = gameObject.AddComponent<PanelCampo>();
-            informe = gameObject.AddComponent<PanelInformeSemanal>();
-            campo.PedirInforme += AbrirInforme;
+            tableroManual = gameObject.AddComponent<TableroManual>();
+            registro = gameObject.AddComponent<PanelRegistroCampo>();
+            tableroManual.PedirRegistro += AbrirRegistro;
+            tableroManual.PedirAportes += AbrirAportes;
+            tableroManual.PedirExportar += Exportar;
+            registro.AlRegistrar += () => proximoRefrescoManual = 0f;
 
             login.EnviarLogin += AlEnviarLogin;
             login.EnviarConfiguracion += AlEnviarConfiguracion;
@@ -123,17 +124,14 @@ namespace Composta.App
 
             lotes?.Dispose();
             lotes = new GestorLotes(sim, svc);
-            lotes.AlCambiarLote += l =>
+            lotes.AlCambiarLote += _ => ActualizarVista();
+            lotes.AlCambiarRegistros += _ => proximoRefrescoManual = 0f;
+
+            if (panelBuild != null)
             {
-                if (panelUI != null) panelUI.HabilitarAjustes(l != null && l.Modo == ModoLote.Manual);
-                ActualizarFranjaCampo();
-            };
-            lotes.AlCambiarInformes += _ => proximoRefrescoCampo = 0f;
-            lotes.AlInformeRequerido += () =>
-            {
-                Notificador.Mostrar("Se cumplió la semana simulada: registra el informe de campo para continuar.", TipoMensaje.Aviso);
-                AbrirInforme();
-            };
+                panelBuild.PedirLoteManual -= CrearLoteManual;
+                panelBuild.PedirLoteManual += CrearLoteManual;
+            }
 
             if (panelUI != null)
             {
@@ -141,8 +139,6 @@ namespace Composta.App
                 panelUI.PedirAportes += AbrirAportes;
                 panelUI.PedirExportar -= Exportar;
                 panelUI.PedirExportar += Exportar;
-                panelUI.PedirAjustes -= AbrirAjustes;
-                panelUI.PedirAjustes += AbrirAjustes;
             }
         }
 
@@ -260,8 +256,8 @@ namespace Composta.App
             if (lotes.LoteActual != null)
             {
                 sim.pausado = pausaAlSalir;
-                ActualizarFranjaCampo();
-                AvisarInformeSiCorresponde();
+                ActualizarVista();
+                AvisarRegistroSiCorresponde();
                 return;
             }
 
@@ -276,7 +272,10 @@ namespace Composta.App
             if (ultimo != null)
             {
                 string cuerpo = $"<b>{UIFabrica.SinRich(ultimo.Nombre)}</b>\n" +
-                                $"Día simulado {ultimo.DiasSimulados:F1} · {ultimo.Aportes.Count} aportes ({ultimo.TotalAportadoKg:0.#} kg)\n" +
+                                (ultimo.Modo == ModoLote.Manual
+                                    ? $"Control manual · {ultimo.Informes.Count} mediciones registradas"
+                                    : $"Simulación · día simulado {ultimo.DiasSimulados:F1}") +
+                                $" · {ultimo.Aportes.Count} aportes ({ultimo.TotalAportadoKg:0.#} kg)\n" +
                                 $"Creado por {ultimo.CreadoPor}";
                 if (puedeCrear)
                     Notificador.Dialogo("Lote en curso", cuerpo,
@@ -316,8 +315,9 @@ namespace Composta.App
             if (lotes.Reanudar(lote, out string error))
             {
                 sim.pausado = false;
-                Notificador.Mostrar($"Lote reanudado en el día {lote.DiasSimulados:F1}.", TipoMensaje.Exito);
-                AvisarInformeSiCorresponde();
+                Notificador.Mostrar(lote.Modo == ModoLote.Manual ? "Lote de control manual abierto."
+                                                                 : $"Simulación reanudada en el día {lote.DiasSimulados:F1}.", TipoMensaje.Exito);
+                AvisarRegistroSiCorresponde();
             }
             else
             {
@@ -326,54 +326,58 @@ namespace Composta.App
             }
         }
 
-        // ---------------- Modo Manual: sensores no conectados e informe semanal ----------------
-        void ActualizarFranjaCampo()
+        // ---------------- Vistas: Simulación y Control Manual nunca se mezclan ----------------
+        void ActualizarVista()
         {
-            bool visible = svc != null && svc.Sesion.Activa && lotes != null && lotes.EsLoteDeCampo;
-            campo.Mostrar(visible);
-            if (panelUI != null) panelUI.ReservarFranjaAviso(visible);
-            proximoRefrescoCampo = 0f;
+            bool sesion = svc != null && svc.Sesion.Activa;
+            bool manual = sesion && lotes != null && lotes.EsLoteManual;
+            if (panelUI != null) panelUI.MostrarTablero(sesion && !manual);
+            if (panelBuild != null) panelBuild.MostrarHud(sesion);
+            tableroManual.Mostrar(manual);
+            proximoRefrescoManual = 0f;
         }
 
-        void AvisarInformeSiCorresponde()
+        void CrearLoteManual(PerfilComposta perfil)
         {
-            if (lotes == null || !lotes.EsLoteDeCampo) return;
+            if (lotes == null) return;
+            if (lotes.CrearLoteManual(perfil, out string error))
+            {
+                if (panelBuild != null) panelBuild.Ocultar();
+            }
+            else Notificador.Mostrar("No se pudo crear el lote: " + error, TipoMensaje.Error);
+        }
+
+        void AvisarRegistroSiCorresponde()
+        {
+            if (lotes == null || !lotes.EsLoteManual) return;
             var s = lotes.Situacion();
             if (s.Estado == EstadoInforme.AlDia) return;
-            Notificador.Mostrar(s.Texto(), s.Estado == EstadoInforme.Atrasado ? TipoMensaje.Error : TipoMensaje.Aviso);
+            var tipo = s.Estado == EstadoInforme.Atrasado ? TipoMensaje.Error : TipoMensaje.Aviso;
+            Notificador.Mostrar(s.Estado == EstadoInforme.SinRegistros ? "Este lote espera su primera medición." : s.Texto(), tipo);
         }
 
-        void AbrirInforme()
+        void AbrirRegistro()
         {
             if (svc == null || !svc.Sesion.Activa || lotes == null) return;
-            if (!lotes.EsLoteDeCampo)
+            if (!lotes.EsLoteManual)
             {
-                Notificador.Mostrar("El informe semanal es para lotes en modo Manual.", TipoMensaje.Info);
+                Notificador.Mostrar("Las mediciones de campo son para lotes de Control Manual.", TipoMensaje.Info);
                 return;
             }
             if (!svc.Sesion.Puede(Permiso.RegistrarInformes))
             {
-                Notificador.Mostrar("Tu rol solo permite consultar. Pide a una persona de Operación que registre el informe.", TipoMensaje.Info);
+                Notificador.Mostrar("Tu rol solo permite consultar. Pide a una persona de Operación que registre la medición.", TipoMensaje.Info);
                 return;
             }
-            informe.Abrir(lotes);
+            registro.Abrir(lotes);
         }
 
         void MostrarEspacioDeTrabajo(bool visible)
         {
-            if (panelUI != null) panelUI.MostrarTablero(visible);
-            if (panelBuild != null) panelBuild.MostrarHud(visible);
-        }
-
-        void AbrirAjustes()
-        {
-            if (!svc.Sesion.Puede(Permiso.OperarComposta)) return;
-            if (lotes.LoteActual == null || lotes.LoteActual.Modo != ModoLote.Manual)
-            {
-                Notificador.Mostrar("Los ajustes manuales están disponibles en lotes creados en modo Manual.", TipoMensaje.Info);
-                return;
-            }
-            ajustes.Abrir(sim);
+            if (visible) { ActualizarVista(); return; }
+            if (panelUI != null) panelUI.MostrarTablero(false);
+            if (panelBuild != null) panelBuild.MostrarHud(false);
+            tableroManual.Mostrar(false);
         }
 
         void AbrirAportes()
@@ -402,9 +406,7 @@ namespace Composta.App
             if (panelBuild != null) panelBuild.Ocultar();
             aportes.Cerrar();
             usuarios.Cerrar();
-            ajustes.Cerrar();
-            informe.Cerrar();
-            campo.Mostrar(false);
+            registro.Cerrar();
             MostrarEspacioDeTrabajo(false);
             Notificador.CerrarDialogos();
             svc.Sesion.Cerrar();
@@ -416,10 +418,11 @@ namespace Composta.App
         void Update()
         {
             if (svc == null || !svc.Sesion.Activa) return;
-            if (campo.Visible && Time.unscaledTime >= proximoRefrescoCampo)
+            // El tablero manual se redibuja al cambiar los datos y cada 30 s (el estado "atrasado" depende del reloj)
+            if (tableroManual.Visible && Time.unscaledTime >= proximoRefrescoManual)
             {
-                proximoRefrescoCampo = Time.unscaledTime + 1f;
-                campo.Actualizar(lotes, svc.Sesion.Puede(Permiso.RegistrarInformes));
+                proximoRefrescoManual = Time.unscaledTime + 30f;
+                tableroManual.Refrescar(lotes, svc.Sesion.Puede(Permiso.RegistrarInformes));
             }
             if (HuboActividad()) ultimaActividad = Time.unscaledTime;
             if (minutosInactividad > 0f && Time.unscaledTime - ultimaActividad > minutosInactividad * 60f)

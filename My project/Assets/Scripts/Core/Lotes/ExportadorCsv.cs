@@ -49,6 +49,20 @@ namespace Composta.Core.Lotes
             return sb.ToString();
         }
 
+        // Control Manual: mediciones reales registradas a mano
+        public static string Mediciones(Lote l)
+        {
+            var sb = new StringBuilder("fecha_utc,temperatura_c,humedad_pct,peso_kg,usuario,nota\n");
+            foreach (var r in Composta.Core.Campo.AnalisisCampo.Ordenados(l))
+                sb.Append(Fecha(r.FechaUtc)).Append(',')
+                  .Append(r.Temperatura.ToString("F1", C)).Append(',')
+                  .Append(r.Humedad.ToString("F1", C)).Append(',')
+                  .Append(r.PesoKg.ToString("F2", C)).Append(',')
+                  .Append(Campo(r.Usuario)).Append(',')
+                  .Append(Campo(r.Nota)).Append('\n');
+            return sb.ToString();
+        }
+
         public static string Resumen(Lote l)
         {
             var sb = new StringBuilder("campo,valor\n");

@@ -5,63 +5,51 @@ using Composta.Core.Lotes;
 
 namespace Composta.Core.Campo
 {
-    public enum EstadoInforme { AlDia, Pendiente, Atrasado }
+    public enum EstadoInforme { SinRegistros, AlDia, Pendiente, Atrasado }
 
     public readonly struct SituacionInforme
     {
         public readonly EstadoInforme Estado;
         public readonly double HorasRestantes;     // negativo = atraso
-        public readonly bool RitmoReal;
-        public readonly int Informes;
+        public readonly int Registros;
 
-        public SituacionInforme(EstadoInforme estado, double horasRestantes, bool ritmoReal, int informes)
-        { Estado = estado; HorasRestantes = horasRestantes; RitmoReal = ritmoReal; Informes = informes; }
+        public SituacionInforme(EstadoInforme estado, double horasRestantes, int registros)
+        { Estado = estado; HorasRestantes = horasRestantes; Registros = registros; }
 
         public string Texto()
         {
             var c = CultureInfo.InvariantCulture;
-            string unidad = RitmoReal ? "" : " simuladas";
             double h = Math.Abs(HorasRestantes);
-            string tiempo = h >= 48 ? string.Format(c, "{0:F0} días{1}", h / 24, unidad) : string.Format(c, "{0:F0} h{1}", h, unidad);
+            string tiempo = h >= 48 ? string.Format(c, "{0:F0} días", h / 24) : string.Format(c, "{0:F0} h", h);
             switch (Estado)
             {
-                case EstadoInforme.Atrasado:
-                    return $"Informe semanal atrasado {tiempo} · valores estimados con baja confianza";
-                case EstadoInforme.Pendiente:
-                    return $"Informe semanal pendiente · vence en {tiempo}";
-                default:
-                    return Informes == 0 ? $"Primer informe en {tiempo}" : $"Informe al día · próximo en {tiempo}";
+                case EstadoInforme.SinRegistros: return "Esperando primer registro";
+                case EstadoInforme.Atrasado: return $"Medición semanal atrasada {tiempo}";
+                case EstadoInforme.Pendiente: return $"Medición semanal pendiente · vence en {tiempo}";
+                default: return $"Registros al día · próxima medición en {tiempo}";
             }
         }
     }
 
-    // Cuándo toca el siguiente informe. Con ritmo real cuenta el calendario; en demostración, horas simuladas.
+    // Calendario de mediciones de un lote de Control Manual: una cada 7 días de calendario real.
+    // No hay simulación: el reloj es el del mundo real.
     public static class PlanInformes
     {
-        public const int HorasPeriodo = 168;     // una semana
+        public const int HorasPeriodo = 168;
         public const int HorasAvisoPrevio = 24;
 
-        public static SituacionInforme Evaluar(Lote l, DateTime ahoraUtc, int tickActual)
+        public static SituacionInforme Evaluar(Lote l, DateTime ahoraUtc)
         {
             int n = l?.Informes?.Count ?? 0;
-            if (l == null || l.Modo != ModoLote.Manual) return new SituacionInforme(EstadoInforme.AlDia, HorasPeriodo, false, n);
+            if (l == null || l.Modo != ModoLote.Manual) return new SituacionInforme(EstadoInforme.AlDia, HorasPeriodo, n);
+            if (n == 0) return new SituacionInforme(EstadoInforme.SinRegistros, 0, 0);
 
-            double transcurridas;
-            if (l.RitmoReal)
-            {
-                long ultimo = n > 0 ? l.Informes[n - 1].FechaUtc : l.CreadoUtc;
-                transcurridas = (ahoraUtc - new DateTime(ultimo, DateTimeKind.Utc)).TotalHours;
-            }
-            else
-            {
-                int ultimoTick = n > 0 ? l.Informes[n - 1].Tick : 0;
-                transcurridas = tickActual - ultimoTick;
-            }
-
-            double restantes = HorasPeriodo - transcurridas;
+            long ultimo = 0;
+            foreach (var r in l.Informes) if (r.FechaUtc > ultimo) ultimo = r.FechaUtc;
+            double restantes = HorasPeriodo - (ahoraUtc - new DateTime(ultimo, DateTimeKind.Utc)).TotalHours;
             var estado = restantes < 0 ? EstadoInforme.Atrasado
                        : restantes <= HorasAvisoPrevio ? EstadoInforme.Pendiente : EstadoInforme.AlDia;
-            return new SituacionInforme(estado, restantes, l.RitmoReal, n);
+            return new SituacionInforme(estado, restantes, n);
         }
     }
 
@@ -69,8 +57,8 @@ namespace Composta.Core.Campo
     {
         public const float TempMin = -10f, TempMax = 85f;
 
-        // Errores bloquean; advertencias solo piden confirmación (un dato raro puede ser real)
-        public static bool Validar(string temp, string hum, string peso, ModeloComposta estimado, float masaUltimoInforme,
+        // Errores bloquean; advertencias piden confirmación (un dato raro puede ser real)
+        public static bool Validar(string temp, string hum, string peso, PerfilComposta perfil, InformeCampo anterior,
                                    out float t, out float h, out float p, out string error, List<string> advertencias)
         {
             t = h = p = 0f; error = null;
@@ -82,19 +70,23 @@ namespace Composta.Core.Campo
             if (!RangosParametros.IntentarLeer(peso, out p) || !rp.Contiene(p))
             { error = $"Peso: escribe un número entre {rp.Min} y {rp.Max:F0} kg."; return false; }
 
-            if (advertencias != null && estimado != null)
+            if (advertencias == null) return true;
+            var c = CultureInfo.InvariantCulture;
+            if (perfil != null && perfil.EvaluarPeso(p) == NivelPeso.Exagerado)
+                advertencias.Add(string.Format(c, "PESO EXAGERADO: {0:0.#} kg es absurdo para {1} (límites físicos {2:0.#}–{3:0.#} kg).",
+                                               p, perfil.Nombre, perfil.ExtremoMin, perfil.ExtremoMax));
+            if (perfil != null && perfil.Tipo == TipoComposta.Vermicomposta && t > 35f)
+                advertencias.Add("Más de 35 °C es letal para las lombrices. ¿La medición es correcta?");
+            if (anterior != null)
             {
-                var c = CultureInfo.InvariantCulture;
-                if (Math.Abs(t - estimado.Temperatura) > 25f)
-                    advertencias.Add(string.Format(c, "La temperatura difiere {0:F0} °C de lo estimado ({1:F0} °C).", Math.Abs(t - estimado.Temperatura), estimado.Temperatura));
-                if (t > estimado.TempMax)
-                    advertencias.Add(string.Format(c, "{0:F0} °C supera el máximo que maneja el modelo ({1:F0} °C); se usará ese máximo.", t, estimado.TempMax));
-                if (Math.Abs(h - estimado.Humedad) > 30f)
-                    advertencias.Add(string.Format(c, "La humedad difiere {0:F0} puntos de lo estimado ({1:F0} %).", Math.Abs(h - estimado.Humedad), estimado.Humedad));
-                if (masaUltimoInforme > 0f && p > masaUltimoInforme * 1.15f)
-                    advertencias.Add("El peso subió más de 15 % desde el último informe. Si agregaste material, regístralo también como aporte.");
-                if (masaUltimoInforme > 0f && p < masaUltimoInforme * 0.6f)
-                    advertencias.Add("El peso bajó más de 40 % desde el último informe. ¿Se retiró material de la pila?");
+                if (Math.Abs(t - anterior.Temperatura) > 30f)
+                    advertencias.Add(string.Format(c, "La temperatura cambió {0:F0} °C desde el registro anterior.", Math.Abs(t - anterior.Temperatura)));
+                if (Math.Abs(h - anterior.Humedad) > 35f)
+                    advertencias.Add(string.Format(c, "La humedad cambió {0:F0} puntos desde el registro anterior.", Math.Abs(h - anterior.Humedad)));
+                if (p > anterior.PesoKg * 1.15f)
+                    advertencias.Add("El peso subió más de 15 %. Si agregaste material, regístralo también como aporte.");
+                if (p < anterior.PesoKg * 0.6f)
+                    advertencias.Add("El peso bajó más de 40 % desde el registro anterior. ¿Se retiró material de la pila?");
             }
             return true;
         }

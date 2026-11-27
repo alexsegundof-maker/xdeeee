@@ -8,8 +8,11 @@ using UnityEngine;
 
 namespace Composta.App
 {
-    // Une el simulador con la persistencia: crea el lote al iniciar una composta, anota en la
-    // bitácora cada acción humana (con usuario y hora), guarda automáticamente y permite reanudar.
+    // Persistencia y ciclo de vida de los lotes. Dos flujos separados:
+    //  · SIMULACIÓN: el lote nace del simulador (AlReiniciar), anota cada acción humana en la bitácora,
+    //    se autoguarda y se reanuda reproduciendo la bitácora.
+    //  · CONTROL MANUAL: el lote NO usa el simulador. Solo guarda mediciones reales (registros de campo);
+    //    el motor queda detenido mientras este lote está abierto.
     public sealed class GestorLotes : IDisposable
     {
         const int AutoguardadoCadaTicks = 24;      // una vez por día simulado
@@ -17,29 +20,23 @@ namespace Composta.App
 
         readonly SimuladorComposta sim;
         readonly ServiciosApp svc;
-        SistemaComposta sistemaDelLote;            // el Sistema al que corresponde LoteActual
+        SistemaComposta sistemaDelLote;            // solo en lotes de Simulación
         float ultimoError = -999f;
-        float ultimoAutoguardado = -999f;
-        int periodoAvisado = -1;                   // evita pedir dos veces el mismo informe vencido (demostración)
 
         public Lote LoteActual { get; private set; }
         public event Action<Lote> AlCambiarLote;
         public event Action<Lote> AlCambiarAportes;
-        public event Action<Lote> AlCambiarInformes;
-        public event Action AlInformeRequerido;   // demostración: venció la semana simulada
+        public event Action<Lote> AlCambiarRegistros;
 
-        public CalibracionCampo Calibracion => sistemaDelLote?.Calibracion;
-        public ModeloComposta Modelo => sistemaDelLote?.Modelo;
-        public bool EsLoteDeCampo => LoteActual != null && LoteActual.Modo == ModoLote.Manual && Calibracion != null;
-
-        public SituacionInforme Situacion()
-            => PlanInformes.Evaluar(LoteActual, svc.Reloj.UtcAhora, sistemaDelLote?.Modelo.Ticks ?? 0);
+        public bool EsLoteManual => LoteActual != null && LoteActual.Modo == ModoLote.Manual;
+        public SituacionInforme Situacion() => PlanInformes.Evaluar(LoteActual, svc.Reloj.UtcAhora);
+        public EstadoCampo Analisis() => AnalisisCampo.Analizar(LoteActual);
 
         public GestorLotes(SimuladorComposta simulador, ServiciosApp servicios)
         {
             sim = simulador ? simulador : throw new ArgumentNullException(nameof(simulador));
             svc = servicios ?? throw new ArgumentNullException(nameof(servicios));
-            sim.AlReiniciar += CrearLoteNuevo;
+            sim.AlReiniciar += CrearLoteSimulacion;
             sim.AlComando += RegistrarComando;
             sim.AlTick += AlTick;
         }
@@ -47,34 +44,51 @@ namespace Composta.App
         public void Dispose()
         {
             if (sim == null) return;
-            sim.AlReiniciar -= CrearLoteNuevo;
+            sim.AlReiniciar -= CrearLoteSimulacion;
             sim.AlComando -= RegistrarComando;
             sim.AlTick -= AlTick;
         }
 
         string Usuario => svc.Sesion.NombreActual;
+        int TickActual => sistemaDelLote?.Modelo.Ticks ?? 0;
 
-        // ---------------- Ciclo de vida del lote ----------------
-        void CrearLoteNuevo(SistemaComposta nuevo)
+        // ---------------- Ciclo de vida ----------------
+        void CerrarLoteActual()
         {
-            if (LoteActual != null)
-            {
-                LoteActual.Estado = EstadoLote.Cerrado;
-                Guardar();
-            }
+            if (LoteActual == null) return;
+            LoteActual.Estado = EstadoLote.Cerrado;
+            Guardar();
+        }
 
+        void CrearLoteSimulacion(SistemaComposta nuevo)
+        {
+            CerrarLoteActual();
             sistemaDelLote = nuevo;
-            LoteActual = Lote.Crear(nuevo.Perfil, sim.semilla, Usuario, svc.Reloj.UtcAhora, sim.modo);
-            LoteActual.RitmoReal = sim.modo == ModoLote.Manual && sim.ritmoReal;
-            sim.ritmoReal = LoteActual.RitmoReal;
-            sim.inicioRitmoUtc = new DateTime(LoteActual.CreadoUtc, DateTimeKind.Utc);
-            periodoAvisado = -1;
+            LoteActual = Lote.Crear(nuevo.Perfil, sim.semilla, Usuario, svc.Reloj.UtcAhora, ModoLote.Simular);
             // Estado inicial de los ajustes que afectan la simulación (necesario para reproducirla)
             Anotar(TipoComando.Automatico, sim.modoAutomatico ? 1f : 0f);
             Anotar(TipoComando.ProbFalla, sim.probFallaPorHora);
             Guardar();
             AlCambiarLote?.Invoke(LoteActual);
-            Notificador.Mostrar($"Lote creado: {LoteActual.Nombre}", TipoMensaje.Exito);
+            Notificador.Mostrar($"Simulación iniciada: {LoteActual.Nombre}", TipoMensaje.Exito);
+        }
+
+        // Control Manual: sin simulador, sin datos sintéticos. El tablero queda "Esperando primer registro".
+        public bool CrearLoteManual(PerfilComposta perfil, out string error)
+        {
+            error = null;
+            if (!svc.Sesion.Puede(Permiso.CrearLote)) { error = "Tu rol no permite crear lotes."; return false; }
+            if (perfil == null) { error = "Falta el tipo de compostera."; return false; }
+            CerrarLoteActual();
+            sim.DetenerMotor();
+            sim.modo = ModoLote.Manual;
+            sistemaDelLote = null;
+            LoteActual = Lote.Crear(perfil, 0, Usuario, svc.Reloj.UtcAhora, ModoLote.Manual);
+            LoteActual.Nombre = $"{perfil.Nombre} · control manual · {svc.Reloj.UtcAhora.ToLocalTime():yyyy-MM-dd HH:mm}";
+            if (!Guardar()) { error = "No se pudo guardar el lote en disco."; return false; }
+            AlCambiarLote?.Invoke(LoteActual);
+            Notificador.Mostrar("Lote de control manual creado. Registra la primera medición.", TipoMensaje.Exito);
+            return true;
         }
 
         public bool Reanudar(Lote lote, out string error)
@@ -84,13 +98,20 @@ namespace Composta.App
             try
             {
                 var avisos = ReproductorLote.Sanear(lote);
-                var s = ReproductorLote.Reconstruir(lote, out var ultimo);
-                sim.modo = lote.Modo;                     // antes de CargarSistema: los oyentes de AlCargar lo leen
-                sim.ritmoReal = lote.Modo == ModoLote.Manual && lote.RitmoReal;
-                sim.inicioRitmoUtc = new DateTime(lote.CreadoUtc, DateTimeKind.Utc);
-                periodoAvisado = -1;
-                sim.CargarSistema(s, ultimo, lote.Semilla);
-                sistemaDelLote = s;
+                if (lote.Modo == ModoLote.Manual)
+                {
+                    // Nada que reproducir: los datos son las mediciones guardadas
+                    sim.DetenerMotor();
+                    sim.modo = ModoLote.Manual;
+                    sistemaDelLote = null;
+                }
+                else
+                {
+                    var s = ReproductorLote.Reconstruir(lote, out var ultimo);
+                    sim.modo = ModoLote.Simular;          // antes de CargarSistema: los oyentes de AlCargar lo leen
+                    sim.CargarSistema(s, ultimo, lote.Semilla);
+                    sistemaDelLote = s;
+                }
                 LoteActual = lote;
                 if (avisos.Count > 0)
                 {
@@ -108,10 +129,10 @@ namespace Composta.App
             }
         }
 
-        // ---------------- Bitácora ----------------
+        // ---------------- Bitácora de la simulación ----------------
         void RegistrarComando(TipoComando tipo, float valor)
         {
-            if (LoteActual == null || sim.Sistema != sistemaDelLote) return;
+            if (LoteActual == null || sistemaDelLote == null || sim.Sistema != sistemaDelLote) return;
             Anotar(tipo, valor);
             if (tipo != TipoComando.ProbFalla) Guardar();   // ProbFalla puede cambiar muchas veces desde el Inspector
         }
@@ -130,63 +151,39 @@ namespace Composta.App
 
         void AlTick(Lectura l)
         {
-            if (LoteActual == null) return;
-            // Al ponerse al día (ritmo real) pueden pasar cientos de horas en un fotograma: guardar como mucho cada 2 s
-            if (l.Tick % AutoguardadoCadaTicks == 0 && Time.unscaledTime - ultimoAutoguardado > 2f)
-            {
-                ultimoAutoguardado = Time.unscaledTime;
-                Guardar();
-            }
-
-            // Demostración (tiempo acelerado): al vencer la semana simulada se pausa y se pide el informe
-            if (EsLoteDeCampo && !LoteActual.RitmoReal)
-            {
-                var s = Situacion();
-                int periodo = LoteActual.Informes.Count;
-                if (s.Estado == EstadoInforme.Atrasado && periodoAvisado != periodo)
-                {
-                    periodoAvisado = periodo;
-                    sim.pausado = true;
-                    AlInformeRequerido?.Invoke();
-                }
-            }
+            if (LoteActual != null && sistemaDelLote != null && l.Tick % AutoguardadoCadaTicks == 0) Guardar();
         }
 
-        // ---------------- Informe semanal de campo ----------------
-        public ResultadoCalibracion RegistrarInforme(float temperatura, float humedad, float pesoKg, string nota, out string error)
+        // ---------------- Control Manual: mediciones reales ----------------
+        public bool RegistrarMedicion(float temperatura, float humedad, float pesoKg, string nota, out string error)
         {
             error = null;
-            if (!svc.Sesion.Puede(Permiso.RegistrarInformes)) { error = "Tu rol no permite registrar informes."; return null; }
-            if (!EsLoteDeCampo) { error = "Los informes de campo son para lotes en modo Manual."; return null; }
-            if (LoteActual.Estado != EstadoLote.Activo) { error = "El lote está cerrado."; return null; }
+            if (!svc.Sesion.Puede(Permiso.RegistrarInformes)) { error = "Tu rol no permite registrar mediciones."; return false; }
+            if (!EsLoteManual) { error = "Las mediciones de campo son para lotes de Control Manual."; return false; }
+            if (LoteActual.Estado != EstadoLote.Activo) { error = "El lote está cerrado."; return false; }
 
-            var inf = new InformeCampo
+            var registro = new InformeCampo
             {
                 Id = Guid.NewGuid().ToString("N"),
                 FechaUtc = svc.Reloj.UtcAhora.Ticks,
-                Tick = sistemaDelLote.Modelo.Ticks,
                 Temperatura = temperatura,
                 Humedad = humedad,
                 PesoKg = pesoKg,
                 Nota = ValidadorAporte.LimpiarNota(nota),
                 Usuario = Usuario
             };
-            LoteActual.Informes.Add(inf);
-            int indice = LoteActual.Informes.Count - 1;
-            // AplicarInforme dispara AlComando -> RegistrarComando anota y guarda en disco
-            var r = sim.AplicarInforme(inf, indice);
-            if (r == null)
+            LoteActual.Informes.Add(registro);
+            if (!Guardar())
             {
-                LoteActual.Informes.RemoveAt(indice);
-                error = "No se pudo aplicar el informe.";
-                return null;
+                LoteActual.Informes.Remove(registro);   // no mostrar como guardado algo que no llegó a disco
+                error = "No se pudo guardar la medición en disco. Revisa el espacio o los permisos.";
+                return false;
             }
-            periodoAvisado = -1;
-            AlCambiarInformes?.Invoke(LoteActual);
-            return r;
+            AlCambiarRegistros?.Invoke(LoteActual);
+            return true;
         }
 
-        // ---------------- Aportes de residuos ----------------
+        // ---------------- Aportes de residuos (ambos modos) ----------------
         public bool RegistrarAporte(string kgTexto, TipoMaterial material, string nota, out string mensaje)
         {
             if (!svc.Sesion.Puede(Permiso.RegistrarAportes)) { mensaje = "Tu rol no permite registrar aportes."; return false; }
@@ -199,7 +196,7 @@ namespace Composta.App
             {
                 Id = Guid.NewGuid().ToString("N"),
                 FechaUtc = svc.Reloj.UtcAhora.Ticks,
-                Tick = sistemaDelLote.Modelo.Ticks,
+                Tick = TickActual,
                 Kg = kg,
                 Material = material,
                 Nota = ValidadorAporte.LimpiarNota(nota),
@@ -208,7 +205,7 @@ namespace Composta.App
             LoteActual.Aportes.Add(aporte);
             if (!Guardar())
             {
-                LoteActual.Aportes.Remove(aporte);     // no mostrar como guardado algo que no llegó a disco
+                LoteActual.Aportes.Remove(aporte);
                 mensaje = "No se pudo guardar el aporte en disco. Revisa el espacio o los permisos.";
                 return false;
             }
@@ -220,11 +217,11 @@ namespace Composta.App
         // ---------------- Persistencia ----------------
         public bool Guardar()
         {
-            if (LoteActual == null || sistemaDelLote == null) return true;
+            if (LoteActual == null) return true;
             try
             {
-                // Siempre la hora actual: así ninguna acción queda "en el futuro" respecto a lo guardado
-                LoteActual.TicksSimulados = sistemaDelLote.Modelo.Ticks;
+                // Simulación: siempre la hora actual, así ninguna acción queda "en el futuro" respecto a lo guardado
+                if (sistemaDelLote != null) LoteActual.TicksSimulados = sistemaDelLote.Modelo.Ticks;
                 LoteActual.ActualizadoUtc = svc.Reloj.UtcAhora.Ticks;
                 svc.Lotes.Guardar(LoteActual);
                 return true;
@@ -241,7 +238,6 @@ namespace Composta.App
             }
         }
 
-        // Exporta resumen, bitácora, aportes e historial en una carpeta con fecha
         public bool Exportar(out string carpeta, out string error)
         {
             carpeta = null; error = null;
@@ -253,9 +249,14 @@ namespace Composta.App
                 string sello = svc.Reloj.UtcAhora.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
                 string baseClave = $"exportaciones/{LoteActual.Id}_{sello}/";
                 svc.Almacen.Escribir(baseClave + "resumen.csv", ExportadorCsv.Resumen(LoteActual));
-                svc.Almacen.Escribir(baseClave + "bitacora.csv", ExportadorCsv.Bitacora(LoteActual));
                 svc.Almacen.Escribir(baseClave + "aportes.csv", ExportadorCsv.Aportes(LoteActual));
-                svc.Almacen.Escribir(baseClave + "historial.csv", sistemaDelLote.Historial.ToCsv());
+                if (EsLoteManual)
+                    svc.Almacen.Escribir(baseClave + "mediciones.csv", ExportadorCsv.Mediciones(LoteActual));
+                else
+                {
+                    svc.Almacen.Escribir(baseClave + "bitacora.csv", ExportadorCsv.Bitacora(LoteActual));
+                    svc.Almacen.Escribir(baseClave + "historial.csv", sistemaDelLote.Historial.ToCsv());
+                }
                 carpeta = System.IO.Path.GetDirectoryName(svc.Almacen.RutaAbsoluta(baseClave + "resumen.csv"));
                 return true;
             }

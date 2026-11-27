@@ -97,22 +97,39 @@ que alteren los resultados, o los lotes viejos se reproducirán distinto. Si eso
   datos; cámbialos **antes** de distribuir), `runInBackground: 0` detiene la simulación al perder el foco
   y `resizableWindow: 0` impide redimensionar la ventana.
 
-## Modo Manual: sin sensores, con informe semanal y calibración
+## Simulación y Control Manual: separación estricta
 
-- Los lotes Manual usan el **modelo de campo** (`SistemaComposta(..., modoCampo: true)`): no hay sensores
-  simulados; los valores del tablero son estimaciones (`≈`). El modo Simular usa el modelo clásico y da
-  resultados idénticos a los de antes (test `ModoSimular_DaLosMismosResultadosQueAntes`).
-- El modelo de campo agrega la **masa** (pierde material degradable según temperatura y humedad) y tres
-  perillas ocultas: `FactorActividad` (≈ C/N), `FactorEvaporacion` (≈ aislamiento/exposición) y
-  `FactorDescomposicion`. Las fases se deducen de la temperatura y del material restante.
-- **Informe semanal** (temperatura, humedad, peso) → `CalibracionCampo.Aplicar`:
-  1. ajusta las perillas según el error de predicción (tope ±25 % por informe; con poco O2 el efecto de la
-     actividad sobre la temperatura se invierte);
-  2. corrige el estado con una ganancia de 0,5 a 0,95 que crece con el tiempo sin medir;
-  3. reparte la corrección en el historial para que las gráficas no den saltos (puntos medidos = ●).
-- El informe se guarda en `Lote.Informes` y como comando `Informe` en la bitácora: al reanudar se reaplica igual.
-- Ritmo: **calendario real** (1 h simulada = 1 h real; al abrir la app se pone al día) o **demostración**
-  (cada 168 h simuladas se pausa y pide el informe). Estado: al día / pendiente (≤24 h) / atrasado.
-- Límite conocido: sin medir oxígeno, la temperatura sola no distingue una pila "muy activa pero ahogada" de
-  una "poco activa". Con volteos regulares la calibración converge; con volteo solo semanal, evaporación y
-  descomposición convergen y la temperatura queda corregida por el informe.
+| | Simulación (azul) | Control Manual (ámbar) |
+|---|---|---|
+| Motor | `SimuladorComposta` avanza hora a hora | **detenido** (`DetenerMotor`): cero horas sintéticas |
+| Datos | modelo + sensores simulados, bitácora de comandos reproducible | solo mediciones reales (`Lote.Informes`) |
+| Vista | `PanelUI` | `TableroManual` (estado vacío "Esperando primer registro" → KPIs, gráficas de puntos, recomendaciones, historial) |
+| Interpretación | el propio modelo | `AnalisisCampo`: fase por reglas (≥45 °C termofílica; tras fase caliente → enfriamiento; ≥21 días, <35 °C y pérdida de peso <1,5 %/semana → maduración), tendencias y recomendaciones |
+| Calendario | tiempo simulado | `PlanInformes`: una medición cada 7 días reales (sin registros / al día / pendiente ≤24 h / atrasado) |
+
+`GestorLotes.CrearLoteManual` crea el lote sin pasar por el simulador. Las vistas se eligen en `ControlAcceso.ActualizarVista`;
+nunca se muestran ambas. El motor de calibración (`CalibracionCampo`, modelo de campo) sigue en Core con sus tests, pero la
+app ya no lo usa en Control Manual.
+
+## Pesos: recomendado vs. exagerado
+
+`PerfilComposta.EvaluarPeso` devuelve `Optimo` (barra verde), `FueraDeOptimo` (consejo, no bloquea) o `Exagerado` (fuera de los
+límites físicos del recipiente; bloquea el inicio de una simulación y marca la medición como crítica).
+
+| Tipo | Recomendado | Límites físicos (fuera = PESO EXAGERADO) |
+|---|---|---|
+| Compostera doméstica | 15–60 kg | 3–120 kg |
+| Compostera cerrada | 50–200 kg | 10–400 kg |
+| Pila abierta | 200–1000 kg | 50–3000 kg |
+| Hilera industrial | 2000–20000 kg | 500–100000 kg |
+| Vermicomposta | 5–50 kg | 1–150 kg |
+
+Los pesos por defecto no cambiaron, así que la simulación por defecto da los mismos resultados (test dorado).
+
+## Sistema de diseño
+
+`App/Tema.cs` concentra los tokens: 3 niveles de superficie, texto primario/secundario/tenue, acento azul (Simulación) y
+ámbar (Control Manual), estados verde/ámbar/rojo (siempre con texto, no solo color), radios y tamaños de letra.
+`UIFabrica` genera en memoria sprites redondeados 9-slice y círculos (uGUI no los trae en una build) y ofrece
+`Tarjeta` (sombra suave), `Pildora` (badges) y estilos de botón con hover/presionado. Toda la UI hecha con `UIFabrica`
+hereda el estilo; cambiar la identidad visual es editar `Tema.cs`.

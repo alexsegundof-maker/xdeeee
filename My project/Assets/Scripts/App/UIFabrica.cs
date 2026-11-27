@@ -10,17 +10,18 @@ namespace Composta.App
     // (anclas relativas + CanvasScaler 1920x1080). Centraliza lo que antes estaba duplicado.
     public static class UIFabrica
     {
-        public static readonly Color ColFondo = new Color(0.08f, 0.09f, 0.11f);
-        public static readonly Color ColPanel = new Color(0.14f, 0.15f, 0.18f);
-        public static readonly Color ColCard = new Color(0.20f, 0.22f, 0.27f);
-        public static readonly Color ColCampo = new Color(0.10f, 0.11f, 0.14f);
-        public static readonly Color ColBoton = new Color(0.22f, 0.28f, 0.40f);
-        public static readonly Color ColPrimario = new Color(0.18f, 0.45f, 0.25f);
-        public static readonly Color ColPeligro = new Color(0.50f, 0.18f, 0.18f);
-        public static readonly Color ColSel = new Color(0.25f, 0.45f, 0.75f);
-        public static readonly Color ColTextoTenue = new Color(1f, 1f, 1f, 0.65f);
-        public static readonly Color ColError = new Color(1f, 0.55f, 0.55f);
-        public static readonly Color ColExito = new Color(0.55f, 0.95f, 0.6f);
+        // Alias históricos: ahora apuntan a los tokens del Tema (todo el código existente hereda el rediseño)
+        public static readonly Color ColFondo = Tema.Fondo;
+        public static readonly Color ColPanel = Tema.Superficie;
+        public static readonly Color ColCard = Tema.SuperficieAlta;
+        public static readonly Color ColCampo = Tema.SuperficieCampo;
+        public static readonly Color ColBoton = Tema.BotonNeutro;
+        public static readonly Color ColPrimario = Tema.BotonPrimario;
+        public static readonly Color ColPeligro = Tema.BotonPeligro;
+        public static readonly Color ColSel = Tema.AcentoSimulacion;
+        public static readonly Color ColTextoTenue = Tema.TextoSecundario;
+        public static readonly Color ColError = new Color(1f, 0.55f, 0.52f);
+        public static readonly Color ColExito = new Color(0.50f, 0.88f, 0.64f);
 
         static Font fuente;
         public static Font Fuente => fuente != null ? fuente : (fuente = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
@@ -46,7 +47,8 @@ namespace Composta.App
             return (RectTransform)go.transform;
         }
 
-        public static RectTransform Panel(string nombre, Transform padre, Vector2 aMin, Vector2 aMax, Color color)
+        // radio: -1 = automático (esquinas redondeadas salvo en fondos de pantalla completa), 0 = recto
+        public static RectTransform Panel(string nombre, Transform padre, Vector2 aMin, Vector2 aMax, Color color, int radio = -1)
         {
             var go = new GameObject(nombre, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(padre, false);
@@ -56,7 +58,69 @@ namespace Composta.App
             var img = go.GetComponent<Image>();
             img.color = color;
             img.raycastTarget = color.a > 0f;
+            bool pantallaCompleta = aMin == Vector2.zero && aMax == Vector2.one;
+            if (radio < 0) radio = pantallaCompleta ? 0 : Tema.RadioTarjeta;
+            Redondear(img, radio);
             return rt;
+        }
+
+        public static void Redondear(Image img, int radio)
+        {
+            if (radio <= 0) { img.sprite = null; img.type = Image.Type.Simple; return; }
+            img.sprite = SpriteRedondeado(radio);
+            img.type = Image.Type.Sliced;
+            img.fillCenter = true;
+        }
+
+        // Tarjeta elevada: esquinas redondeadas + sombra suave + borde sutil
+        public static RectTransform Tarjeta(string nombre, Transform padre, Vector2 aMin, Vector2 aMax, Color? color = null)
+        {
+            var rt = Panel(nombre, padre, aMin, aMax, color ?? Tema.Superficie, Tema.RadioTarjeta);
+            var sombra = rt.gameObject.AddComponent<Shadow>();
+            sombra.effectColor = new Color(0f, 0f, 0f, 0.45f);
+            sombra.effectDistance = new Vector2(0f, -4f);
+            return rt;
+        }
+
+        // Pastilla (badge) con texto: modo, estado, etiquetas
+        public static Text Pildora(Transform padre, string nombre, Vector2 aMin, Vector2 aMax, string texto, Color fondo, Color colorTexto, int tam = 15)
+        {
+            var rt = Panel(nombre, padre, aMin, aMax, fondo, Tema.RadioPildora);
+            rt.GetComponent<Image>().raycastTarget = false;
+            var t = Texto(rt, "Texto", Vector2.zero, Vector2.one, tam, TextAnchor.MiddleCenter, colorTexto);
+            t.rectTransform.offsetMin = new Vector2(8, 0); t.rectTransform.offsetMax = new Vector2(-8, 0);
+            t.fontStyle = FontStyle.Bold;
+            t.text = texto;
+            return t;
+        }
+
+        // Rectángulo redondeado suavizado, generado en memoria y cacheado por radio (9-slice)
+        static readonly System.Collections.Generic.Dictionary<int, Sprite> redondeados = new System.Collections.Generic.Dictionary<int, Sprite>();
+        public static Sprite SpriteRedondeado(int radio)
+        {
+            if (redondeados.TryGetValue(radio, out var s) && s != null) return s;
+            int n = radio * 2 + 4;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave
+            };
+            var px = new Color32[n * n];
+            float r = radio;
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    // distancia al rectángulo interior (centros de las esquinas)
+                    float cx = Mathf.Clamp(x + 0.5f, r, n - r), cy = Mathf.Clamp(y + 0.5f, r, n - r);
+                    float d = Mathf.Sqrt((x + 0.5f - cx) * (x + 0.5f - cx) + (y + 0.5f - cy) * (y + 0.5f - cy));
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(r - d + 0.5f) * 255f));
+                }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            float b = radio + 1;
+            s = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
+            s.hideFlags = HideFlags.HideAndDontSave;
+            redondeados[radio] = s;
+            return s;
         }
 
         public static Text Texto(Transform padre, string nombre, Vector2 aMin, Vector2 aMax, int tam, TextAnchor ancla, Color color)
@@ -68,6 +132,7 @@ namespace Composta.App
             rt.offsetMin = new Vector2(12, 4); rt.offsetMax = new Vector2(-12, -4);
             var t = go.GetComponent<Text>();
             t.font = Fuente; t.fontSize = tam; t.alignment = ancla; t.color = color;
+            t.lineSpacing = 1.05f;
             t.raycastTarget = false;
             t.supportRichText = true;
             return t;
@@ -75,12 +140,10 @@ namespace Composta.App
 
         public static Button Boton(Transform padre, string texto, Vector2 aMin, Vector2 aMax, int tam, Color color, UnityAction accion)
         {
-            var rt = Panel("Btn " + texto, padre, aMin, aMax, color);
+            var rt = Panel("Btn " + texto, padre, aMin, aMax, color, Tema.RadioBoton);
             var b = rt.gameObject.AddComponent<Button>();
             b.targetGraphic = rt.GetComponent<Image>();
-            var colores = b.colors;
-            colores.disabledColor = new Color(0.55f, 0.55f, 0.55f, 0.45f);
-            b.colors = colores;
+            AplicarEstilo(b);
             if (accion != null) b.onClick.AddListener(accion);
             var t = Texto(rt, "Etiqueta", Vector2.zero, Vector2.one, tam, TextAnchor.MiddleCenter, Color.white);
             t.text = texto;
@@ -90,13 +153,29 @@ namespace Composta.App
         // Texto escrito por personas usuarias: evita que "<color=...>" altere el texto enriquecido
         public static string SinRich(string s) => string.IsNullOrEmpty(s) ? "" : s.Replace("<", "‹").Replace(">", "›");
 
+        // Estados de interacción coherentes en toda la app (hover más claro, presionado más oscuro)
+        public static void AplicarEstilo(Button b)
+        {
+            var c = b.colors;
+            c.normalColor = new Color(0.92f, 0.92f, 0.92f, 1f);
+            c.highlightedColor = Color.white;
+            c.selectedColor = new Color(0.92f, 0.92f, 0.92f, 1f);
+            c.pressedColor = new Color(0.72f, 0.74f, 0.78f, 1f);
+            c.disabledColor = new Color(0.5f, 0.5f, 0.52f, 0.45f);
+            c.fadeDuration = 0.08f;
+            b.colors = c;
+        }
+
         public static Text Etiqueta(Button b) => b.GetComponentInChildren<Text>(true);
 
         // InputField de una línea, con placeholder y opción de contraseña
         public static InputField Campo(Transform padre, string nombre, Vector2 aMin, Vector2 aMax, string placeholder,
                                        bool contrasena = false, int limite = 64, int tam = 24)
         {
-            var rt = Panel(nombre, padre, aMin, aMax, ColCampo);
+            var rt = Panel(nombre, padre, aMin, aMax, ColCampo, Tema.RadioCampo);
+            var borde = rt.gameObject.AddComponent<Outline>();
+            borde.effectColor = Tema.Borde;
+            borde.effectDistance = new Vector2(1f, -1f);
             var campo = rt.gameObject.AddComponent<InputField>();
             campo.targetGraphic = rt.GetComponent<Image>();
 
