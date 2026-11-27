@@ -248,16 +248,42 @@ namespace Composta.App
                 Guardar();
                 string sello = svc.Reloj.UtcAhora.ToLocalTime().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
                 string baseClave = $"exportaciones/{LoteActual.Id}_{sello}/";
-                svc.Almacen.Escribir(baseClave + "resumen.csv", ExportadorCsv.Resumen(LoteActual));
-                svc.Almacen.Escribir(baseClave + "aportes.csv", ExportadorCsv.Aportes(LoteActual));
-                if (EsLoteManual)
-                    svc.Almacen.Escribir(baseClave + "mediciones.csv", ExportadorCsv.Mediciones(LoteActual));
+                var archivos = new System.Collections.Generic.List<(string nombre, string contenido)>
+                {
+                    ("resumen.csv", ExportadorCsv.Resumen(LoteActual)),
+                    ("aportes.csv", ExportadorCsv.Aportes(LoteActual))
+                };
+                if (EsLoteManual) archivos.Add(("mediciones.csv", ExportadorCsv.Mediciones(LoteActual)));
                 else
                 {
-                    svc.Almacen.Escribir(baseClave + "bitacora.csv", ExportadorCsv.Bitacora(LoteActual));
-                    svc.Almacen.Escribir(baseClave + "historial.csv", sistemaDelLote.Historial.ToCsv());
+                    archivos.Add(("bitacora.csv", ExportadorCsv.Bitacora(LoteActual)));
+                    archivos.Add(("historial.csv", sistemaDelLote.Historial.ToCsv()));
                 }
+
+                // Copia interna (respaldo de la app)
+                foreach (var (nombre, contenido) in archivos) svc.Almacen.Escribir(baseClave + nombre, contenido);
                 carpeta = System.IO.Path.GetDirectoryName(svc.Almacen.RutaAbsoluta(baseClave + "resumen.csv"));
+
+                // Android: copia en Descargas/Composta/..., visible en la app Archivos y fácil de compartir
+                if (DescargasAndroid.Disponible)
+                {
+                    string sub = $"Composta/{sello}_{(EsLoteManual ? "manual" : "simulacion")}";
+                    var bom = new System.Text.UTF8Encoding(true);       // con BOM: Excel muestra bien los acentos
+                    foreach (var (nombre, contenido) in archivos)
+                    {
+                        var bytes = bom.GetPreamble();
+                        var cuerpo = System.Text.Encoding.UTF8.GetBytes(contenido);
+                        var datos = new byte[bytes.Length + cuerpo.Length];
+                        Buffer.BlockCopy(bytes, 0, datos, 0, bytes.Length);
+                        Buffer.BlockCopy(cuerpo, 0, datos, bytes.Length, cuerpo.Length);
+                        if (!DescargasAndroid.Guardar(sub, nombre, "text/csv", datos, out string errDesc))
+                        {
+                            error = "Se guardaron en la carpeta interna de la app, pero no en Descargas: " + errDesc;
+                            return true;
+                        }
+                    }
+                    carpeta = "Descargas › " + sub.Replace("/", " › ");
+                }
                 return true;
             }
             catch (Exception e)
