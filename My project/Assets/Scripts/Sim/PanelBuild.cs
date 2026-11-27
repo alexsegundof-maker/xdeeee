@@ -26,6 +26,7 @@ public class PanelBuild : MonoBehaviour
     GameObject ventana, insigniaHud, insigniaVentana;
     Button btnCancelar, btnNueva;
     Text txtResumen;
+    RectTransform iconoResumenExagerado;      // "!" que sigue al final de la línea de resumen
     readonly Image[] fondoCards = new Image[5];
     readonly Slider[] sliders = new Slider[5];
     readonly RectTransform[] bandas = new RectTransform[5];
@@ -95,6 +96,9 @@ public class PanelBuild : MonoBehaviour
     {
         if (simulador == null || simulador.Sistema == null) return;
         insigniaHud.SetActive(!ventana.activeSelf && simulador.Sistema.Perfil.PesoExagerado);
+        // El ancho del texto depende del tamaño de pantalla: se recoloca mientras la ventana esté abierta
+        if (ventana.activeSelf && iconoResumenExagerado.gameObject.activeSelf)
+            UIFabrica.UbicarTrasTexto(iconoResumenExagerado, txtResumen);
     }
 
     // ---------------- Abrir / cerrar / aplicar ----------------
@@ -238,6 +242,8 @@ public class PanelBuild : MonoBehaviour
         txtResumen.text = $"{p.Nombre}  ·  peso recomendado {p.PesoMin:F0}-{p.PesoMax:F0} kg  ·  {fase}" +
                           (p.PesoExagerado ? "  ·  <color=#ffb454>PESO EXAGERADO</color>" : "");
         insigniaVentana.SetActive(p.PesoExagerado);
+        iconoResumenExagerado.gameObject.SetActive(p.PesoExagerado);
+        if (p.PesoExagerado) UIFabrica.UbicarTrasTexto(iconoResumenExagerado, txtResumen);
     }
 
     void Banda(int i, float a, float b)
@@ -294,24 +300,37 @@ public class PanelBuild : MonoBehaviour
 
             Texto(card, "Nombre", new Vector2(0f, 0f), new Vector2(1f, 0.36f), 17, TextAnchor.MiddleCenter, Color.white)
                 .text = $"{d.Nombre}\n{d.PesoMin:F0}-{d.PesoMax:F0} kg";
+
+            // Ayuda del tipo (esquina superior derecha de la tarjeta)
+            UIFabrica.IconoInfo(card, AyudaBuild.Tipo(d), Vector2.one, Vector2.one, new Vector2(-8f, -8f));
         }
 
         txtResumen = Texto(w, "Resumen", new Vector2(0.02f, 0.545f), new Vector2(0.98f, 0.615f), 20, TextAnchor.MiddleLeft, new Color(1, 1, 1, 0.85f));
+        txtResumen.rectTransform.offsetMin = new Vector2(46f, txtResumen.rectTransform.offsetMin.y);   // hueco para el ícono
+        UIFabrica.IconoInfo(txtResumen.rectTransform, AyudaBuild.Resumen, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(-34f, 0f));
+        iconoResumenExagerado = (RectTransform)UIFabrica.IconoJuntoATexto(txtResumen, AyudaBuild.PesoExagerado, "!").transform;
 
         // 5 sliders
         for (int i = 0; i < 5; i++)
         {
             int idx = i;
             float top = 0.52f - i * 0.085f, bot = top - 0.075f;
-            Texto(w, "Etiqueta", new Vector2(0.02f, bot), new Vector2(0.25f, top), 22, TextAnchor.MiddleLeft, Color.white).text = Etiquetas[i];
+            var etiqueta = Texto(w, "Etiqueta", new Vector2(0.02f, bot), new Vector2(0.25f, top), 22, TextAnchor.MiddleLeft, Color.white);
+            etiqueta.text = Etiquetas[i];
+            UIFabrica.IconoJuntoATexto(etiqueta, AyudaBuild.Parametros[i]);
             sliders[i] = CrearSlider(w, new Vector2(0.27f, bot), new Vector2(0.72f, top), Min[i], Max[i], v => AlCambiarSlider(idx, v), out bandas[i]);
             txtValores[i] = Texto(w, "Valor", new Vector2(0.73f, bot), new Vector2(0.86f, top), 22, TextAnchor.MiddleLeft, Color.white);
             Boton(w, "-", new Vector2(0.87f, bot + 0.008f), new Vector2(0.915f, top - 0.008f), 28, ColBoton, () => { Paso(idx, -1); }, out _);
             Boton(w, "+", new Vector2(0.925f, bot + 0.008f), new Vector2(0.97f, top - 0.008f), 28, ColBoton, () => { Paso(idx, +1); }, out _);
         }
 
-        Boton(w, "Iniciar composta", new Vector2(0.62f, 0.015f), new Vector2(0.97f, 0.085f), 26, new Color(0.18f, 0.45f, 0.25f), Iniciar, out _);
+        Boton(w, "Iniciar composta", new Vector2(0.62f, 0.015f), new Vector2(0.97f, 0.085f), 26, new Color(0.18f, 0.45f, 0.25f), Iniciar, out var btnIniciar);
         Boton(w, "Cancelar", new Vector2(0.02f, 0.015f), new Vector2(0.25f, 0.085f), 24, ColBoton, Cerrar, out btnCancelar);
+
+        // Íconos fuera del botón: a la izquierda de "Iniciar" y a la derecha de "Cancelar".
+        // Al ser hijos del botón, se ocultan con él (Cancelar solo existe si hay una composta en curso).
+        UIFabrica.IconoInfo(btnIniciar.transform, AyudaBuild.Iniciar, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-10f, 0f));
+        UIFabrica.IconoInfo(btnCancelar.transform, AyudaBuild.Cancelar, new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(10f, 0f));
     }
 
     GameObject Insignia(Transform padre, Vector2 aMin, Vector2 aMax)
@@ -322,7 +341,10 @@ public class PanelBuild : MonoBehaviour
         icono.preserveAspect = true;
         icono.raycastTarget = false;
         icono.enabled = iconoPesoExagerado != null;
-        Texto(rt, "Texto", new Vector2(0.3f, 0f), Vector2.one, 18, TextAnchor.MiddleCenter, Color.white).text = "PESO EXAGERADO";
+        Texto(rt, "Texto", new Vector2(0.3f, 0f), new Vector2(0.88f, 1f), 18, TextAnchor.MiddleCenter, Color.white).text = "PESO EXAGERADO";
+        // "!" en gris pizarra para que contraste sobre el naranja de la insignia
+        UIFabrica.IconoInfo(rt, AyudaBuild.PesoExagerado, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-8f, 0f),
+                            "!", 24f, TooltipTrigger.ColNormal);
         return rt.gameObject;
     }
 

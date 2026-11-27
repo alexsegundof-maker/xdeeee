@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -118,6 +118,85 @@ namespace Composta.App
             campo.caretColor = Color.white;
             campo.selectionColor = new Color(0.25f, 0.45f, 0.75f, 0.6f);
             return campo;
+        }
+
+        // ---------------- Íconos de ayuda ----------------
+        public static readonly Color ColIconoAviso = new Color(0.55f, 0.33f, 0.05f);
+
+        // Ícono circular con "?" (información) o "!" (advertencia) que muestra un tooltip al pasar el ratón.
+        // ancla/pivote/posición en píxeles de referencia: así el círculo nunca se deforma.
+        public static TooltipTrigger IconoInfo(Transform padre, string texto, Vector2 ancla, Vector2 pivote, Vector2 posicion,
+                                               string simbolo = "?", float tam = 26f, Color? colorReposo = null)
+        {
+            var go = new GameObject("Info " + simbolo, typeof(RectTransform), typeof(Image), typeof(TooltipTrigger));
+            go.transform.SetParent(padre, false);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = rt.anchorMax = ancla;
+            rt.pivot = pivote;
+            rt.sizeDelta = new Vector2(tam, tam);
+            rt.anchoredPosition = posicion;
+
+            var img = go.GetComponent<Image>();
+            img.sprite = SpriteCirculo;
+            img.raycastTarget = true;
+            var borde = go.AddComponent<Outline>();
+            borde.effectColor = new Color(1f, 1f, 1f, 0.18f);
+            borde.effectDistance = new Vector2(1f, -1f);
+
+            var t = Texto(rt, "Simbolo", Vector2.zero, Vector2.one, Mathf.RoundToInt(tam * 0.66f), TextAnchor.MiddleCenter, Color.white);
+            t.rectTransform.offsetMin = t.rectTransform.offsetMax = Vector2.zero;
+            t.fontStyle = FontStyle.Bold;
+            t.text = simbolo;
+
+            var trig = go.GetComponent<TooltipTrigger>();
+            trig.Configurar(texto, img, t, colorReposo ?? (simbolo == "!" ? ColIconoAviso : TooltipTrigger.ColNormal));
+            return trig;
+        }
+
+        // Coloca el ícono justo a la derecha del texto visible de una etiqueta alineada a la izquierda
+        public static TooltipTrigger IconoJuntoATexto(Text etiqueta, string texto, string simbolo = "?")
+        {
+            var trig = IconoInfo(etiqueta.rectTransform, texto, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, simbolo);
+            UbicarTrasTexto((RectTransform)trig.transform, etiqueta);
+            return trig;
+        }
+
+        public static void UbicarTrasTexto(RectTransform icono, Text etiqueta, float separacion = 10f)
+        {
+            float ancho = etiqueta.rectTransform.rect.width;
+            float x = etiqueta.preferredWidth;
+            if (ancho > 0f) x = Mathf.Min(x, ancho);
+            icono.anchoredPosition = new Vector2(x + separacion, 0f);
+        }
+
+        // Círculo suavizado generado en memoria (en una build no hay sprites "Knob" integrados)
+        static Sprite circulo;
+        public static Sprite SpriteCirculo
+        {
+            get
+            {
+                if (circulo != null) return circulo;
+                const int n = 64;
+                var tex = new Texture2D(n, n, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Bilinear,
+                    wrapMode = TextureWrapMode.Clamp,
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+                var px = new Color32[n * n];
+                float c = (n - 1) / 2f, radio = n / 2f - 1f;
+                for (int y = 0; y < n; y++)
+                    for (int x = 0; x < n; x++)
+                    {
+                        float d = Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c));
+                        px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(radio - d + 0.5f) * 255f));
+                    }
+                tex.SetPixels32(px);
+                tex.Apply(false, true);
+                circulo = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
+                circulo.hideFlags = HideFlags.HideAndDontSave;
+                return circulo;
+            }
         }
 
         public static void Enfocar(Selectable s)
