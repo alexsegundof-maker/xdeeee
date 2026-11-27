@@ -17,6 +17,9 @@ namespace Composta.Core.Campo
         public float PesoKg;
         public string Nota;
         public string Usuario;
+        public long RegistradoUtc;    // cuándo se capturó (FechaUtc es cuándo se midió; puede ser anterior)
+        public string EditadoPor;     // última edición (vacío si nunca se editó)
+        public long EditadoUtc;
     }
 
     public sealed class ResultadoCalibracion

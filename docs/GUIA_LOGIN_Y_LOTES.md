@@ -30,10 +30,11 @@ Assets/Scripts/
 
 | Orden | Canvas | Contenido |
 |---|---|---|
-| 0 | Canvas UI (PanelUI) | tarjetas, gráficas, alertas, 10 botones inferiores |
+| 0 | Canvas UI (PanelUI) | tarjetas, gráficas, alertas, 12 botones inferiores (incluye «Predicción» y «Lote») |
 | 10 | Canvas Build (PanelBuild) | botón «Nueva composta» y ventana de builds |
 | 20 | Canvas Sesion | `Nombre · Rol` + «Usuarios/Mi cuenta» + «Salir» (x 0.405–0.655 de la barra superior) |
-| 40 | Canvas Aportes / Usuarios | modales |
+| 38 | Canvas Mediciones / Lote | lista de mediciones y datos del lote (debajo del formulario de edición) |
+| 40 | Canvas Aportes / Usuarios / Registro | modales |
 | 60 | Canvas Dialogo | confirmaciones y reportes |
 | 100 | Canvas Login | fondo opaco + tarjeta centrada (x 0.34–0.66, y 0.12–0.88) |
 | 300 | Canvas Toasts | mensajes efímeros (no bloquean clics) |
@@ -56,7 +57,8 @@ Teclado: `Tab`/`Shift+Tab` cambian de campo, `Enter` envía y `Esc` cierra los m
 |---|:-:|:-:|:-:|
 | Ver panel, exportar | ✔ | ✔ | ✔ |
 | Voltear, regar, modo automático, crear lote, aportes, reparar sensores | | ✔ | ✔ |
-| Inyectar fallas de prueba, gestionar cuentas | | | ✔ |
+| Corregir o eliminar mediciones y aportes, renombrar el lote (queda en la auditoría) | | ✔ | ✔ |
+| Inyectar fallas de prueba, gestionar cuentas, eliminar lotes completos | | | ✔ |
 
 Los permisos se comprueban dos veces: en la UI (botones deshabilitados) y en `SimuladorComposta`
 (métodos públicos y atajos), así una tecla o una llamada desde otro script no los salta.
@@ -65,8 +67,9 @@ Los permisos se comprueban dos veces: en la UI (botones deshabilitados) y en `Si
 
 ```
 usuarios.json(.bak)                 cuentas: hash PBKDF2-SHA256 (100k iteraciones) + sal; nunca la contraseña
-lotes/{id}.json(.bak)               un archivo por lote: parámetros, semilla, bitácora y aportes
-exportaciones/{id}_{fecha}/*.csv    resumen, bitácora, aportes, historial
+lotes/{id}.json(.bak)               un archivo por lote: parámetros, semilla, bitácora, aportes, mediciones y auditoría
+papelera/{id}-{fecha}.json(.bak)    lotes eliminados (para recuperar uno, cópialo de vuelta a lotes/{id}.json)
+exportaciones/{id}_{fecha}/*.csv    resumen, aportes, cambios y, según el modo, mediciones o bitácora + historial
 ```
 
 **Cómo se reanuda un lote:** el modelo es determinista (semilla + mismas acciones a la misma hora
@@ -133,3 +136,22 @@ Los pesos por defecto no cambiaron, así que la simulación por defecto da los m
 `UIFabrica` genera en memoria sprites redondeados 9-slice y círculos (uGUI no los trae en una build) y ofrece
 `Tarjeta` (sombra suave), `Pildora` (badges) y estilos de botón con hover/presionado. Toda la UI hecha con `UIFabrica`
 hereda el estilo; cambiar la identidad visual es editar `Tema.cs`.
+
+## Corrección de datos y auditoría (versión 1.1.2)
+
+- **Mediciones** (Control Manual): «Editar mediciones» en el tablero abre la lista completa. Cada fila
+  tiene «Editar» (mismo formulario, precargado) y «Eliminar» (con confirmación).
+- **Fecha opcional**: al registrar o corregir se puede escribir cuándo se midió (`dd/mm/aaaa hh:mm`,
+  también `dd-mm-aaaa` o `aaaa-mm-dd`; vacía = ahora), en la zona horaria del dispositivo. Se rechazan
+  fechas futuras (más de 5 min) y de hace más de un año; se avisa (sin bloquear) si es anterior a la
+  creación del lote o si ya hay otra medición en la misma hora.
+- **Aportes**: cada fila de la bitácora tiene «Editar» y «Eliminar»; el total se recalcula al momento.
+- **Lote**: botón «Lote» (tablero manual y barra de simulación). Permite renombrarlo; en Control Manual
+  también cambiar tipo de compostera, material y cobertura (las mediciones no cambian, solo se
+  reevalúan). En Simulación solo el nombre: los parámetros definen la simulación ya calculada.
+  Administración puede eliminar el lote: se mueve a `papelera/`, nunca se borra del disco.
+- **Auditoría**: toda creación, corrección o eliminación queda en `Lote.Cambios` (quién, cuándo, qué
+  cambió de qué valor a cuál). Se ve en «Lote › Historial de cambios» y se exporta en `cambios.csv`.
+- **Integridad**: `EditorLote` (Core, sin Unity) valida y aplica cada cambio; `GestorLotes` guarda y,
+  si el guardado falla, devuelve el lote exactamente a su estado anterior (copia profunda previa).
+  Indicadores, fase estimada, tendencias y recomendaciones se recalculan siempre desde los datos guardados.

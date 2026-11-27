@@ -18,6 +18,8 @@ namespace Composta.App
         public event Action PedirAportes;
         public event Action PedirExportar;
         public event Action PedirPrediccion;
+        public event Action PedirMediciones;      // lista completa para corregir o eliminar
+        public event Action PedirLote;            // datos del lote e historial de cambios
 
         static readonly CultureInfo C = CultureInfo.InvariantCulture;
         const int AnchoGraf = 640, AltoGraf = 300;
@@ -158,7 +160,7 @@ namespace Composta.App
                     sb.Append($"<color={tenue}>{UIFabrica.SinRich(r.Usuario)}" +
                               (string.IsNullOrEmpty(r.Nota) ? "" : " · " + UIFabrica.SinRich(r.Nota)) + "</color>\n");
                 }
-                if (regs.Count > 4) sb.Append($"<color={tenue}>… y {regs.Count - 4} anteriores (exporta para ver todas)</color>");
+                if (regs.Count > 4) sb.Append($"<color={tenue}>… y {regs.Count - 4} anteriores: «Editar mediciones» las muestra todas</color>");
                 txtHistorial.text = sb.ToString();
                 return;
             }
@@ -170,7 +172,7 @@ namespace Composta.App
                 sb.AppendFormat(C, "{0:dd/MM HH:mm}        {1,6:F1} °C          {2,4:F0} %         {3,8:0.#} kg      {4,-14}   <color={5}>{6}</color>\n",
                                 f, r.Temperatura, r.Humedad, r.PesoKg, UIFabrica.SinRich(r.Usuario), tenue, UIFabrica.SinRich(r.Nota));
             }
-            if (regs.Count > 5) sb.Append($"<color={tenue}>… y {regs.Count - 5} mediciones anteriores (exporta para ver todas)</color>");
+            if (regs.Count > 5) sb.Append($"<color={tenue}>… y {regs.Count - 5} mediciones anteriores: «Editar mediciones» las muestra todas</color>");
             txtHistorial.text = sb.ToString();
         }
 
@@ -192,6 +194,9 @@ namespace Composta.App
             txtLote = UIFabrica.Texto(barra, "Lote", new Vector2(0.13f, 0f), new Vector2(0.40f, 1f), 20, TextAnchor.MiddleLeft, Tema.TextoPrimario);
             txtLote.resizeTextForBestFit = true; txtLote.resizeTextMinSize = 11; txtLote.resizeTextMaxSize = 20;
             Responsivo.En(txtLote, new Vector2(0.43f, 0f), new Vector2(1f, 1f));
+            // "Lote" siempre visible (también antes del primer registro): en móvil, junto a la barra de sesión
+            var bLote = UIFabrica.Boton(raiz, "Lote", new Vector2(0.905f, 0.941f), new Vector2(0.985f, 0.984f), 17, Tema.BotonNeutro, () => PedirLote?.Invoke());
+            Responsivo.En(bLote, new Vector2(0.64f, 1f), new Vector2(1f, 1f), new Vector2(4f, -128f), new Vector2(-12f, -72f));
 
             // Franja: sensores no conectados + estado de la medición semanal + Predicción + CTA (alto fijo en móvil)
             var banner = UIFabrica.Tarjeta("Banner", raiz, new Vector2(0.01f, 0.868f), new Vector2(0.99f, 0.925f));
@@ -330,16 +335,22 @@ namespace Composta.App
             // Historial de mediciones + acciones secundarias
             var hist = UIFabrica.Tarjeta("Historial", cuerpo, new Vector2(0.01f, 0.015f), new Vector2(0.99f, 0.255f));
             Responsivo.En(hist, new Vector2(0.02f, 0.005f), new Vector2(0.98f, 0.145f));
-            var tituloHist = UIFabrica.Texto(hist, "Titulo", new Vector2(0.01f, 0.80f), new Vector2(0.6f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario);
+            var tituloHist = UIFabrica.Texto(hist, "Titulo", new Vector2(0.01f, 0.80f), new Vector2(0.60f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario);
             tituloHist.text = "<b>MEDICIONES REGISTRADAS</b>";
             tituloHist.resizeTextForBestFit = true; tituloHist.resizeTextMinSize = 11; tituloHist.resizeTextMaxSize = 17;
-            Responsivo.En(tituloHist, new Vector2(0.01f, 0.84f), new Vector2(0.45f, 0.99f));
-            var bAportes = UIFabrica.Boton(hist, "Aportes", new Vector2(0.80f, 0.80f), new Vector2(0.89f, 0.97f), 16, Tema.BotonNeutro, () => PedirAportes?.Invoke());
-            Responsivo.En(bAportes, new Vector2(0.46f, 0.84f), new Vector2(0.72f, 0.99f));
-            var bExportar = UIFabrica.Boton(hist, "Exportar", new Vector2(0.90f, 0.80f), new Vector2(0.995f, 0.97f), 16, Tema.BotonNeutro, () => PedirExportar?.Invoke());
-            Responsivo.En(bExportar, new Vector2(0.73f, 0.84f), new Vector2(0.99f, 0.99f));
+            Responsivo.En(tituloHist, new Vector2(0.01f, 0.89f), new Vector2(0.99f, 0.995f));
+            var bMediciones = UIFabrica.Boton(hist, "Editar mediciones", new Vector2(0.61f, 0.80f), new Vector2(0.755f, 0.97f), 16, Tema.BotonNeutro, () => PedirMediciones?.Invoke());
+            Responsivo.En(bMediciones, new Vector2(0.01f, 0.765f), new Vector2(0.34f, 0.88f));
+            var bAportes = UIFabrica.Boton(hist, "Aportes", new Vector2(0.765f, 0.80f), new Vector2(0.875f, 0.97f), 16, Tema.BotonNeutro, () => PedirAportes?.Invoke());
+            Responsivo.En(bAportes, new Vector2(0.35f, 0.765f), new Vector2(0.66f, 0.88f));
+            var bExportar = UIFabrica.Boton(hist, "Exportar", new Vector2(0.885f, 0.80f), new Vector2(0.995f, 0.97f), 16, Tema.BotonNeutro, () => PedirExportar?.Invoke());
+            Responsivo.En(bExportar, new Vector2(0.67f, 0.765f), new Vector2(0.99f, 0.88f));
+            foreach (var b in new[] { bMediciones, bAportes, bExportar })
+            {
+                var e = UIFabrica.Etiqueta(b); e.resizeTextForBestFit = true; e.resizeTextMinSize = 11; e.resizeTextMaxSize = 16;
+            }
             txtHistorial = UIFabrica.Texto(hist, "Tabla", new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.80f), 16, TextAnchor.UpperLeft, Tema.TextoPrimario);
-            Responsivo.En(txtHistorial, new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.83f));
+            Responsivo.En(txtHistorial, new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.755f));
             txtHistorial.verticalOverflow = VerticalWrapMode.Truncate;
         }
     }

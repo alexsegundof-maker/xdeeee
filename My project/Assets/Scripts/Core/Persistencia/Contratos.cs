@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Composta.Core.Persistencia
@@ -13,6 +13,8 @@ namespace Composta.Core.Persistencia
         void Escribir(string clave, string contenido);  // debe ser atómico
         IReadOnlyList<string> Listar(string carpeta, string extension);
         string RutaAbsoluta(string clave);
+        // Borrado recuperable: mueve el archivo (y su respaldo) a "papelera/" con fecha; devuelve la clave nueva
+        string MoverAPapelera(string clave, DateTime ahoraUtc);
     }
 
     public interface ISerializador

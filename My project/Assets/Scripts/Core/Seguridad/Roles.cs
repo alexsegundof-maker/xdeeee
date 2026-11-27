@@ -14,7 +14,9 @@
         RepararSensores,
         InyectarFallas,     // herramienta de prueba: solo administración
         GestionarUsuarios,
-        RegistrarInformes   // informe semanal de campo (lotes en modo Manual)
+        RegistrarInformes,  // informe semanal de campo (lotes en modo Manual)
+        EditarRegistros,    // corregir o eliminar mediciones y aportes, renombrar lotes (queda en la auditoría)
+        EliminarLotes       // mandar un lote completo a la papelera: solo administración
     }
 
     // Única fuente de verdad de "quién puede hacer qué" (principio abierto/cerrado:
@@ -34,6 +36,7 @@
                 case Permiso.RegistrarAportes:
                 case Permiso.RepararSensores:
                 case Permiso.RegistrarInformes:
+                case Permiso.EditarRegistros:
                     return rol >= Rol.Operador;
 
                 default:

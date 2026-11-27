@@ -168,6 +168,7 @@ namespace Composta.App
             txtPie.text = conf || registro || recuperar
                 ? $"La contraseña necesita {Core.Seguridad.ValidadorCredenciales.ContrasenaMin}+ caracteres con letras y números."
                 : "Tras 5 intentos fallidos la cuenta se bloquea 5 minutos.";
+            txtPie.text += $"  ·  Versión {Application.version}";
             Ocupado(false);
         }
 

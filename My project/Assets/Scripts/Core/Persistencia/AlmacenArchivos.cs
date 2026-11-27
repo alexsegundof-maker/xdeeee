@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -86,6 +86,23 @@ namespace Composta.Core.Persistencia
         }
 
         public string RutaAbsoluta(string clave) => Ruta(clave);
+
+        public string MoverAPapelera(string clave, DateTime ahoraUtc)
+        {
+            string origen = Ruta(clave);
+            string nombre = Path.GetFileNameWithoutExtension(clave) + "-" + ahoraUtc.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture)
+                            + Path.GetExtension(clave);
+            string claveDestino = "papelera/" + nombre;
+            string destino = Ruta(claveDestino);
+            lock (candado)
+            {
+                if (!File.Exists(origen)) throw new FileNotFoundException("No existe el archivo a eliminar", clave);
+                Directory.CreateDirectory(Path.GetDirectoryName(destino));
+                File.Move(origen, destino);
+                if (File.Exists(origen + ".bak")) File.Move(origen + ".bak", destino + ".bak");
+            }
+            return claveDestino;
+        }
 
         // Bloquea rutas fuera de la raíz ("../", rutas absolutas, mayúsculas raras, etc.)
         string Ruta(string clave)

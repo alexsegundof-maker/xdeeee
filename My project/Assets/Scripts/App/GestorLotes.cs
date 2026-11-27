@@ -155,32 +155,29 @@ namespace Composta.App
         }
 
         // ---------------- Control Manual: mediciones reales ----------------
-        public bool RegistrarMedicion(float temperatura, float humedad, float pesoKg, string nota, out string error)
-        {
-            error = null;
-            if (!svc.Sesion.Puede(Permiso.RegistrarInformes)) { error = "Tu rol no permite registrar mediciones."; return false; }
-            if (!EsLoteManual) { error = "Las mediciones de campo son para lotes de Control Manual."; return false; }
-            if (LoteActual.Estado != EstadoLote.Activo) { error = "El lote está cerrado."; return false; }
+        // Zona horaria del dispositivo: las fechas escritas a mano se interpretan en hora local
+        public TimeZoneInfo Zona => TimeZoneInfo.Local;
+        public DateTime AhoraUtc => svc.Reloj.UtcAhora;
+        public bool Puede(Permiso p) => svc.Sesion.Puede(p);
 
-            var registro = new InformeCampo
-            {
-                Id = Guid.NewGuid().ToString("N"),
-                FechaUtc = svc.Reloj.UtcAhora.Ticks,
-                Temperatura = temperatura,
-                Humedad = humedad,
-                PesoKg = pesoKg,
-                Nota = ValidadorAporte.LimpiarNota(nota),
-                Usuario = Usuario
-            };
-            LoteActual.Informes.Add(registro);
-            if (!Guardar())
-            {
-                LoteActual.Informes.Remove(registro);   // no mostrar como guardado algo que no llegó a disco
-                error = "No se pudo guardar la medición en disco. Revisa el espacio o los permisos.";
-                return false;
-            }
-            AlCambiarRegistros?.Invoke(LoteActual);
-            return true;
+        public bool RegistrarMedicion(float temperatura, float humedad, float pesoKg, string nota, DateTime fechaUtc, out string error)
+        {
+            if (!svc.Sesion.Puede(Permiso.RegistrarInformes)) { error = "Tu rol no permite registrar mediciones."; return false; }
+            return Modificar(l => EditorLote.AgregarMedicion(l, temperatura, humedad, pesoKg, nota, fechaUtc, Usuario, AhoraUtc),
+                             AlCambiarRegistros, out error);
+        }
+
+        public bool ActualizarMedicion(string id, float temperatura, float humedad, float pesoKg, string nota, DateTime fechaUtc, out string mensaje)
+        {
+            if (!svc.Sesion.Puede(Permiso.EditarRegistros)) { mensaje = "Tu rol no permite corregir mediciones."; return false; }
+            return Modificar(l => EditorLote.EditarMedicion(l, id, temperatura, humedad, pesoKg, nota, fechaUtc, Usuario, AhoraUtc),
+                             AlCambiarRegistros, out mensaje);
+        }
+
+        public bool EliminarMedicion(string id, out string mensaje)
+        {
+            if (!svc.Sesion.Puede(Permiso.EditarRegistros)) { mensaje = "Tu rol no permite eliminar mediciones."; return false; }
+            return Modificar(l => EditorLote.EliminarMedicion(l, id, Usuario, AhoraUtc), AlCambiarRegistros, out mensaje);
         }
 
         // ---------------- Aportes de residuos (ambos modos) ----------------
@@ -188,29 +185,86 @@ namespace Composta.App
         {
             if (!svc.Sesion.Puede(Permiso.RegistrarAportes)) { mensaje = "Tu rol no permite registrar aportes."; return false; }
             if (LoteActual == null) { mensaje = "No hay un lote activo. Crea una composta primero."; return false; }
-            if (LoteActual.Estado != EstadoLote.Activo) { mensaje = "El lote está cerrado."; return false; }
-            if (!Enum.IsDefined(typeof(TipoMaterial), material)) { mensaje = "Tipo de material no válido."; return false; }
             if (!ValidadorAporte.IntentarLeerKg(kgTexto, out float kg, out mensaje)) return false;
+            int tick = TickActual;
+            return Modificar(l => EditorLote.AgregarAporte(l, kg, material, nota, tick, Usuario, AhoraUtc), AlCambiarAportes, out mensaje);
+        }
 
-            var aporte = new Aporte
+        public bool ActualizarAporte(string id, string kgTexto, TipoMaterial material, string nota, out string mensaje)
+        {
+            if (!svc.Sesion.Puede(Permiso.EditarRegistros)) { mensaje = "Tu rol no permite corregir aportes."; return false; }
+            if (!ValidadorAporte.IntentarLeerKg(kgTexto, out float kg, out mensaje)) return false;
+            return Modificar(l => EditorLote.EditarAporte(l, id, kg, material, nota, Usuario, AhoraUtc), AlCambiarAportes, out mensaje);
+        }
+
+        public bool EliminarAporte(string id, out string mensaje)
+        {
+            if (!svc.Sesion.Puede(Permiso.EditarRegistros)) { mensaje = "Tu rol no permite eliminar aportes."; return false; }
+            return Modificar(l => EditorLote.EliminarAporte(l, id, Usuario, AhoraUtc), AlCambiarAportes, out mensaje);
+        }
+
+        // ---------------- Datos del lote ----------------
+        public bool ActualizarLote(string nombre, TipoComposta tipo, float relacionCN, float aislamiento, out string mensaje)
+        {
+            if (!svc.Sesion.Puede(Permiso.EditarRegistros)) { mensaje = "Tu rol no permite modificar el lote."; return false; }
+            return Modificar(l => EditorLote.EditarLote(l, nombre, tipo, relacionCN, aislamiento, Usuario, AhoraUtc), AlCambiarLote, out mensaje);
+        }
+
+        // Manda el lote abierto a la papelera de la carpeta de datos (recuperable copiando el archivo de vuelta).
+        // Antes se guarda con la anotación de quién lo eliminó, para que la copia en la papelera lo diga.
+        public bool EliminarLoteActual(out string mensaje)
+        {
+            if (!svc.Sesion.Puede(Permiso.EliminarLotes)) { mensaje = "Solo administración puede eliminar lotes."; return false; }
+            if (LoteActual == null) { mensaje = "No hay un lote abierto."; return false; }
+            var respaldo = EditorLote.Clonar(LoteActual);
+            string nombre = LoteActual.Nombre;
+            try
             {
-                Id = Guid.NewGuid().ToString("N"),
-                FechaUtc = svc.Reloj.UtcAhora.Ticks,
-                Tick = TickActual,
-                Kg = kg,
-                Material = material,
-                Nota = ValidadorAporte.LimpiarNota(nota),
-                Usuario = Usuario
-            };
-            LoteActual.Aportes.Add(aporte);
-            if (!Guardar())
+                if (sistemaDelLote != null) LoteActual.TicksSimulados = sistemaDelLote.Modelo.Ticks;
+                EditorLote.AnotarEliminacionLote(LoteActual, Usuario, AhoraUtc);
+                svc.Lotes.Guardar(LoteActual);
+                svc.Lotes.Eliminar(LoteActual.Id, AhoraUtc);
+            }
+            catch (Exception e)
             {
-                LoteActual.Aportes.Remove(aporte);
-                mensaje = "No se pudo guardar el aporte en disco. Revisa el espacio o los permisos.";
+                Debug.LogException(e);
+                LoteActual = respaldo;
+                mensaje = "No se pudo eliminar el lote: " + e.Message;
                 return false;
             }
-            mensaje = string.Format(CultureInfo.InvariantCulture, "Aporte registrado: {0:0.##} kg ({1}).", kg, ValidadorAporte.Nombre(material));
-            AlCambiarAportes?.Invoke(LoteActual);
+            sim.DetenerMotor();
+            sistemaDelLote = null;
+            LoteActual = null;
+            AlCambiarLote?.Invoke(null);
+            mensaje = $"Lote «{nombre}» eliminado. Se guardó una copia en la papelera de la carpeta de datos.";
+            return true;
+        }
+
+        // Aplica una modificación de forma transaccional: si no se puede guardar en disco, el lote vuelve
+        // exactamente a como estaba (nunca se muestra como guardado algo que no llegó al archivo).
+        bool Modificar(Func<Lote, ResultadoEdicion> operacion, Action<Lote> alTerminar, out string mensaje)
+        {
+            if (LoteActual == null) { mensaje = "No hay un lote abierto."; return false; }
+            var respaldo = EditorLote.Clonar(LoteActual);
+            ResultadoEdicion r;
+            try { r = operacion(LoteActual); }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                LoteActual = respaldo;
+                mensaje = "Error inesperado: " + e.Message;
+                return false;
+            }
+            mensaje = r.Mensaje;
+            if (!r.Exito) { LoteActual = respaldo; return false; }
+            if (r.SinCambios) return true;
+            if (!Guardar())
+            {
+                LoteActual = respaldo;
+                mensaje = "No se pudo guardar en disco. Revisa el espacio o los permisos; no se aplicó ningún cambio.";
+                return false;
+            }
+            alTerminar?.Invoke(LoteActual);
             return true;
         }
 
@@ -251,7 +305,8 @@ namespace Composta.App
                 var archivos = new System.Collections.Generic.List<(string nombre, string contenido)>
                 {
                     ("resumen.csv", ExportadorCsv.Resumen(LoteActual)),
-                    ("aportes.csv", ExportadorCsv.Aportes(LoteActual))
+                    ("aportes.csv", ExportadorCsv.Aportes(LoteActual)),
+                    ("cambios.csv", ExportadorCsv.Cambios(LoteActual))
                 };
                 if (EsLoteManual) archivos.Add(("mediciones.csv", ExportadorCsv.Mediciones(LoteActual)));
                 else

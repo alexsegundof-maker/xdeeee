@@ -34,6 +34,23 @@ namespace Composta.Core.Lotes
         public TipoMaterial Material;
         public string Nota;
         public string Usuario;
+        public string EditadoPor;     // última edición (vacío si nunca se editó)
+        public long EditadoUtc;
+    }
+
+    public enum AccionCambio { Creacion = 0, Edicion = 1, Eliminacion = 2 }
+    public enum EntidadCambio { Medicion = 0, Aporte = 1, Lote = 2 }
+
+    // Bitácora de auditoría: quién cambió qué y cuándo (nunca se borra)
+    [Serializable]
+    public class CambioLote
+    {
+        public long FechaUtc;
+        public string Usuario;
+        public AccionCambio Accion;
+        public EntidadCambio Entidad;
+        public string IdEntidad;
+        public string Detalle;
     }
 
     [Serializable]
@@ -60,6 +77,7 @@ namespace Composta.Core.Lotes
         public List<Comando> Comandos = new List<Comando>();
         public List<Aporte> Aportes = new List<Aporte>();
         public List<Campo.InformeCampo> Informes = new List<Campo.InformeCampo>();   // informes semanales (Manual)
+        public List<CambioLote> Cambios = new List<CambioLote>();                      // auditoría de ediciones y borrados
 
         public float DiasSimulados => TicksSimulados / 24f;
 
@@ -68,7 +86,7 @@ namespace Composta.Core.Lotes
             get
             {
                 float t = 0f;
-                if (Aportes != null) foreach (var a in Aportes) t += a.Kg;
+                if (Aportes != null) foreach (var a in Aportes) if (a != null) t += a.Kg;
                 return t;
             }
         }

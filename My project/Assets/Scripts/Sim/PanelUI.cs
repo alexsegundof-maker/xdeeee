@@ -31,6 +31,7 @@ public class PanelUI : MonoBehaviour
     public event Action PedirAportes;
     public event Action PedirExportar;
     public event Action PedirPrediccion;
+    public event Action PedirLote;
 
     Canvas canvasUI;
     bool tableroVisible = true;
@@ -164,10 +165,11 @@ public class PanelUI : MonoBehaviour
         Boton("Aportes", i++, ancho, paso, () => PedirAportes?.Invoke());
         Boton("Exportar", i++, ancho, paso, () => PedirExportar?.Invoke(), Permiso.Exportar);
         Boton("Predicción", i++, ancho, paso, () => PedirPrediccion?.Invoke(), null, Tema.ConAlfa(Tema.AcentoPrediccion, 0.85f));
+        Boton("Lote", i++, ancho, paso, () => PedirLote?.Invoke());
         RefrescarPermisos();
     }
 
-    const int TotalBotones = 11;
+    const int TotalBotones = 12;
     const float paso = 1f / TotalBotones, ancho = paso - 0.006f;
     RectTransform barraBotones;
 
@@ -195,7 +197,7 @@ public class PanelUI : MonoBehaviour
     {
         float x0 = indice * paso;
         var b = UIFabrica.Boton(barraBotones, texto, new Vector2(x0, 0f), new Vector2(x0 + ancho, 1f), 19, color ?? Tema.BotonNeutro, accion);
-        // Móvil: 6 arriba y 5 abajo
+        // Móvil: 6 arriba y 6 abajo
         int fila = indice < 6 ? 0 : 1, col = indice < 6 ? indice : indice - 6;
         Responsivo.En(b, new Vector2(col / 6f + 0.004f, fila == 0 ? 0.52f : 0f), new Vector2((col + 1) / 6f - 0.004f, fila == 0 ? 1f : 0.48f));
         var t = UIFabrica.Etiqueta(b);

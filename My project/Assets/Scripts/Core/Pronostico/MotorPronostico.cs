@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Composta.Core.Lotes;
@@ -172,7 +172,8 @@ namespace Composta.Core.Pronostico
             CreadoPor = l.CreadoPor, CreadoUtc = l.CreadoUtc, ActualizadoUtc = l.ActualizadoUtc, TicksSimulados = l.TicksSimulados,
             Comandos = new List<Comando>(l.Comandos ?? new List<Comando>()),
             Aportes = new List<Aporte>(l.Aportes ?? new List<Aporte>()),
-            Informes = new List<Campo.InformeCampo>(l.Informes ?? new List<Campo.InformeCampo>())
+            Informes = new List<Campo.InformeCampo>(l.Informes ?? new List<Campo.InformeCampo>()),
+            Cambios = new List<CambioLote>(l.Cambios ?? new List<CambioLote>())
         };
     }
 }

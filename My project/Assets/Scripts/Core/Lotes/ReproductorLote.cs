@@ -29,6 +29,8 @@ namespace Composta.Core.Lotes
             if (l.Comandos == null) l.Comandos = new List<Comando>();
             if (l.Aportes == null) l.Aportes = new List<Aporte>();
             if (l.Informes == null) l.Informes = new List<Campo.InformeCampo>();
+            if (l.Cambios == null) l.Cambios = new List<CambioLote>();
+            l.Cambios.RemoveAll(c => c == null);
             if (!Enum.IsDefined(typeof(TipoComposta), l.Tipo)) { l.Tipo = TipoComposta.PilaAbierta; avisos.Add("tipo de composta desconocido"); }
 
             if (!Enum.IsDefined(typeof(ModoLote), l.Modo)) { l.Modo = ModoLote.Simular; avisos.Add("modo desconocido"); }

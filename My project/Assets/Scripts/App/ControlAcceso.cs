@@ -35,7 +35,9 @@ namespace Composta.App
         PanelAportes aportes;
         PanelUsuarios usuarios;
         TableroManual tableroManual;           // vista del modo Control Manual (sin simulación)
-        PanelRegistroCampo registro;           // formulario de medición de campo
+        PanelRegistroCampo registro;           // formulario de medición de campo (nueva o corrección)
+        PanelMediciones mediciones;            // lista completa de mediciones con editar / eliminar
+        PanelLote panelLote;                   // datos del lote, auditoría y eliminación
         VentanaPrediccion prediccion;          // pronóstico aislado + Google Calendar
         float proximoRefrescoManual;
 
@@ -65,6 +67,14 @@ namespace Composta.App
             tableroManual = gameObject.AddComponent<TableroManual>();
             registro = gameObject.AddComponent<PanelRegistroCampo>();
             prediccion = gameObject.AddComponent<VentanaPrediccion>();
+            mediciones = gameObject.AddComponent<PanelMediciones>();
+            panelLote = gameObject.AddComponent<PanelLote>();
+            mediciones.HayVentanaEncima = () => registro.Abierto || registro.CerradoEsteCuadro;
+            mediciones.PedirNueva += AbrirRegistro;
+            mediciones.PedirEditar += r => { if (lotes != null && svc.Sesion.Puede(Permiso.EditarRegistros)) registro.AbrirEdicion(lotes, r); };
+            panelLote.AlEliminarLote += AlEliminarLote;
+            tableroManual.PedirMediciones += AbrirMediciones;
+            tableroManual.PedirLote += AbrirLote;
             tableroManual.PedirRegistro += AbrirRegistro;
             tableroManual.PedirAportes += AbrirAportes;
             tableroManual.PedirExportar += Exportar;
@@ -148,6 +158,8 @@ namespace Composta.App
                 panelUI.PedirExportar += Exportar;
                 panelUI.PedirPrediccion -= PredecirLoteActual;
                 panelUI.PedirPrediccion += PredecirLoteActual;
+                panelUI.PedirLote -= AbrirLote;
+                panelUI.PedirLote += AbrirLote;
             }
         }
 
@@ -436,6 +448,30 @@ namespace Composta.App
             aportes.Abrir(lotes, svc.Sesion.Puede(Permiso.RegistrarAportes));
         }
 
+        void AbrirMediciones()
+        {
+            if (svc == null || !svc.Sesion.Activa || lotes == null || !lotes.EsLoteManual) return;
+            mediciones.Abrir(lotes);
+        }
+
+        void AbrirLote()
+        {
+            if (svc == null || !svc.Sesion.Activa || lotes == null) return;
+            if (lotes.LoteActual == null) { Notificador.Mostrar("No hay un lote abierto.", TipoMensaje.Info); return; }
+            panelLote.Abrir(lotes);
+        }
+
+        // El lote abierto se mandó a la papelera: se vuelve a elegir (otro lote activo o una composta nueva)
+        void AlEliminarLote()
+        {
+            aportes.Cerrar();
+            mediciones.Cerrar();
+            registro.Cerrar();
+            prediccion.Cerrar();
+            if (sim != null) sim.pausado = true;
+            ElegirLote();
+        }
+
         void Exportar()
         {
             if (lotes.Exportar(out string carpeta, out string error))
@@ -463,6 +499,8 @@ namespace Composta.App
             aportes.Cerrar();
             usuarios.Cerrar();
             registro.Cerrar();
+            mediciones.Cerrar();
+            panelLote.Cerrar();
             prediccion.Cerrar();
             MostrarEspacioDeTrabajo(false);
             Notificador.CerrarDialogos();

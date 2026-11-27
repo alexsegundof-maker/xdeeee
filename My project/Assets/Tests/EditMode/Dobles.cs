@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Composta.Core.Persistencia;
 using UnityEngine;
@@ -32,6 +32,17 @@ namespace Composta.Tests
         }
 
         public string RutaAbsoluta(string clave) => "/memoria/" + clave;
+
+        public string MoverAPapelera(string clave, DateTime ahoraUtc)
+        {
+            if (!Archivos.TryGetValue(clave, out var v)) throw new System.IO.FileNotFoundException("No existe", clave);
+            string nombre = clave.Substring(clave.LastIndexOf('/') + 1);
+            string destino = "papelera/" + nombre.Replace(".json", "-" + ahoraUtc.ToString("yyyyMMddHHmmss") + ".json");
+            Archivos.Remove(clave);
+            Archivos[destino] = v;
+            if (Archivos.TryGetValue(clave + ".bak", out var b)) { Archivos.Remove(clave + ".bak"); Archivos[destino + ".bak"] = b; }
+            return destino;
+        }
     }
 
     public sealed class RelojFalso : IReloj

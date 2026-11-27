@@ -26,7 +26,7 @@ namespace Composta.Core.Lotes
         {
             var sb = new StringBuilder("fecha_utc,tick,dia,usuario,accion,valor\n");
             foreach (var c in l.Comandos)
-                sb.Append(Fecha(c.FechaUtc)).Append(',')
+                if (c != null) sb.Append(Fecha(c.FechaUtc)).Append(',')
                   .Append(c.Tick.ToString(C)).Append(',')
                   .Append((c.Tick / 24f).ToString("F2", C)).Append(',')
                   .Append(Campo(c.Usuario)).Append(',')
@@ -37,31 +37,63 @@ namespace Composta.Core.Lotes
 
         public static string Aportes(Lote l)
         {
-            var sb = new StringBuilder("fecha_utc,tick,dia,kg,material,usuario,nota\n");
+            var sb = new StringBuilder("fecha_utc,tick,dia,kg,material,usuario,nota,editado_por,editado_utc\n");
             foreach (var a in l.Aportes)
+            {
+                if (a == null) continue;
                 sb.Append(Fecha(a.FechaUtc)).Append(',')
                   .Append(a.Tick.ToString(C)).Append(',')
                   .Append((a.Tick / 24f).ToString("F2", C)).Append(',')
                   .Append(a.Kg.ToString("F2", C)).Append(',')
                   .Append(a.Material).Append(',')
                   .Append(Campo(a.Usuario)).Append(',')
-                  .Append(Campo(a.Nota)).Append('\n');
+                  .Append(Campo(a.Nota)).Append(',')
+                  .Append(Campo(a.EditadoPor)).Append(',')
+                  .Append(Fecha(a.EditadoUtc)).Append('\n');
+            }
             return sb.ToString();
         }
 
         // Control Manual: mediciones reales registradas a mano
         public static string Mediciones(Lote l)
         {
-            var sb = new StringBuilder("fecha_utc,temperatura_c,humedad_pct,peso_kg,usuario,nota\n");
+            var sb = new StringBuilder("fecha_utc,temperatura_c,humedad_pct,peso_kg,usuario,nota,registrado_utc,editado_por,editado_utc\n");
             foreach (var r in Composta.Core.Campo.AnalisisCampo.Ordenados(l))
                 sb.Append(Fecha(r.FechaUtc)).Append(',')
                   .Append(r.Temperatura.ToString("F1", C)).Append(',')
                   .Append(r.Humedad.ToString("F1", C)).Append(',')
                   .Append(r.PesoKg.ToString("F2", C)).Append(',')
                   .Append(Campo(r.Usuario)).Append(',')
-                  .Append(Campo(r.Nota)).Append('\n');
+                  .Append(Campo(r.Nota)).Append(',')
+                  .Append(Fecha(r.RegistradoUtc)).Append(',')
+                  .Append(Campo(r.EditadoPor)).Append(',')
+                  .Append(Fecha(r.EditadoUtc)).Append('\n');
             return sb.ToString();
         }
+
+        // Auditoría: quién creó, corrigió o eliminó cada registro (se exporta aunque esté vacía)
+        public static string Cambios(Lote l)
+        {
+            var sb = new StringBuilder("fecha_utc,usuario,accion,elemento,id_elemento,detalle\n");
+            if (l.Cambios == null) return sb.ToString();
+            foreach (var c in l.Cambios)
+            {
+                if (c == null) continue;
+                sb.Append(Fecha(c.FechaUtc)).Append(',')
+                  .Append(Campo(c.Usuario)).Append(',')
+                  .Append(NombreAccion(c.Accion)).Append(',')
+                  .Append(NombreEntidad(c.Entidad)).Append(',')
+                  .Append(Campo(c.IdEntidad)).Append(',')
+                  .Append(Campo(c.Detalle)).Append('\n');
+            }
+            return sb.ToString();
+        }
+
+        public static string NombreAccion(AccionCambio a)
+            => a == AccionCambio.Creacion ? "creación" : a == AccionCambio.Edicion ? "edición" : "eliminación";
+
+        public static string NombreEntidad(EntidadCambio e)
+            => e == EntidadCambio.Medicion ? "medición" : e == EntidadCambio.Aporte ? "aporte" : "lote";
 
         public static string Resumen(Lote l)
         {
@@ -82,6 +114,9 @@ namespace Composta.Core.Lotes
             Fila("creado_utc", Fecha(l.CreadoUtc));
             Fila("dias_simulados", l.DiasSimulados.ToString("F2", C));
             Fila("aportes_total_kg", l.TotalAportadoKg.ToString("F2", C));
+            Fila("aportes_registrados", (l.Aportes?.Count ?? 0).ToString(C));
+            if (l.Modo == ModoLote.Manual) Fila("mediciones_registradas", (l.Informes?.Count ?? 0).ToString(C));
+            Fila("cambios_auditados", (l.Cambios?.Count ?? 0).ToString(C));
             return sb.ToString();
         }
     }

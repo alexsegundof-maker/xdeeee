@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Composta.Core.Lotes;
@@ -11,6 +11,7 @@ namespace Composta.Core.Persistencia
         Lote Cargar(string id);
         IReadOnlyList<Lote> Listar();
         Lote UltimoActivo();
+        string Eliminar(string id, DateTime ahoraUtc);     // a la papelera (recuperable a mano)
     }
 
     // Un archivo JSON por lote: lotes/{id}.json (con .bak automático del almacén)
@@ -55,6 +56,12 @@ namespace Composta.Core.Persistencia
             }
             lista.Sort((a, b) => b.ActualizadoUtc.CompareTo(a.ActualizadoUtc));   // más reciente primero
             return lista;
+        }
+
+        public string Eliminar(string id, DateTime ahoraUtc)
+        {
+            if (id == null || !IdValido.IsMatch(id)) throw new ArgumentException("Id de lote inválido");
+            return almacen.MoverAPapelera(Clave(id), ahoraUtc);
         }
 
         public Lote UltimoActivo()
