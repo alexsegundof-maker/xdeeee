@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -33,7 +33,7 @@ namespace Composta.App
 
         public bool Abierta => raiz != null && raiz.gameObject.activeSelf;
 
-        public async void Abrir(ResultadoPronostico p, string claveCalendario, string nombre)
+        public void Abrir(ResultadoPronostico p, string claveCalendario, string nombre)
         {
             pronostico = p; clave = claveCalendario; nombreLote = nombre;
             Asegurar();
@@ -47,13 +47,10 @@ namespace Composta.App
                                               p.AlcanzaFaseCaliente ? "" : " (no alcanza la fase caliente)") + p.Supuestos;
             DibujarCurvas();
 
-            tiempo = ServicioTiempoGoogle.Actual;
+            ServicioTiempo.Refrescar();                 // por si cambió la zona del equipo
+            tiempo = ServicioTiempo.Actual;             // hora y zona del teléfono o PC: sin cuentas ni claves
             RefrescarHitos();
             RefrescarGoogle();
-            txtTiempo.text = "Consultando la hora y zona horaria en Google…";
-            tiempo = await ServicioTiempoGoogle.ObtenerAsync();          // hora real + zona (o la del dispositivo)
-            if (this == null || !Abierta) return;
-            RefrescarHitos();
         }
 
         public void Cerrar()

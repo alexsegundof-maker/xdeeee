@@ -171,5 +171,14 @@ namespace Composta.Tests
             Assert.AreEqual(DateTimeKind.Utc, utc.Kind);
             Assert.IsFalse(UtilGoogle.IntentarLeerFechaHttp("ayer", out _));
         }
+
+        // ---------------- Zona horaria en PC ----------------
+        [TestCase("Central Standard Time (Mexico)", "America/Mexico_City")]
+        [TestCase("Romance Standard Time", "Europe/Madrid")]
+        [TestCase("SA Pacific Standard Time", "America/Bogota")]
+        [TestCase("Europe/Madrid", "Europe/Madrid")]          // macOS/Linux ya usan IANA
+        [TestCase("Zona inventada", null)]
+        [TestCase("", null)]
+        public void ZonasWindows_AIana(string idSistema, string esperado) => Assert.AreEqual(esperado, ZonasWindows.AIana(idSistema));
     }
 }

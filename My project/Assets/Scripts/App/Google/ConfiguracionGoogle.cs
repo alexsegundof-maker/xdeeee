@@ -1,17 +1,16 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Composta.App.Google
 {
-    // Credenciales y preferencias de Google. Crear con: Assets > Create > Composta > Configuración de Google,
+    // Credenciales de Google Calendar (opcional: sin esto la app funciona y solo se desactiva "Exportar").
+    // La hora y la zona horaria salen del teléfono o PC; no necesitan claves.
+    // Crear con: Assets > Create > Composta > Configuración de Google,
     // y guardarlo EXACTAMENTE en Assets/Resources/ConfiguracionGoogle.asset (se carga con Resources.Load).
     // IMPORTANTE: ese archivo está en .gitignore; no subas claves al repositorio.
     [CreateAssetMenu(fileName = "ConfiguracionGoogle", menuName = "Composta/Configuración de Google")]
     public sealed class ConfiguracionGoogle : ScriptableObject
     {
         public const string NombreRecurso = "ConfiguracionGoogle";
-
-        [Header("Time Zone API (clave de API restringida a esa API y a tu app Android)")]
-        public string claveApiTimeZone = "";
 
         [Header("OAuth 2.0 · cliente tipo Android (para la app en el teléfono)")]
         public string clientIdAndroid = "";
@@ -28,18 +27,10 @@ namespace Composta.App.Google
         public string idCalendario = "primary";
         [Range(0, 23)] public int horaRecordatorios = 9;
 
-        [Header("Ubicación para la zona horaria")]
-        [Tooltip("En Android se intenta primero la ubicación del dispositivo (pide permiso)")]
-        public bool usarUbicacionDelDispositivo = true;
-        public double latitudPorDefecto = 19.4326;      // Ciudad de México: cámbialo por tu comunidad
-        public double longitudPorDefecto = -99.1332;
-
         [Header("Red")]
         [Range(5, 60)] public int segundosTimeout = 15;
 
         public const string AlcanceCalendario = "https://www.googleapis.com/auth/calendar.events";   // mínimo privilegio
-
-        public bool TieneTimeZone => !string.IsNullOrWhiteSpace(claveApiTimeZone);
 
         public bool TieneOAuth
         {

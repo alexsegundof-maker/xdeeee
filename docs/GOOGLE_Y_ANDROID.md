@@ -1,4 +1,4 @@
-# Google (Time Zone + Calendar) y compilación para Android
+# Google Calendar (opcional) y compilación para Android
 
 ## Arquitectura
 
@@ -11,7 +11,8 @@ Core/Pronostico/   (C# puro, con tests)
 App/Google/        (Unity, solo UnityWebRequest: sin DLLs de Google → compatible con IL2CPP/Android)
   ConfiguracionGoogle    ScriptableObject con claves e IDs (Assets/Resources/ConfiguracionGoogle.asset)
   HttpGoogle             UnityWebRequest → Task
-  ServicioTiempoGoogle   Time Zone API + hora real (encabezado Date de Google) · respaldo: dispositivo
+  ServicioTiempo         hora y zona horaria DEL DISPOSITIVO (sin cuentas ni claves): Android vía java.util.TimeZone,
+                         PC vía TimeZoneInfo (Windows se traduce a IANA con Core/Pronostico/ZonasWindows)
   AutenticacionGoogle    OAuth 2.0 + PKCE · Android: deep link · Editor/PC: 127.0.0.1 (loopback)
   ServicioCalendarioGoogle  leer / borrar / crear eventos (idempotente por lote)
 App/VentanaPrediccion   ventana dedicada (sin controles de la simulación)
@@ -22,23 +23,24 @@ App/Movil/             AdaptadorPantalla, AreaSegura, Responsivo, ContenidoDespl
 llaman a `MotorPronostico`, que crea su propio `SistemaComposta`. Los tests `Pronostico_NoModificaUnLoteManual`
 y `Pronostico_DesdeLoteSimulado_NoAlteraElLoteNiSuSimulacion` comprueban que el lote serializado no cambia ni un byte.
 
-**Qué aporta cada API.** La Time Zone API da la zona IANA y el desplazamiento (con horario de verano) de la
-ubicación; la hora UTC real se toma del encabezado `Date` de la respuesta de Google (así un reloj del teléfono
-mal puesto no desplaza las fechas). Los eventos se crean con `timeZone` IANA, por lo que Google aplica el horario
-de verano correcto en cada fecha futura. Sin conexión o sin clave se usan la hora y la zona del dispositivo.
+**Hora y zona horaria.** Salen del teléfono o de la PC, que ya las sincronizan solos con la red: no hace falta
+ninguna cuenta, clave ni permiso de ubicación. Los eventos se crean con la zona IANA (por ejemplo
+`America/Mexico_City`), así Google aplica el horario de verano correcto en cada fecha futura. Si la zona de Windows no
+está en la tabla `ZonasWindows`, se usa el desfase horario (también válido).
+
+**Google es opcional.** Sin `ConfiguracionGoogle` la app funciona completa; solo se desactiva el botón de exportar
+a Google Calendar. La configuración la hace quien compila la app, una vez; cada persona solo inicia sesión con su
+cuenta al exportar.
 
 ## 1. Google Cloud Console
 
 1. Crea un proyecto en https://console.cloud.google.com/.
-2. **APIs y servicios › Biblioteca**: habilita **Google Calendar API** y **Time Zone API**
-   (la Time Zone API es de Google Maps Platform y requiere una cuenta de facturación; tiene cuota gratuita mensual).
+2. **APIs y servicios › Biblioteca**: habilita **Google Calendar API** (no requiere facturación).
 3. **Pantalla de consentimiento de OAuth** (Google Auth Platform): tipo *Externo*, nombre de la app, correo de soporte.
    Agrega el alcance `https://www.googleapis.com/auth/calendar.events` y, mientras esté en modo *Prueba*,
    agrega como **usuarios de prueba** las cuentas que usarán la app. Para publicarla para cualquiera, Google
    exige verificar la app (ese alcance es "sensible").
-4. **Credenciales › Crear clave de API** (para Time Zone): restríngela a la **Time Zone API** y a **apps Android**
-   (nombre de paquete + huella SHA‑1 del certificado de firma).
-5. **Credenciales › Crear ID de cliente de OAuth**:
+4. **Credenciales › Crear ID de cliente de OAuth**:
    - **Android**: nombre de paquete + SHA‑1 (obtén la huella con
      `keytool -list -v -keystore tu.keystore -alias tu_alias`). En **Configuración avanzada**, activa
      **"Habilitar esquema de URI personalizado"** (Google lo desactiva por defecto en clientes nuevos).
@@ -48,8 +50,7 @@ de verano correcto en cada fecha futura. Sin conexión o sin clave se usan la ho
 
 1. `Assets > Create > Composta > Configuración de Google` y guárdalo como
    **`Assets/Resources/ConfiguracionGoogle.asset`** (está en `.gitignore`).
-2. Rellena: clave de Time Zone, `clientIdAndroid`, `clientIdEscritorio` + `clientSecretEscritorio`,
-   latitud/longitud de tu comunidad (respaldo si no hay permiso de ubicación) y la hora de los recordatorios.
+2. Rellena `clientIdAndroid`, `clientIdEscritorio` + `clientSecretEscritorio` y la hora de los recordatorios.
 3. **Player Settings › Android**:
    - *Identification › Package Name*: el mismo del cliente OAuth Android (por ejemplo `com.tucomunidad.composta`;
      hoy está el de la plantilla `com.UnityTechnologies...`). Usa **minúsculas**: también es el esquema del deep link.
@@ -59,8 +60,7 @@ de verano correcto en cada fecha futura. Sin conexión o sin clave se usan la ho
    - *Publishing Settings*: firma con tu keystore y marca **Custom Main Manifest**; en el
      `Assets/Plugins/Android/AndroidManifest.xml` generado, pega el intent-filter de
      `docs/android/AndroidManifest.intent-filter.xml` dentro de la actividad principal.
-   - Los permisos `INTERNET` y `ACCESS_COARSE_LOCATION`/`FINE_LOCATION` los agrega Unity solo
-     (UnityWebRequest e `Input.location`). La ubicación se pide en tiempo de ejecución y es opcional.
+   - El permiso `INTERNET` lo agrega Unity solo. La app no pide ubicación.
 4. Compila: *File › Build Profiles › Android › Build*.
 
 ## 3. Probar sin teléfono
