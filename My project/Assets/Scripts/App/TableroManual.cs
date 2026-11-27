@@ -21,12 +21,15 @@ namespace Composta.App
         public event Action PedirMediciones;      // lista completa para corregir o eliminar
         public event Action PedirLote;            // datos del lote e historial de cambios
         public event Action PedirHistorial;       // todas las composteras: activas y cosechadas
+        public event Action PedirMaduracion;      // acción sugerida cuando el lote se estabilizó
+        public event Action PedirCosecha;         // acción sugerida cuando el lote ya está en maduración
 
         static readonly CultureInfo C = CultureInfo.InvariantCulture;
         const int AnchoGraf = 640, AltoGraf = 300;
 
         RectTransform raiz, contenido, vacio;
         Text txtBalance, txtBalanceNivel;
+        Button btnAccionFase;
         Image fondoBalanceNivel;
         Text txtLote, txtEstadoBanner, txtFase, txtFaseDetalle, txtRecs, txtHistorial, txtVacioPie;
         Image fondoBanner;
@@ -89,6 +92,7 @@ namespace Composta.App
             Graficas(lote, perfil);
             Balance(e, lote);
             Recomendaciones(e);
+            AccionFase(e, lote, gestor.Puede(Composta.Core.Seguridad.Permiso.EditarRegistros));
             Historial(lote);
         }
 
@@ -161,6 +165,20 @@ namespace Composta.App
                 ? string.Format(C, "C:N ≈ <b>{0:F1}</b> <color={1}>(ideal 25–35)</color> · humedad estimada {2:F0} %\nEntrada total <b>{3:0.#} kg</b> <color={1}>= carga {4:0.#} kg + {5:0.#} kg en {6} aportaciones</color>\n",
                                   b.RelacionCN, tenue, b.HumedadActualPct ?? b.HumedadMezclaPct, b.PesoEntradaKg, b.CargaBaseKg, b.AportadoKg, lote.NumeroAportaciones)
                 : "Registra la carga inicial en «Aportes» para calcular el balance C:N.\n") + madurez;
+        }
+
+        // Botón directo para la siguiente fase: «Iniciar maduración» cuando el lote se estabilizó,
+        // «Registrar cosecha» cuando ya está en maduración (lo mismo que hay en «Lote», pero a la vista)
+        void AccionFase(EstadoCampo e, Lote lote, bool puede)
+        {
+            bool cosechar = lote.BloqueadoMaduracion;
+            bool madurar = !cosechar && e.Estabilizado;
+            btnAccionFase.gameObject.SetActive(cosechar || madurar);
+            btnAccionFase.interactable = puede;
+            UIFabrica.Etiqueta(btnAccionFase).text = cosechar ? "Registrar cosecha" : "Iniciar maduración";
+            btnAccionFase.GetComponent<Image>().color = cosechar ? Tema.ConAlfa(Tema.Exito, 0.85f) : Tema.ConAlfa(Tema.Aviso, 0.85f);
+            btnAccionFase.onClick.RemoveAllListeners();
+            btnAccionFase.onClick.AddListener(() => { if (cosechar) PedirCosecha?.Invoke(); else PedirMaduracion?.Invoke(); });
         }
 
         void Recomendaciones(EstadoCampo e)
@@ -333,6 +351,8 @@ namespace Composta.App
                 kpiEstado[i] = UIFabrica.Pildora(card, "Pildora", new Vector2(0.74f, 0.70f), new Vector2(0.97f, 0.93f), "OK", Tema.ExitoSuave, Tema.Exito, 13);
                 kpiFondoEstado[i] = kpiEstado[i].transform.parent.GetComponent<Image>();
                 kpiValor[i] = UIFabrica.Texto(card, "Valor", new Vector2(0.03f, 0.25f), new Vector2(0.97f, 0.70f), 40, TextAnchor.MiddleLeft, Tema.TextoPrimario);
+                // Ajuste automático: si la tarjeta es baja, el número se achica en vez de desaparecer
+                kpiValor[i].resizeTextForBestFit = true; kpiValor[i].resizeTextMinSize = 16; kpiValor[i].resizeTextMaxSize = 40;
                 kpiValor[i].fontStyle = FontStyle.Bold;
                 kpiDelta[i] = UIFabrica.Texto(card, "Delta", new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.28f), 14, TextAnchor.MiddleLeft, Tema.TextoSecundario);
             }
@@ -367,7 +387,7 @@ namespace Composta.App
             var franjaB = UIFabrica.Panel("Acento", bal, Vector2.zero, new Vector2(0f, 1f), Tema.AcentoManual, 3);
             franjaB.offsetMax = new Vector2(6f, 0f);
             var lblBal = UIFabrica.Texto(bal, "Lbl", new Vector2(0.03f, 0.74f), new Vector2(0.62f, 0.98f), 14, TextAnchor.MiddleLeft, Tema.TextoSecundario);
-            lblBal.text = "<b>BALANCE DE LA MEZCLA</b>";
+            lblBal.text = "<b>BALANCE C:N</b>";
             UIFabrica.IconoJuntoATexto(lblBal, "Sale de todo lo que entró: carga inicial y aportaciones, ponderadas por materia seca. " +
                                                "La C:N ideal es 25–35: menos huele a amoniaco (exceso de verde), más tarda en calentarse (exceso de café). " +
                                                "El material verde que llega tarde recorre la fecha de madurez.");
@@ -379,8 +399,13 @@ namespace Composta.App
             // Recomendaciones
             var recs = UIFabrica.Tarjeta("Recomendaciones", cuerpo, new Vector2(0.66f, 0.27f), new Vector2(0.99f, 0.585f));
             Responsivo.En(recs, new Vector2(0.02f, 0.15f), new Vector2(0.98f, 0.223f));
-            UIFabrica.Texto(recs, "Titulo", new Vector2(0.02f, 0.86f), new Vector2(0.98f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario)
+            UIFabrica.Texto(recs, "Titulo", new Vector2(0.02f, 0.86f), new Vector2(0.58f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario)
                 .text = "<b>QUÉ HACER AHORA</b>";
+            btnAccionFase = UIFabrica.Boton(recs, "Iniciar maduración", new Vector2(0.60f, 0.865f), new Vector2(0.98f, 0.985f), 16, Tema.Aviso, null);
+            var etFase = UIFabrica.Etiqueta(btnAccionFase);
+            etFase.fontStyle = FontStyle.Bold;
+            etFase.resizeTextForBestFit = true; etFase.resizeTextMinSize = 11; etFase.resizeTextMaxSize = 16;
+            btnAccionFase.gameObject.SetActive(false);
             txtRecs = UIFabrica.Texto(recs, "Texto", new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.86f), 16, TextAnchor.UpperLeft, Tema.TextoPrimario);
             txtRecs.resizeTextForBestFit = true; txtRecs.resizeTextMinSize = 11; txtRecs.resizeTextMaxSize = 16;
 

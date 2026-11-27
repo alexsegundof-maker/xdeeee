@@ -80,6 +80,8 @@ namespace Composta.App
             panelLote.PedirCosecha += () => { panelLote.Cerrar(); cosecha.Abrir(lotes); };
             cosecha.AlCosechar += AbrirHistorial;
             tableroManual.PedirHistorial += AbrirHistorial;
+            tableroManual.PedirCosecha += () => { if (lotes != null) cosecha.Abrir(lotes); };
+            tableroManual.PedirMaduracion += IniciarMaduracion;
             mediciones.HayVentanaEncima = () => registro.Abierto || registro.CerradoEsteCuadro;
             mediciones.PedirNueva += AbrirRegistro;
             mediciones.PedirEditar += r => { if (lotes != null && svc.Sesion.Puede(Permiso.EditarRegistros)) registro.AbrirEdicion(lotes, r); };
@@ -364,6 +366,22 @@ namespace Composta.App
         void AbrirNuevaComposta()
         {
             if (panelBuild != null) panelBuild.AbrirFormulario(lotes.LoteActual == null);
+        }
+
+        void IniciarMaduracion()
+        {
+            if (lotes?.LoteActual == null) return;
+            Notificador.Dialogo("¿Iniciar la maduración?",
+                "El lote se estabilizó. Desde ahora <b>no admitirá nuevas aportaciones</b>: el material fresco reiniciaría la " +
+                "descomposición y retrasaría la cosecha. Sigue registrando mediciones; cuando esté listo, aquí mismo aparecerá " +
+                "«Registrar cosecha». Puedes quitar el bloqueo en «Lote» si fue un error.",
+                new OpcionDialogo("Cancelar"),
+                new OpcionDialogo("Iniciar maduración", () =>
+                {
+                    bool ok = lotes.BloquearMaduracion(true, out string msg);
+                    Notificador.Mostrar(msg, ok ? TipoMensaje.Exito : TipoMensaje.Error);
+                    proximoRefrescoManual = 0f;
+                }, true));
         }
 
         void AbrirHistorial()

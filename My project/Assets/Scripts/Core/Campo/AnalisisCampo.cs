@@ -186,10 +186,10 @@ namespace Composta.Core.Campo
             e.Estabilizado = e.Fase == Etapa.Maduracion;
             if (e.Estabilizado && !lote.BloqueadoMaduracion)
                 Add(NivelEstado.Aviso, "Lote estabilizado: evita nuevas aportaciones",
-                    "La temperatura bajó y el peso ya casi no cambia. Inicia la maduración en «Lote» para que no entren más residuos.");
+                    "La temperatura bajó y el peso ya casi no cambia. Toca «Iniciar maduración» para que no entren más residuos.");
             else if (lote.BloqueadoMaduracion)
                 Add(NivelEstado.Ok, "En maduración",
-                    "Deja reposar 2–4 semanas sin voltear. Cosecha cuando huela a tierra, no se distingan los restos y la temperatura sea la ambiente.");
+                    "Deja reposar 2–4 semanas sin voltear. Cuando huela a tierra, no se distingan los restos y la temperatura sea la ambiente, toca «Registrar cosecha».");
 
             RecomendarBalance(e, p, lote);
 
