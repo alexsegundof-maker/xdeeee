@@ -400,7 +400,7 @@ public class PanelBuild : MonoBehaviour
     // ---------------- Construcción de la UI ----------------
     void ConstruirUI()
     {
-        var rc = UIFabrica.Canvas("Canvas Build", null, 10);     // encima del tablero
+        var rc = UIFabrica.Canvas("Canvas Build", null, 25);     // encima del tablero y de la franja de sesión (20)
         canvasBuild = rc.GetComponentInParent<Canvas>();
         raiz = rc;
 
@@ -684,11 +684,16 @@ public class PanelBuild : MonoBehaviour
         var area = UIFabrica.Panel("Area", raizS, Vector2.zero, Vector2.one, new Color(0, 0, 0, 0), 0);
         area.offsetMin = new Vector2(12f, 0f);
         area.offsetMax = new Vector2(-12f, 0f);
-        var mango = UIFabrica.Panel("Mango", area, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Tema.TextoPrimario, 0);
-        mango.sizeDelta = new Vector2(24f, 24f);
-        var imgMango = mango.GetComponent<Image>();
+        // El Slider de Unity estira el mango a todo el alto del área: por eso el círculo va en un hijo de tamaño fijo
+        var mango = UIFabrica.Panel("Mango", area, new Vector2(0f, 0f), new Vector2(0f, 1f), new Color(0, 0, 0, 0), 0);
+        mango.sizeDelta = new Vector2(28f, 0f);
+        var circulo = UIFabrica.Panel("Circulo", mango, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Tema.TextoPrimario, 0);
+        float diametro = AdaptadorPantalla.EsMovil ? 34f : 24f;
+        circulo.sizeDelta = new Vector2(diametro, diametro);
+        var imgMango = circulo.GetComponent<Image>();
         imgMango.sprite = UIFabrica.SpriteCirculo;
-        var sombra = mango.gameObject.AddComponent<Shadow>();
+        imgMango.raycastTarget = false;
+        var sombra = circulo.gameObject.AddComponent<Shadow>();
         sombra.effectColor = new Color(0, 0, 0, 0.5f);
         sombra.effectDistance = new Vector2(0f, -2f);
 

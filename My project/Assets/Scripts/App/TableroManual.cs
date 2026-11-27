@@ -147,6 +147,21 @@ namespace Composta.App
             var regs = AnalisisCampo.Ordenados(lote);
             var sb = new StringBuilder();
             string tenue = Tema.HexDe(Tema.TextoTenue);
+            if (AdaptadorPantalla.Compacto)
+            {
+                // Móvil: una "ficha" de dos líneas por medición en lugar de columnas
+                for (int i = regs.Count - 1, n = 0; i >= 0 && n < 4; i--, n++)
+                {
+                    var r = regs[i];
+                    var f = new DateTime(r.FechaUtc, DateTimeKind.Utc).ToLocalTime();
+                    sb.AppendFormat(C, "<b>{0:dd/MM HH:mm}</b>   {1:F1} °C · {2:F0} % · {3:0.#} kg\n", f, r.Temperatura, r.Humedad, r.PesoKg);
+                    sb.Append($"<color={tenue}>{UIFabrica.SinRich(r.Usuario)}" +
+                              (string.IsNullOrEmpty(r.Nota) ? "" : " · " + UIFabrica.SinRich(r.Nota)) + "</color>\n");
+                }
+                if (regs.Count > 4) sb.Append($"<color={tenue}>… y {regs.Count - 4} anteriores (exporta para ver todas)</color>");
+                txtHistorial.text = sb.ToString();
+                return;
+            }
             sb.Append($"<color={tenue}>FECHA              TEMPERATURA     HUMEDAD     PESO            REGISTRÓ          NOTA</color>\n");
             for (int i = regs.Count - 1, n = 0; i >= 0 && n < 5; i--, n++)
             {

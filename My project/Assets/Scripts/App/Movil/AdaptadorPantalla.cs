@@ -28,6 +28,15 @@ namespace Composta.App
 
         static AdaptadorPantalla instancia;
         int ancho, alto;
+        Camera camaraPintada;
+
+        // Fuera del área segura (barra de estado, notch) se ve el fondo de la cámara: debe ser el del tema
+        void PintarCamara(Camera cam)
+        {
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = Tema.Fondo;
+            camaraPintada = cam;
+        }
         Rect seguro;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -62,6 +71,9 @@ namespace Composta.App
             if (k != null && k.f9Key.wasPressedThisFrame) { Forzado = !(Forzado ?? Compacto); Recalcular(true); return; }
 #endif
             if (Screen.width != ancho || Screen.height != alto || Screen.safeArea != seguro) Recalcular(false);
+            // La cámara de la escena aparece después del arranque: se pinta con el fondo del tema una sola vez
+            var cam = Camera.main;
+            if (cam != null && cam != camaraPintada) PintarCamara(cam);
         }
 
         void Recalcular(bool forzarEvento)
@@ -86,7 +98,7 @@ namespace Composta.App
 
             // El fondo de la cámara cubre las franjas fuera del área segura (notch, barra de navegación)
             var cam = Camera.main;
-            if (cam != null) { cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = Tema.Fondo; }
+            if (cam != null) PintarCamara(cam);
 
             AlCambiar?.Invoke();       // cualquier cambio de tamaño, orientación o área segura
         }

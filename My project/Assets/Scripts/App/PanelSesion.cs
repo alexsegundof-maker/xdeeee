@@ -39,7 +39,17 @@ namespace Composta.App
             txtUsuario = UIFabrica.Texto(franja, "Usuario", new Vector2(0f, 0f), new Vector2(0.52f, 1f), 18, TextAnchor.MiddleRight, Color.white);
             txtUsuario.resizeTextForBestFit = true; txtUsuario.resizeTextMinSize = 11; txtUsuario.resizeTextMaxSize = 18;
             btnCuenta = UIFabrica.Boton(franja, "Cuenta", new Vector2(0.53f, 0f), new Vector2(0.75f, 1f), 17, UIFabrica.ColBoton, () => PedirCuenta?.Invoke());
-            UIFabrica.Boton(franja, "Salir", new Vector2(0.77f, 0f), new Vector2(1f, 1f), 17, UIFabrica.ColPeligro, () => PedirSalir?.Invoke());
+            var salir = UIFabrica.Boton(franja, "Salir", new Vector2(0.77f, 0f), new Vector2(1f, 1f), 17, UIFabrica.ColPeligro, () => PedirSalir?.Invoke());
+            foreach (var b in new[] { btnCuenta, salir })
+            {
+                var et = UIFabrica.Etiqueta(b);
+                et.resizeTextForBestFit = true; et.resizeTextMinSize = 10; et.resizeTextMaxSize = 17;
+                et.horizontalOverflow = HorizontalWrapMode.Overflow;      // "Usuarios" nunca se parte en dos líneas
+            }
+            // Móvil: más espacio para los botones
+            Responsivo.En(txtUsuario, new Vector2(0f, 0f), new Vector2(0.44f, 1f));
+            Responsivo.En(btnCuenta, new Vector2(0.46f, 0f), new Vector2(0.72f, 1f));
+            Responsivo.En(salir, new Vector2(0.74f, 0f), new Vector2(1f, 1f));
         }
     }
 }

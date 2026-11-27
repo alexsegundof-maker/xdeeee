@@ -45,11 +45,13 @@ namespace Composta.App
             AdaptadorPantalla.Configurar(go.GetComponent<CanvasScaler>());
             go.AddComponent<EscaladorAdaptable>();
 
-            var seguro = new GameObject("AreaSegura", typeof(RectTransform), typeof(CanvasGroup), typeof(AreaSegura));
+            var seguro = new GameObject("AreaSegura", typeof(RectTransform), typeof(CanvasGroup));
             seguro.transform.SetParent(go.transform, false);
             var rt = (RectTransform)seguro.transform;
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
             rt.offsetMin = rt.offsetMax = Vector2.zero;
+            // Se agrega AL FINAL: su OnEnable ajusta las anclas a Screen.safeArea (antes se sobrescribían aquí mismo)
+            seguro.AddComponent<AreaSegura>();
             return rt;
         }
 
@@ -148,6 +150,7 @@ namespace Composta.App
             var t = Texto(rt, "Texto", Vector2.zero, Vector2.one, tam, TextAnchor.MiddleCenter, colorTexto);
             t.rectTransform.offsetMin = new Vector2(8, 0); t.rectTransform.offsetMax = new Vector2(-8, 0);
             t.fontStyle = FontStyle.Bold;
+            t.resizeTextForBestFit = true; t.resizeTextMinSize = Mathf.Max(8, tam - 6); t.resizeTextMaxSize = tam;
             t.text = texto;
             return t;
         }
