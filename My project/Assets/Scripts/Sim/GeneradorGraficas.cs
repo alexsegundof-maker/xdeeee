@@ -45,7 +45,17 @@ public class GeneradorGraficas : MonoBehaviour
 
     void AlTick(Lectura l)
     {
-        if (l.Tick % Mathf.Max(1, refrescarCadaTicks) == 0) Regenerar();   // 0 provocaba DivideByZeroException
+        // Se marca y se redibuja una sola vez por fotograma (al ponerse al día pasan cientos de horas de golpe)
+        if (l.Tick % Mathf.Max(1, refrescarCadaTicks) == 0) pendiente = true;   // 0 provocaba DivideByZeroException
+    }
+
+    bool pendiente;
+
+    void LateUpdate()
+    {
+        if (!pendiente) return;
+        pendiente = false;
+        Regenerar();
     }
 
     // Nueva composta o lote reanudado: redibujar ya (antes quedaban las gráficas del lote anterior)
@@ -58,8 +68,20 @@ public class GeneradorGraficas : MonoBehaviour
         {
             var serie = Agregador.Construir(simulador.Historial.Lecturas, Todas[i], granularidad);
             // Reutiliza la textura: antes se creaba y destruía una de 640x320 cuatro veces cada 12 horas simuladas
-            texturas[i] = DibujanteGrafica.Dibujar(serie, ancho, alto, simulador.Sistema.Perfil.ZonaIdeal(Todas[i]), texturas[i]);
+            texturas[i] = DibujanteGrafica.Dibujar(serie, ancho, alto, simulador.Sistema.Perfil.ZonaIdeal(Todas[i]), texturas[i],
+                                                   MarcasDeInformes(Todas[i]));
         }
+    }
+
+    // Puntos medidos a mano (informes semanales): solo temperatura y humedad se miden en campo
+    System.Collections.Generic.List<(float x, float v)> MarcasDeInformes(Magnitud m)
+    {
+        var cal = simulador.Sistema.Calibracion;
+        if (cal == null || cal.CantidadInformes == 0 || (m != Magnitud.Temperatura && m != Magnitud.Humedad)) return null;
+        var lista = new System.Collections.Generic.List<(float, float)>();
+        foreach (var inf in cal.Aplicados)
+            lista.Add((inf.Tick / 24f, m == Magnitud.Temperatura ? inf.Temperatura : inf.Humedad));
+        return lista;
     }
 
     // La UI usará esto para pintar cada gráfica en un RawImage

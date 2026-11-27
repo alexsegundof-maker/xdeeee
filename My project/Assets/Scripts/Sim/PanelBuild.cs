@@ -32,6 +32,20 @@ public class PanelBuild : MonoBehaviour
     readonly Image[] fondoModo = new Image[2];
     readonly InputField[] campos = new InputField[5];     // edición exacta (solo modo Manual)
     readonly Text[] txtUnidades = new Text[5];
+
+    // Modo Manual: la relación C/N y el aislamiento se reemplazan por preguntas fáciles de responder en campo
+    readonly Text[] etiquetas = new Text[5];
+    readonly RectTransform[] iconosEtiqueta = new RectTransform[5];
+    readonly GameObject[] botonesMenos = new GameObject[5], botonesMas = new GameObject[5];
+    readonly GameObject[] preguntas = new GameObject[5];
+    readonly System.Collections.Generic.List<(Image fondo, float valor)>[] opciones =
+        new System.Collections.Generic.List<(Image, float)>[5];
+    static bool EsPreguntaSimple(int i) => i == (int)Parametro.RelacionCN || i == (int)Parametro.Aislamiento;
+    bool PreguntaSimpleActiva(int i) => modoSel == ModoLote.Manual && EsPreguntaSimple(i);
+
+    // Ritmo de un lote Manual: calendario real (uso en campo) o demostración acelerada
+    bool ritmoRealSel = true;
+    Button btnRitmo;
     Text txtResumen;
     RectTransform iconoResumenExagerado;      // "!" que sigue al final de la línea de resumen
     readonly Image[] fondoCards = new Image[5];
@@ -153,6 +167,7 @@ public class PanelBuild : MonoBehaviour
             return;
         }
         simulador.modo = modoSel;
+        simulador.ritmoReal = modoSel == ModoLote.Manual && ritmoRealSel;
         // Simular = progresión automatizada (control automático); Manual = la persona decide cuándo voltear/regar
         simulador.modoAutomatico = modoSel == ModoLote.Simular;
         simulador.tipo = tipoSel;
@@ -177,6 +192,7 @@ public class PanelBuild : MonoBehaviour
         aisl = simulador.aislamiento >= 0f ? simulador.aislamiento : d.Aislamiento;
         amb = simulador.tempAmbiente;
         modoSel = simulador.modo;                   // se propone el modo del último lote
+        ritmoRealSel = simulador.modo != ModoLote.Manual || simulador.ritmoReal;
         AplicarModo(false);
     }
 
@@ -200,10 +216,19 @@ public class PanelBuild : MonoBehaviour
         {
             sliders[i].minValue = SliderMin(i);
             sliders[i].maxValue = SliderMax(i);
-            campos[i].gameObject.SetActive(manual);
-            txtUnidades[i].gameObject.SetActive(manual);
+            bool simple = PreguntaSimpleActiva(i);
+            sliders[i].gameObject.SetActive(!simple);
+            campos[i].gameObject.SetActive(manual && !simple);
+            txtUnidades[i].gameObject.SetActive(manual && !simple);
             txtValores[i].gameObject.SetActive(!manual);
+            botonesMenos[i].SetActive(!simple);
+            botonesMas[i].SetActive(!simple);
+            if (preguntas[i] != null) preguntas[i].SetActive(simple);
+            etiquetas[i].text = simple ? AyudaBuild.EtiquetasSimples[i] : Etiquetas[i];
+            UIFabrica.UbicarTrasTexto(iconosEtiqueta[i], etiquetas[i]);
         }
+        btnRitmo.gameObject.SetActive(manual);
+        ActualizarTextoRitmo();
 
         // Al volver a Simular, los valores experimentales se recortan a los rangos guiados
         Refrescar();
@@ -215,6 +240,23 @@ public class PanelBuild : MonoBehaviour
                     Notificador.Mostrar("Algunos valores se ajustaron a los rangos del modo Simular.", TipoMensaje.Info);
                     break;
                 }
+    }
+
+    void AlternarRitmo()
+    {
+        ritmoRealSel = !ritmoRealSel;
+        ActualizarTextoRitmo();
+    }
+
+    void ActualizarTextoRitmo()
+    {
+        UIFabrica.Etiqueta(btnRitmo).text = ritmoRealSel ? "Ritmo: calendario real" : "Ritmo: demostración (acelerado)";
+    }
+
+    void ElegirOpcion(int i, float valor)
+    {
+        if (i == (int)Parametro.RelacionCN) cn = valor; else aisl = valor;
+        Refrescar();
     }
 
     bool BloqueadoPorSimular(PerfilComposta p) => modoSel == ModoLote.Simular && p.PesoExagerado;
@@ -337,6 +379,11 @@ public class PanelBuild : MonoBehaviour
             else Banda(i, SliderMin(i), SliderMin(i));
             bool fuera = rec.HasValue && !rec.Value.Contiene(valores[i]);
             campos[i].textComponent.color = fuera ? new Color(1f, 0.75f, 0.35f) : Color.white;
+
+            // Pregunta simple: se resalta la opción que corresponde al valor actual
+            if (opciones[i] != null)
+                foreach (var (img, v) in opciones[i])
+                    img.color = Mathf.Abs(valores[i] - v) < 0.001f ? ColSel : ColCard;
         }
 
         var tipos = (TipoComposta[])System.Enum.GetValues(typeof(TipoComposta));
@@ -438,9 +485,29 @@ public class PanelBuild : MonoBehaviour
         {
             int idx = i;
             float top = 0.52f - i * 0.085f, bot = top - 0.075f;
-            var etiqueta = Texto(w, "Etiqueta", new Vector2(0.02f, bot), new Vector2(0.25f, top), 22, TextAnchor.MiddleLeft, Color.white);
+            var etiqueta = etiquetas[i] = Texto(w, "Etiqueta", new Vector2(0.02f, bot), new Vector2(0.25f, top), 22, TextAnchor.MiddleLeft, Color.white);
             etiqueta.text = Etiquetas[i];
-            UIFabrica.IconoJuntoATexto(etiqueta, AyudaBuild.Parametros[i]);
+            var ayuda = UIFabrica.IconoJuntoATexto(etiqueta, AyudaBuild.Parametros[i]);
+            ayuda.textoDinamico = () => PreguntaSimpleActiva(idx) ? AyudaBuild.AyudaSimple[idx] : AyudaBuild.Parametros[idx];
+            iconosEtiqueta[i] = (RectTransform)ayuda.transform;
+
+            if (EsPreguntaSimple(i))
+            {
+                var cont = Panel("Pregunta " + Etiquetas[i], w, new Vector2(0.27f, bot), new Vector2(0.97f, top), new Color(0, 0, 0, 0));
+                cont.GetComponent<Image>().raycastTarget = false;
+                var ops = AyudaBuild.OpcionesSimples(i);
+                opciones[i] = new System.Collections.Generic.List<(Image, float)>();
+                float anchoOp = 1f / ops.Length;
+                for (int k = 0; k < ops.Length; k++)
+                {
+                    float valor = ops[k].valor;
+                    Boton(cont, ops[k].texto, new Vector2(k * anchoOp + 0.005f, 0.12f), new Vector2((k + 1) * anchoOp - 0.005f, 0.88f), 20, ColCard,
+                          () => ElegirOpcion(idx, valor), out var bOp);
+                    opciones[i].Add((bOp.GetComponent<Image>(), valor));
+                }
+                preguntas[i] = cont.gameObject;
+                cont.gameObject.SetActive(false);
+            }
             sliders[i] = CrearSlider(w, new Vector2(0.27f, bot), new Vector2(0.72f, top), SliderMin(i), SliderMax(i), v => AlCambiarSlider(idx, v), out bandas[i]);
             txtValores[i] = Texto(w, "Valor", new Vector2(0.73f, bot), new Vector2(0.86f, top), 22, TextAnchor.MiddleLeft, Color.white);
 
@@ -451,12 +518,17 @@ public class PanelBuild : MonoBehaviour
             txtUnidades[i].text = Unidades[i];
             campos[i].gameObject.SetActive(false);
             txtUnidades[i].gameObject.SetActive(false);
-            Boton(w, "-", new Vector2(0.87f, bot + 0.008f), new Vector2(0.915f, top - 0.008f), 28, ColBoton, () => { Paso(idx, -1); }, out _);
-            Boton(w, "+", new Vector2(0.925f, bot + 0.008f), new Vector2(0.97f, top - 0.008f), 28, ColBoton, () => { Paso(idx, +1); }, out _);
+            Boton(w, "-", new Vector2(0.87f, bot + 0.008f), new Vector2(0.915f, top - 0.008f), 28, ColBoton, () => { Paso(idx, -1); }, out var bMenos);
+            Boton(w, "+", new Vector2(0.925f, bot + 0.008f), new Vector2(0.97f, top - 0.008f), 28, ColBoton, () => { Paso(idx, +1); }, out var bMas);
+            botonesMenos[i] = bMenos.gameObject;
+            botonesMas[i] = bMas.gameObject;
         }
 
         Boton(w, "Iniciar composta", new Vector2(0.62f, 0.015f), new Vector2(0.97f, 0.085f), 26, new Color(0.18f, 0.45f, 0.25f), Iniciar, out btnIniciar);
         Boton(w, "Cancelar", new Vector2(0.02f, 0.015f), new Vector2(0.25f, 0.085f), 24, ColBoton, Cerrar, out btnCancelar);
+        Boton(w, "Ritmo", new Vector2(0.32f, 0.015f), new Vector2(0.565f, 0.085f), 19, ColCard, AlternarRitmo, out btnRitmo);
+        UIFabrica.IconoInfo(btnRitmo.transform, AyudaBuild.Ritmo, new Vector2(1f, 1f), new Vector2(0.5f, 0.5f), new Vector2(-4f, -4f), "?", 22f);
+        btnRitmo.gameObject.SetActive(false);
 
         // Íconos fuera del botón: a la izquierda de "Iniciar" y a la derecha de "Cancelar".
         // Al ser hijos del botón, se ocultan con él (Cancelar solo existe si hay una composta en curso).

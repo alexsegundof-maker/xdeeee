@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using Composta.Core;
+using Composta.Core.Campo;
 using Composta.Core.Lotes;
 using Composta.Core.Seguridad;
 using UnityEngine;
@@ -18,10 +19,21 @@ namespace Composta.App
         readonly ServiciosApp svc;
         SistemaComposta sistemaDelLote;            // el Sistema al que corresponde LoteActual
         float ultimoError = -999f;
+        float ultimoAutoguardado = -999f;
+        int periodoAvisado = -1;                   // evita pedir dos veces el mismo informe vencido (demostración)
 
         public Lote LoteActual { get; private set; }
         public event Action<Lote> AlCambiarLote;
         public event Action<Lote> AlCambiarAportes;
+        public event Action<Lote> AlCambiarInformes;
+        public event Action AlInformeRequerido;   // demostración: venció la semana simulada
+
+        public CalibracionCampo Calibracion => sistemaDelLote?.Calibracion;
+        public ModeloComposta Modelo => sistemaDelLote?.Modelo;
+        public bool EsLoteDeCampo => LoteActual != null && LoteActual.Modo == ModoLote.Manual && Calibracion != null;
+
+        public SituacionInforme Situacion()
+            => PlanInformes.Evaluar(LoteActual, svc.Reloj.UtcAhora, sistemaDelLote?.Modelo.Ticks ?? 0);
 
         public GestorLotes(SimuladorComposta simulador, ServiciosApp servicios)
         {
@@ -53,6 +65,10 @@ namespace Composta.App
 
             sistemaDelLote = nuevo;
             LoteActual = Lote.Crear(nuevo.Perfil, sim.semilla, Usuario, svc.Reloj.UtcAhora, sim.modo);
+            LoteActual.RitmoReal = sim.modo == ModoLote.Manual && sim.ritmoReal;
+            sim.ritmoReal = LoteActual.RitmoReal;
+            sim.inicioRitmoUtc = new DateTime(LoteActual.CreadoUtc, DateTimeKind.Utc);
+            periodoAvisado = -1;
             // Estado inicial de los ajustes que afectan la simulación (necesario para reproducirla)
             Anotar(TipoComando.Automatico, sim.modoAutomatico ? 1f : 0f);
             Anotar(TipoComando.ProbFalla, sim.probFallaPorHora);
@@ -70,6 +86,9 @@ namespace Composta.App
                 var avisos = ReproductorLote.Sanear(lote);
                 var s = ReproductorLote.Reconstruir(lote, out var ultimo);
                 sim.modo = lote.Modo;                     // antes de CargarSistema: los oyentes de AlCargar lo leen
+                sim.ritmoReal = lote.Modo == ModoLote.Manual && lote.RitmoReal;
+                sim.inicioRitmoUtc = new DateTime(lote.CreadoUtc, DateTimeKind.Utc);
+                periodoAvisado = -1;
                 sim.CargarSistema(s, ultimo, lote.Semilla);
                 sistemaDelLote = s;
                 LoteActual = lote;
@@ -111,7 +130,60 @@ namespace Composta.App
 
         void AlTick(Lectura l)
         {
-            if (LoteActual != null && l.Tick % AutoguardadoCadaTicks == 0) Guardar();
+            if (LoteActual == null) return;
+            // Al ponerse al día (ritmo real) pueden pasar cientos de horas en un fotograma: guardar como mucho cada 2 s
+            if (l.Tick % AutoguardadoCadaTicks == 0 && Time.unscaledTime - ultimoAutoguardado > 2f)
+            {
+                ultimoAutoguardado = Time.unscaledTime;
+                Guardar();
+            }
+
+            // Demostración (tiempo acelerado): al vencer la semana simulada se pausa y se pide el informe
+            if (EsLoteDeCampo && !LoteActual.RitmoReal)
+            {
+                var s = Situacion();
+                int periodo = LoteActual.Informes.Count;
+                if (s.Estado == EstadoInforme.Atrasado && periodoAvisado != periodo)
+                {
+                    periodoAvisado = periodo;
+                    sim.pausado = true;
+                    AlInformeRequerido?.Invoke();
+                }
+            }
+        }
+
+        // ---------------- Informe semanal de campo ----------------
+        public ResultadoCalibracion RegistrarInforme(float temperatura, float humedad, float pesoKg, string nota, out string error)
+        {
+            error = null;
+            if (!svc.Sesion.Puede(Permiso.RegistrarInformes)) { error = "Tu rol no permite registrar informes."; return null; }
+            if (!EsLoteDeCampo) { error = "Los informes de campo son para lotes en modo Manual."; return null; }
+            if (LoteActual.Estado != EstadoLote.Activo) { error = "El lote está cerrado."; return null; }
+
+            var inf = new InformeCampo
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                FechaUtc = svc.Reloj.UtcAhora.Ticks,
+                Tick = sistemaDelLote.Modelo.Ticks,
+                Temperatura = temperatura,
+                Humedad = humedad,
+                PesoKg = pesoKg,
+                Nota = ValidadorAporte.LimpiarNota(nota),
+                Usuario = Usuario
+            };
+            LoteActual.Informes.Add(inf);
+            int indice = LoteActual.Informes.Count - 1;
+            // AplicarInforme dispara AlComando -> RegistrarComando anota y guarda en disco
+            var r = sim.AplicarInforme(inf, indice);
+            if (r == null)
+            {
+                LoteActual.Informes.RemoveAt(indice);
+                error = "No se pudo aplicar el informe.";
+                return null;
+            }
+            periodoAvisado = -1;
+            AlCambiarInformes?.Invoke(LoteActual);
+            return r;
         }
 
         // ---------------- Aportes de residuos ----------------

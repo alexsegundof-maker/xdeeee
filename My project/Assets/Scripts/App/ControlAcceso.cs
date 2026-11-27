@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Composta.Core;
+using Composta.Core.Campo;
 using Composta.Core.Lotes;
 using Composta.Core.Persistencia;
 using Composta.Core.Seguridad;
@@ -34,6 +35,9 @@ namespace Composta.App
         PanelAportes aportes;
         PanelUsuarios usuarios;
         PanelAjustesManuales ajustes;
+        PanelCampo campo;
+        PanelInformeSemanal informe;
+        float proximoRefrescoCampo;
 
         Usuario pendienteDeCambio;
         float ultimaActividad;
@@ -59,6 +63,9 @@ namespace Composta.App
             aportes = gameObject.AddComponent<PanelAportes>();
             usuarios = gameObject.AddComponent<PanelUsuarios>();
             ajustes = gameObject.AddComponent<PanelAjustesManuales>();
+            campo = gameObject.AddComponent<PanelCampo>();
+            informe = gameObject.AddComponent<PanelInformeSemanal>();
+            campo.PedirInforme += AbrirInforme;
 
             login.EnviarLogin += AlEnviarLogin;
             login.EnviarConfiguracion += AlEnviarConfiguracion;
@@ -116,7 +123,17 @@ namespace Composta.App
 
             lotes?.Dispose();
             lotes = new GestorLotes(sim, svc);
-            lotes.AlCambiarLote += l => { if (panelUI != null) panelUI.HabilitarAjustes(l != null && l.Modo == ModoLote.Manual); };
+            lotes.AlCambiarLote += l =>
+            {
+                if (panelUI != null) panelUI.HabilitarAjustes(l != null && l.Modo == ModoLote.Manual);
+                ActualizarFranjaCampo();
+            };
+            lotes.AlCambiarInformes += _ => proximoRefrescoCampo = 0f;
+            lotes.AlInformeRequerido += () =>
+            {
+                Notificador.Mostrar("Se cumplió la semana simulada: registra el informe de campo para continuar.", TipoMensaje.Aviso);
+                AbrirInforme();
+            };
 
             if (panelUI != null)
             {
@@ -243,6 +260,8 @@ namespace Composta.App
             if (lotes.LoteActual != null)
             {
                 sim.pausado = pausaAlSalir;
+                ActualizarFranjaCampo();
+                AvisarInformeSiCorresponde();
                 return;
             }
 
@@ -298,12 +317,46 @@ namespace Composta.App
             {
                 sim.pausado = false;
                 Notificador.Mostrar($"Lote reanudado en el día {lote.DiasSimulados:F1}.", TipoMensaje.Exito);
+                AvisarInformeSiCorresponde();
             }
             else
             {
                 Notificador.Mostrar("No se pudo reanudar el lote: " + error, TipoMensaje.Error);
                 if (svc.Sesion.Puede(Permiso.CrearLote)) AbrirNuevaComposta();
             }
+        }
+
+        // ---------------- Modo Manual: sensores no conectados e informe semanal ----------------
+        void ActualizarFranjaCampo()
+        {
+            bool visible = svc != null && svc.Sesion.Activa && lotes != null && lotes.EsLoteDeCampo;
+            campo.Mostrar(visible);
+            if (panelUI != null) panelUI.ReservarFranjaAviso(visible);
+            proximoRefrescoCampo = 0f;
+        }
+
+        void AvisarInformeSiCorresponde()
+        {
+            if (lotes == null || !lotes.EsLoteDeCampo) return;
+            var s = lotes.Situacion();
+            if (s.Estado == EstadoInforme.AlDia) return;
+            Notificador.Mostrar(s.Texto(), s.Estado == EstadoInforme.Atrasado ? TipoMensaje.Error : TipoMensaje.Aviso);
+        }
+
+        void AbrirInforme()
+        {
+            if (svc == null || !svc.Sesion.Activa || lotes == null) return;
+            if (!lotes.EsLoteDeCampo)
+            {
+                Notificador.Mostrar("El informe semanal es para lotes en modo Manual.", TipoMensaje.Info);
+                return;
+            }
+            if (!svc.Sesion.Puede(Permiso.RegistrarInformes))
+            {
+                Notificador.Mostrar("Tu rol solo permite consultar. Pide a una persona de Operación que registre el informe.", TipoMensaje.Info);
+                return;
+            }
+            informe.Abrir(lotes);
         }
 
         void MostrarEspacioDeTrabajo(bool visible)
@@ -350,6 +403,8 @@ namespace Composta.App
             aportes.Cerrar();
             usuarios.Cerrar();
             ajustes.Cerrar();
+            informe.Cerrar();
+            campo.Mostrar(false);
             MostrarEspacioDeTrabajo(false);
             Notificador.CerrarDialogos();
             svc.Sesion.Cerrar();
@@ -361,6 +416,11 @@ namespace Composta.App
         void Update()
         {
             if (svc == null || !svc.Sesion.Activa) return;
+            if (campo.Visible && Time.unscaledTime >= proximoRefrescoCampo)
+            {
+                proximoRefrescoCampo = Time.unscaledTime + 1f;
+                campo.Actualizar(lotes, svc.Sesion.Puede(Permiso.RegistrarInformes));
+            }
             if (HuboActividad()) ultimaActividad = Time.unscaledTime;
             if (minutosInactividad > 0f && Time.unscaledTime - ultimaActividad > minutosInactividad * 60f)
                 CerrarSesion($"Sesión cerrada por {minutosInactividad:0} min de inactividad.");

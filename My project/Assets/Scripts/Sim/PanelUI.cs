@@ -69,7 +69,22 @@ public class PanelUI : MonoBehaviour
         simulador.AlReiniciar -= AlCambiarSistema;
     }
 
-    void AlCambiarSistema(SistemaComposta _) => Invalidar();
+    void AlCambiarSistema(SistemaComposta _)
+    {
+        Invalidar();
+        RefrescarPermisos();      // sensores y velocidad dependen del tipo de lote
+    }
+
+    bool SinSensores => simulador != null && simulador.Sistema != null && simulador.Sistema.SinSensores;
+
+    // Deja libre la parte superior del panel de alertas para la franja "Sensores no conectados"
+    public void ReservarFranjaAviso(bool reservar)
+    {
+        if (txtAlertas == null) { franjaReservada = reservar; return; }
+        franjaReservada = reservar;
+        txtAlertas.rectTransform.anchorMax = new Vector2(1f, reservar ? 0.74f : 1f);
+    }
+    bool franjaReservada;
 
     // ---------------- Construcción ----------------
     void CrearEventSystem()
@@ -138,6 +153,7 @@ public class PanelUI : MonoBehaviour
         // Alertas
         var panelAl = Panel("Alertas", raiz, new Vector2(0.01f, 0.10f), new Vector2(0.99f, 0.29f), ColPanel);
         txtAlertas = Texto(panelAl, "Texto", Vector2.zero, Vector2.one, 22, TextAnchor.UpperLeft, Color.white);
+        ReservarFranjaAviso(franjaReservada);
         txtAlertas.verticalOverflow = VerticalWrapMode.Truncate;
 
         // Botones (11 en una fila)
@@ -148,9 +164,12 @@ public class PanelUI : MonoBehaviour
         Boton("Regar", i++, ancho, paso, simulador.Regar, Permiso.OperarComposta);
         txtPausa = Boton("Pausa", i++, ancho, paso, simulador.AlternarPausa);
         txtVel = Boton("Velocidad", i++, ancho, paso, simulador.CambiarVelocidad);
+        btnVelocidad = UltimoBoton;
         txtModo = Boton("Modo", i++, ancho, paso, simulador.AlternarAutomatico, Permiso.OperarComposta);
         Boton("Falla sensor", i++, ancho, paso, simulador.InyectarFalla, Permiso.InyectarFallas);
+        btnFalla = UltimoBoton;
         Boton("Reparar", i++, ancho, paso, simulador.RepararSensores, Permiso.RepararSensores);
+        btnReparar = UltimoBoton;
         txtGraf = Boton("Gráficas", i++, ancho, paso, () => { if (graficas != null) graficas.CambiarGranularidad(); });
         Boton("Aportes", i++, ancho, paso, () => PedirAportes?.Invoke());
         Boton("Exportar", i++, ancho, paso, () => PedirExportar?.Invoke(), Permiso.Exportar);
@@ -184,6 +203,13 @@ public class PanelUI : MonoBehaviour
     {
         foreach (var (boton, permiso) in botonesProtegidos)
             if (boton != null) boton.interactable = permisos == null || permisos(permiso);
+        // Sin sensores físicos no hay fallas que simular ni sensores que reparar; con calendario real no hay velocidad
+        if (SinSensores)
+        {
+            if (btnFalla != null) btnFalla.interactable = false;
+            if (btnReparar != null) btnReparar.interactable = false;
+        }
+        if (btnVelocidad != null) btnVelocidad.interactable = simulador == null || !simulador.ritmoReal;
         if (btnAjustes != null)
             btnAjustes.interactable = ajustesDisponibles && (permisos == null || permisos(Permiso.OperarComposta));
     }
@@ -212,7 +238,7 @@ public class PanelUI : MonoBehaviour
         return t;
     }
 
-    Button UltimoBoton;
+    Button UltimoBoton, btnVelocidad, btnFalla, btnReparar;
 
     Text Boton(string texto, int indice, float ancho, float paso, UnityAction accion, Permiso? permiso = null)
     {
@@ -258,7 +284,7 @@ public class PanelUI : MonoBehaviour
 
     void ActualizarCabecera(ResultadoPaso r)
     {
-        txtCabecera.text = $"{RangosParametros.Nombre(simulador.modo)}  ·  Día {r.Medida.Dias:F1}  ·  {r.Medida.Etapa}  ·  " +
+        txtCabecera.text = $"{RangosParametros.Nombre(simulador.modo)}{(simulador.ritmoReal ? " (calendario real)" : "")}  ·  Día {r.Medida.Dias:F1}  ·  {r.Medida.Etapa}  ·  " +
                            (simulador.modoAutomatico ? "Automático" : "Manual") +
                            (simulador.pausado ? "  ·  <color=#ffd166>PAUSADO</color>" : "");
     }
@@ -276,6 +302,16 @@ public class PanelUI : MonoBehaviour
             string fmt = mag == Magnitud.PH ? "F2" : "F1";
             string u = Reglas.De(mag).Unidad;
 
+            if (SinSensores)
+            {
+                // Sin sensores: el valor es una estimación calibrada con los informes semanales
+                txtValor[m].text = "≈ " + Agregador.Valor(r.Medida, mag).ToString(fmt) + " " + u;
+                txtReal[m].text = "";
+                txtSensor[m].text = med.Diagnostico;
+                txtSensor[m].color = new Color(1f, 0.8f, 0.45f, 0.85f);
+                fondoCard[m].color = ColorNivel(NivelDe(Reglas.Nombre(mag)));
+                continue;
+            }
             txtValor[m].text = Agregador.Valor(r.Medida, mag).ToString(fmt) + " " + u + (med.Confiable ? "" : "  ?");
             txtReal[m].text = "real: " + Agregador.Valor(r.Real, mag).ToString(fmt);
             fondoCard[m].color = ColorNivel(NivelDe(Reglas.Nombre(mag)));

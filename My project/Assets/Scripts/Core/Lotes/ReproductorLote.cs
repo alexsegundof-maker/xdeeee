@@ -28,6 +28,7 @@ namespace Composta.Core.Lotes
             if (l == null) throw new ArgumentNullException(nameof(l));
             if (l.Comandos == null) l.Comandos = new List<Comando>();
             if (l.Aportes == null) l.Aportes = new List<Aporte>();
+            if (l.Informes == null) l.Informes = new List<Campo.InformeCampo>();
             if (!Enum.IsDefined(typeof(TipoComposta), l.Tipo)) { l.Tipo = TipoComposta.PilaAbierta; avisos.Add("tipo de composta desconocido"); }
 
             if (!Enum.IsDefined(typeof(ModoLote), l.Modo)) { l.Modo = ModoLote.Simular; avisos.Add("modo desconocido"); }
@@ -49,7 +50,8 @@ namespace Composta.Core.Lotes
             int antes = l.Comandos.Count;
             l.Comandos.RemoveAll(c => c == null || c.Tick < 0 || c.Tick > l.TicksSimulados
                                       || !Enum.IsDefined(typeof(TipoComando), c.Tipo)
-                                      || float.IsNaN(c.Valor) || float.IsInfinity(c.Valor));
+                                      || float.IsNaN(c.Valor) || float.IsInfinity(c.Valor)
+                                      || (c.Tipo == TipoComando.Informe && !InformeValido(l, c)));
             if (l.Comandos.Count != antes) avisos.Add($"{antes - l.Comandos.Count} acciones inválidas descartadas");
 
             // Orden estable por hora (List.Sort no es estable)
@@ -63,18 +65,40 @@ namespace Composta.Core.Lotes
             return avisos;
         }
 
+        static bool InformeValido(Lote l, Comando c)
+        {
+            int i = (int)c.Valor;
+            if (l.Modo != ModoLote.Manual || i != c.Valor || i < 0 || i >= l.Informes.Count) return false;
+            var inf = l.Informes[i];
+            return inf != null && !float.IsNaN(inf.Temperatura) && !float.IsNaN(inf.Humedad) && !float.IsNaN(inf.PesoKg)
+                   && RangosParametros.De(ModoLote.Manual, Parametro.Peso).Contiene(inf.PesoKg);
+        }
+
         public static SistemaComposta Reconstruir(Lote l, out ResultadoPaso ultimo)
         {
-            var s = new SistemaComposta(CrearPerfil(l), l.Semilla);
+            // Los lotes Manual usan el modelo de campo (sin sensores, con calibración por informes)
+            var s = new SistemaComposta(CrearPerfil(l), l.Semilla, l.Modo == ModoLote.Manual);
             ultimo = null;
             int k = 0, n = l.Comandos.Count;
             for (int t = 0; ; t++)
             {
-                while (k < n && l.Comandos[k].Tick == t) Aplicar(s, l.Comandos[k++]);
+                while (k < n && l.Comandos[k].Tick == t) Aplicar(s, l.Comandos[k++], l);
                 if (t >= l.TicksSimulados) break;
                 ultimo = s.Paso();
             }
             return s;
+        }
+
+        public static void Aplicar(SistemaComposta s, Comando c, Lote lote)
+        {
+            if (c.Tipo == TipoComando.Informe)
+            {
+                int i = (int)c.Valor;
+                if (s.Calibracion != null && lote?.Informes != null && i >= 0 && i < lote.Informes.Count)
+                    s.Calibracion.Aplicar(lote.Informes[i]);
+                return;
+            }
+            Aplicar(s, c);
         }
 
         public static void Aplicar(SistemaComposta s, Comando c)

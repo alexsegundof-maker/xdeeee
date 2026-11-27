@@ -4,7 +4,9 @@ using Composta.Core;
 public static class DibujanteGrafica
 {
     // reutilizar: textura previa del mismo tamaño para evitar crear/destruir una por refresco
-    public static Texture2D Dibujar(Serie s, int w, int h, (float min, float max)? zona = null, Texture2D reutilizar = null)
+    // marcas: puntos medidos en campo (x en días), se dibujan como círculos blancos
+    public static Texture2D Dibujar(Serie s, int w, int h, (float min, float max)? zona = null, Texture2D reutilizar = null,
+                                    System.Collections.Generic.IList<(float x, float v)> marcas = null)
     {
         w = Mathf.Max(w, 32); h = Mathf.Max(h, 32);       // con tamaños menores los márgenes quedan invertidos
         var buf = new Color32[w * h];
@@ -60,6 +62,15 @@ public static class DibujanteGrafica
             else Rellenar(buf, w, h, cx - 2, cy - 2, cx + 2, cy + 2, c);
         }
 
+        if (marcas != null)
+            foreach (var (mx, mv) in marcas)
+            {
+                // Con agrupación diaria/semanal el último punto es el inicio del bloque: se ajusta al borde
+                int cx = X(Mathf.Clamp(mx, xMin, xMax)), cy = Y(mv);
+                Circulo(buf, w, h, cx, cy, 5, new Color32(20, 20, 24, 255));
+                Circulo(buf, w, h, cx, cy, 3, new Color32(255, 255, 255, 255));
+            }
+
         var tex = reutilizar;
         if (tex == null || tex.width != w || tex.height != h)
         {
@@ -98,6 +109,17 @@ public static class DibujanteGrafica
                     (byte)(o.g + (c.g - o.g) * a),
                     (byte)(o.b + (c.b - o.b) * a), 255);
             }
+    }
+
+    static void Circulo(Color32[] buf, int w, int h, int cx, int cy, int r, Color32 c)
+    {
+        for (int y = -r; y <= r; y++)
+            for (int x = -r; x <= r; x++)
+                if (x * x + y * y <= r * r)
+                {
+                    int px = cx + x, py = cy + y;
+                    if (px >= 0 && px < w && py >= 0 && py < h) buf[py * w + px] = c;
+                }
     }
 
     static void Pixel(Color32[] buf, int w, int h, int x, int y, Color32 c, int grosor)

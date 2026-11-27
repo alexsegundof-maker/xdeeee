@@ -72,7 +72,7 @@ namespace Composta.Tests
         public void AjusteDeTempAmbiente_SeReproduceIgual()
         {
             var lote = Lote.Crear(PerfilComposta.Crear(TipoComposta.PilaAbierta), 99, "x", DateTime.UtcNow, ModoLote.Manual);
-            var vivo = new SistemaComposta(ReproductorLote.CrearPerfil(lote), lote.Semilla);
+            var vivo = new SistemaComposta(ReproductorLote.CrearPerfil(lote), lote.Semilla, true);   // lotes Manual = modelo de campo
             for (int t = 0; t < 24 * 10; t++)
             {
                 if (t == 48)

@@ -1,4 +1,4 @@
-namespace Composta.Core.Seguridad
+﻿namespace Composta.Core.Seguridad
 {
     // Rol de cada cuenta. El orden importa: un rol "mayor" incluye los permisos de los menores.
     public enum Rol { Consulta = 0, Operador = 1, Administrador = 2 }
@@ -13,7 +13,8 @@ namespace Composta.Core.Seguridad
         RegistrarAportes,   // pesar residuos que entran al lote
         RepararSensores,
         InyectarFallas,     // herramienta de prueba: solo administración
-        GestionarUsuarios
+        GestionarUsuarios,
+        RegistrarInformes   // informe semanal de campo (lotes en modo Manual)
     }
 
     // Única fuente de verdad de "quién puede hacer qué" (principio abierto/cerrado:
@@ -32,6 +33,7 @@ namespace Composta.Core.Seguridad
                 case Permiso.CrearLote:
                 case Permiso.RegistrarAportes:
                 case Permiso.RepararSensores:
+                case Permiso.RegistrarInformes:
                     return rol >= Rol.Operador;
 
                 default:

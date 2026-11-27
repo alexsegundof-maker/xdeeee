@@ -96,3 +96,23 @@ que alteren los resultados, o los lotes viejos se reproducirán distinto. Si eso
 - Player Settings: `companyName`/`productName` siguen en «DefaultCompany/My project» (definen la carpeta de
   datos; cámbialos **antes** de distribuir), `runInBackground: 0` detiene la simulación al perder el foco
   y `resizableWindow: 0` impide redimensionar la ventana.
+
+## Modo Manual: sin sensores, con informe semanal y calibración
+
+- Los lotes Manual usan el **modelo de campo** (`SistemaComposta(..., modoCampo: true)`): no hay sensores
+  simulados; los valores del tablero son estimaciones (`≈`). El modo Simular usa el modelo clásico y da
+  resultados idénticos a los de antes (test `ModoSimular_DaLosMismosResultadosQueAntes`).
+- El modelo de campo agrega la **masa** (pierde material degradable según temperatura y humedad) y tres
+  perillas ocultas: `FactorActividad` (≈ C/N), `FactorEvaporacion` (≈ aislamiento/exposición) y
+  `FactorDescomposicion`. Las fases se deducen de la temperatura y del material restante.
+- **Informe semanal** (temperatura, humedad, peso) → `CalibracionCampo.Aplicar`:
+  1. ajusta las perillas según el error de predicción (tope ±25 % por informe; con poco O2 el efecto de la
+     actividad sobre la temperatura se invierte);
+  2. corrige el estado con una ganancia de 0,5 a 0,95 que crece con el tiempo sin medir;
+  3. reparte la corrección en el historial para que las gráficas no den saltos (puntos medidos = ●).
+- El informe se guarda en `Lote.Informes` y como comando `Informe` en la bitácora: al reanudar se reaplica igual.
+- Ritmo: **calendario real** (1 h simulada = 1 h real; al abrir la app se pone al día) o **demostración**
+  (cada 168 h simuladas se pausa y pide el informe). Estado: al día / pendiente (≤24 h) / atrasado.
+- Límite conocido: sin medir oxígeno, la temperatura sola no distingue una pila "muy activa pero ahogada" de
+  una "poco activa". Con volteos regulares la calibración converge; con volteo solo semanal, evaporación y
+  descomposición convergen y la temperatura queda corregida por el informe.

@@ -12,6 +12,7 @@
         public float PH;
         public float Humedad;
         public float Oxigeno;
+        public float MasaKg;      // peso estimado (en el modelo de campo baja al descomponerse)
         public Etapa Etapa;
     }
 

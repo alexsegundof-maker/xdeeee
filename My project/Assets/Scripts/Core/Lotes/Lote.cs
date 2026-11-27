@@ -9,7 +9,7 @@ namespace Composta.Core.Lotes
     // Acciones hechas por personas. Las del control automático NO se guardan:
     // se vuelven a producir solas al reproducir el lote (el modelo es determinista).
     // Los valores numéricos se guardan en disco: solo se agregan al final
-    public enum TipoComando { Voltear = 0, Regar = 1, Automatico = 2, ProbFalla = 3, InyectarFalla = 4, RepararSensores = 5, TempAmbiente = 6 }
+    public enum TipoComando { Voltear = 0, Regar = 1, Automatico = 2, ProbFalla = 3, InyectarFalla = 4, RepararSensores = 5, TempAmbiente = 6, Informe = 7 }
 
     public enum TipoMaterial { Verde = 0, Cafe = 1, Mixto = 2 }
 
@@ -46,6 +46,7 @@ namespace Composta.Core.Lotes
         public string Nombre;
         public EstadoLote Estado;
         public ModoLote Modo;         // lotes guardados antes de existir este campo se leen como Simular (0)
+        public bool RitmoReal;        // Manual: 1 hora simulada = 1 hora de calendario
 
         // Parámetros del perfil YA resueltos (nunca -1), para poder reconstruirlo idéntico
         public TipoComposta Tipo;
@@ -58,6 +59,7 @@ namespace Composta.Core.Lotes
 
         public List<Comando> Comandos = new List<Comando>();
         public List<Aporte> Aportes = new List<Aporte>();
+        public List<Campo.InformeCampo> Informes = new List<Campo.InformeCampo>();   // informes semanales (Manual)
 
         public float DiasSimulados => TicksSimulados / 24f;
 
