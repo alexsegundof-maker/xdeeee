@@ -11,7 +11,7 @@ namespace Composta.Core.Exportacion
     public enum EstiloCelda
     {
         Normal = 0, Encabezado = 1, Fecha = 2, Decimal1 = 3, Decimal2 = 4, Entero = 5, Nota = 6, Titulo = 7, Clave = 8,
-        Decimal1Izq = 9, Decimal2Izq = 10, EnteroIzq = 11, FechaIzq = 12
+        Decimal1Izq = 9, Decimal2Izq = 10, EnteroIzq = 11, FechaIzq = 12, Dia = 13, DiaIzq = 14     // Dia = solo fecha (estimaciones)
     }
 
     public enum TipoCelda { Vacia, Texto, Numero, Fecha }
@@ -212,7 +212,7 @@ namespace Composta.Core.Exportacion
         // El orden de cellXfs debe coincidir con EstiloCelda
         static string Estilos()
             => Cabecera + $"<styleSheet xmlns=\"{NsMain}\">" +
-               "<numFmts count=\"2\"><numFmt numFmtId=\"164\" formatCode=\"dd/mm/yyyy hh:mm\"/><numFmt numFmtId=\"165\" formatCode=\"0.0\"/></numFmts>" +
+               "<numFmts count=\"3\"><numFmt numFmtId=\"164\" formatCode=\"dd/mm/yyyy hh:mm\"/><numFmt numFmtId=\"165\" formatCode=\"0.0\"/><numFmt numFmtId=\"166\" formatCode=\"dd/mm/yyyy\"/></numFmts>" +
                "<fonts count=\"4\">" +
                "<font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/></font>" +
                "<font><b/><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/></font>" +
@@ -224,7 +224,7 @@ namespace Composta.Core.Exportacion
                "<borders count=\"2\"><border><left/><right/><top/><bottom/><diagonal/></border>" +
                "<border><left/><right/><top/><bottom style=\"thin\"><color rgb=\"FF9DBFA8\"/></bottom><diagonal/></border></borders>" +
                "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>" +
-               "<cellXfs count=\"13\">" +
+               "<cellXfs count=\"15\">" +
                "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/>" +                                                          // Normal
                "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"2\" borderId=\"1\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyBorder=\"1\" applyAlignment=\"1\">" +
                "<alignment horizontal=\"center\" vertical=\"center\" wrapText=\"1\"/></xf>" +                                                                            // Encabezado
@@ -234,6 +234,7 @@ namespace Composta.Core.Exportacion
                "<xf numFmtId=\"0\" fontId=\"3\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/>" +                                          // Titulo
                "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/>" +                                          // Clave
                Numero(165, "left") + Numero(2, "left") + Numero(1, "left") + Numero(164, "left") +                                                  // ...Izq
+               Numero(166, "center") + Numero(166, "left") +                                                                                       // Dia, DiaIzq
                "</cellXfs>" +
                "<cellStyles count=\"1\"><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/></cellStyles>" +
                "</styleSheet>";

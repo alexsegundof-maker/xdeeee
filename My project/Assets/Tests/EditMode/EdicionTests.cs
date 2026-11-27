@@ -85,8 +85,8 @@ namespace Composta.Tests
             l.Estado = EstadoLote.Cerrado;
             Assert.IsFalse(EditorLote.EditarMedicion(l, id, 40f, 50f, 30f, "", Ahora.AddDays(-1), "luis", Ahora).Exito);
             Assert.IsFalse(EditorLote.EliminarMedicion(l, id, "luis", Ahora).Exito);
-            Assert.IsFalse(EditorLote.AgregarAporte(l, 2f, TipoMaterial.Verde, "", 0, "luis", Ahora).Exito);
-            Assert.IsFalse(EditorLote.EditarLote(l, "Otro", l.Tipo, l.RelacionCN, l.Aislamiento, "luis", Ahora).Exito);
+            Assert.IsFalse(EditorLote.AgregarAporte(l, 2f, MaterialEspecifico.RestosCocina, 0f, "", Ahora, 0, "luis", Ahora).Exito);
+            Assert.IsFalse(EditorLote.EditarLote(l, "Otro", "Cubeta A", l.Tipo, l.RelacionCN, l.Aislamiento, "luis", Ahora).Exito);
         }
 
         [Test]
@@ -174,12 +174,12 @@ namespace Composta.Tests
         public void Aportes_EditarYEliminar_RecalculanElTotal()
         {
             var l = LoteManual();
-            var a1 = EditorLote.AgregarAporte(l, 10f, TipoMaterial.Verde, "", 0, "ana", Ahora);
-            var a2 = EditorLote.AgregarAporte(l, 5.5f, TipoMaterial.Cafe, "hojas", 0, "ana", Ahora);
+            var a1 = EditorLote.AgregarAporte(l, 10f, MaterialEspecifico.RestosCocina, 0f, "", Ahora, 0, "ana", Ahora);
+            var a2 = EditorLote.AgregarAporte(l, 5.5f, MaterialEspecifico.Hojarasca, 0f, "hojas", Ahora, 0, "ana", Ahora);
             Assert.IsTrue(a1.Exito && a2.Exito);
             Assert.AreEqual(15.5f, l.TotalAportadoKg, 1e-4f);
 
-            var e = EditorLote.EditarAporte(l, a1.IdEntidad, 12.25f, TipoMaterial.Mixto, "", "luis", Ahora);
+            var e = EditorLote.EditarAporte(l, a1.IdEntidad, 12.25f, MaterialEspecifico.MezclaGenerica, 0f, "", Ahora, "luis", Ahora);
             Assert.IsTrue(e.Exito, e.Mensaje);
             Assert.AreEqual(17.75f, l.TotalAportadoKg, 1e-4f);
             var ap = l.Aportes.Find(x => x.Id == a1.IdEntidad);
@@ -199,9 +199,9 @@ namespace Composta.Tests
         public void AporteInvalido_SeRechaza(float kg)
         {
             var l = LoteManual();
-            var a = EditorLote.AgregarAporte(l, 3f, TipoMaterial.Verde, "", 0, "ana", Ahora);
-            Assert.IsFalse(EditorLote.AgregarAporte(l, kg, TipoMaterial.Verde, "", 0, "ana", Ahora).Exito);
-            Assert.IsFalse(EditorLote.EditarAporte(l, a.IdEntidad, kg, TipoMaterial.Verde, "", "ana", Ahora).Exito);
+            var a = EditorLote.AgregarAporte(l, 3f, MaterialEspecifico.RestosCocina, 0f, "", Ahora, 0, "ana", Ahora);
+            Assert.IsFalse(EditorLote.AgregarAporte(l, kg, MaterialEspecifico.RestosCocina, 0f, "", Ahora, 0, "ana", Ahora).Exito);
+            Assert.IsFalse(EditorLote.EditarAporte(l, a.IdEntidad, kg, MaterialEspecifico.RestosCocina, 0f, "", Ahora, "ana", Ahora).Exito);
             Assert.AreEqual(3f, l.TotalAportadoKg, 1e-4f);
         }
 
@@ -209,14 +209,15 @@ namespace Composta.Tests
         public void MaterialFueraDelCatalogo_SeRechaza()
         {
             var l = LoteManual();
-            Assert.IsFalse(EditorLote.AgregarAporte(l, 3f, (TipoMaterial)99, "", 0, "ana", Ahora).Exito);
+            Assert.IsFalse(EditorLote.AgregarAporte(l, 3f, (MaterialEspecifico)99, 0f, "", Ahora, 0, "ana", Ahora).Exito);
+            Assert.IsFalse(EditorLote.AgregarAporte(l, 3f, MaterialEspecifico.SinEspecificar, 0f, "", Ahora, 0, "ana", Ahora).Exito);
         }
 
         [Test]
         public void EditarLote_Manual_CambiaTipoYNombre()
         {
             var l = LoteManual();
-            var r = EditorLote.EditarLote(l, "  Huerto  norte ", TipoComposta.PilaAbierta, 40f, 1.3f, "luis", Ahora);
+            var r = EditorLote.EditarLote(l, "  Huerto  norte ", "Cubeta A", TipoComposta.PilaAbierta, 40f, 1.3f, "luis", Ahora);
             Assert.IsTrue(r.Exito, r.Mensaje);
             Assert.AreEqual("Huerto norte", l.Nombre);
             Assert.AreEqual(TipoComposta.PilaAbierta, l.Tipo);
@@ -228,17 +229,17 @@ namespace Composta.Tests
         public void EditarLote_NombreVacioOLargo_SeRechaza()
         {
             var l = LoteManual();
-            Assert.IsFalse(EditorLote.EditarLote(l, "   ", l.Tipo, l.RelacionCN, l.Aislamiento, "ana", Ahora).Exito);
-            Assert.IsFalse(EditorLote.EditarLote(l, new string('x', EditorLote.NombreMax + 1), l.Tipo, l.RelacionCN, l.Aislamiento, "ana", Ahora).Exito);
+            Assert.IsFalse(EditorLote.EditarLote(l, "   ", "Cubeta A", l.Tipo, l.RelacionCN, l.Aislamiento, "ana", Ahora).Exito);
+            Assert.IsFalse(EditorLote.EditarLote(l, new string('x', EditorLote.NombreMax + 1), "Cubeta A", l.Tipo, l.RelacionCN, l.Aislamiento, "ana", Ahora).Exito);
         }
 
         [Test]
         public void EditarLote_Simulacion_SoloPermiteElNombre()
         {
             var l = Lote.Crear(PerfilComposta.Crear(TipoComposta.Domestica), 1, "ana", Ahora, ModoLote.Simular);
-            Assert.IsFalse(EditorLote.EditarLote(l, l.Nombre, TipoComposta.Industrial, l.RelacionCN, l.Aislamiento, "ana", Ahora).Exito);
+            Assert.IsFalse(EditorLote.EditarLote(l, l.Nombre, "Cubeta A", TipoComposta.Industrial, l.RelacionCN, l.Aislamiento, "ana", Ahora).Exito);
             Assert.AreEqual(TipoComposta.Domestica, l.Tipo);
-            Assert.IsTrue(EditorLote.EditarLote(l, "Prueba de verano", l.Tipo, l.RelacionCN, l.Aislamiento, "ana", Ahora).Exito);
+            Assert.IsTrue(EditorLote.EditarLote(l, "Prueba de verano", "Cubeta A", l.Tipo, l.RelacionCN, l.Aislamiento, "ana", Ahora).Exito);
             Assert.AreEqual("Prueba de verano", l.Nombre);
         }
 
@@ -247,7 +248,7 @@ namespace Composta.Tests
         {
             var l = LoteManual();
             string id = Agregar(l, 50f, 50f, 30f, Ahora.AddDays(-1));
-            EditorLote.AgregarAporte(l, 2f, TipoMaterial.Verde, "", 0, "ana", Ahora);
+            EditorLote.AgregarAporte(l, 2f, MaterialEspecifico.RestosCocina, 0f, "", Ahora, 0, "ana", Ahora);
             var copia = EditorLote.Clonar(l);
             EditorLote.EditarMedicion(l, id, 20f, 50f, 30f, "", Ahora.AddDays(-1), "luis", Ahora);
             l.Aportes[0].Kg = 99f;
@@ -280,7 +281,7 @@ namespace Composta.Tests
             l.Cambios = null;
             ReproductorLote.Sanear(l);
             Assert.IsNotNull(l.Cambios);
-            Assert.IsTrue(EditorLote.AgregarAporte(l, 1f, TipoMaterial.Verde, "", 0, "ana", Ahora).Exito);
+            Assert.IsTrue(EditorLote.AgregarAporte(l, 1f, MaterialEspecifico.RestosCocina, 0f, "", Ahora, 0, "ana", Ahora).Exito);
         }
     }
 
@@ -432,12 +433,12 @@ namespace Composta.Tests
             var l = Lote.Crear(PerfilComposta.Crear(TipoComposta.Domestica), 0, "ana", ahora, ModoLote.Manual);
             Assert.AreEqual("fecha_utc,usuario,accion,elemento,id_elemento,detalle\n", ExportadorCsv.Cambios(l));
 
-            var a = EditorLote.AgregarAporte(l, 2f, TipoMaterial.Cafe, "", 0, "ana", ahora);
+            var a = EditorLote.AgregarAporte(l, 2f, MaterialEspecifico.Hojarasca, 0f, "", ahora, 0, "ana", ahora);
             EditorLote.EliminarAporte(l, a.IdEntidad, "josé", ahora);
             string csv = ExportadorCsv.Cambios(l);
             StringAssert.Contains(",creación,aporte,", csv);
             StringAssert.Contains("josé,eliminación,aporte,", csv);
-            StringAssert.Contains("Café (carbono)", csv);
+            StringAssert.Contains("hojarasca seca", csv);
         }
 
         [Test]

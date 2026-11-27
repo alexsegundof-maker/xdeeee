@@ -176,41 +176,57 @@ namespace Composta.Core.Lotes
         }
 
         // ---------------- Aportes (ambos modos) ----------------
-        public static ResultadoEdicion AgregarAporte(Lote l, float kg, TipoMaterial material, string nota, int tick,
-                                                     string usuario, DateTime ahoraUtc)
+        // La carga inicial es el primer aporte (lo que se puso al crear el lote): entra al balance igual que los demás.
+        public static ResultadoEdicion AgregarAporte(Lote l, float kg, MaterialEspecifico material, float humedadPct, string nota,
+                                                     DateTime fechaUtc, int tick, string usuario, DateTime ahoraUtc, bool cargaInicial = false)
         {
-            var err = Comprobar(l, false) ?? ErrorAporte(kg, material);
+            var err = Comprobar(l, false) ?? ErrorAporte(kg, material, humedadPct, fechaUtc, ahoraUtc);
             if (err != null) return ResultadoEdicion.Error(err);
-            var a = new Aporte
+            if (l.BloqueadoMaduracion && !cargaInicial)
+                return ResultadoEdicion.Error("El lote está en maduración y ya no admite aportaciones. Si fue un error, quita el bloqueo en «Lote».");
+            if (cargaInicial && l.Aportes.Exists(x => x != null && x.EsCargaInicial))
+                return ResultadoEdicion.Error("El lote ya tiene su carga inicial; corrígela en vez de agregar otra.");
+            var d = Materiales.De(material);
+            var ap = new Aporte
             {
-                Id = Guid.NewGuid().ToString("N"), FechaUtc = ahoraUtc.Ticks, Tick = tick,
-                Kg = Redondear(kg, 2), Material = material, Nota = ValidadorAporte.LimpiarNota(nota), Usuario = usuario
+                Id = Guid.NewGuid().ToString("N"), FechaUtc = fechaUtc.Ticks, Tick = tick,
+                Kg = Redondear(kg, 2), Material = d.Grupo, Especifico = material, HumedadPct = humedadPct > 0f ? Redondear(humedadPct, 1) : 0f,
+                EsCargaInicial = cargaInicial, Nota = ValidadorAporte.LimpiarNota(nota), Usuario = usuario
             };
-            l.Aportes.Add(a);
-            Anotar(l, AccionCambio.Creacion, EntidadCambio.Aporte, a.Id, $"Aporte de {Num(a.Kg)} kg, material {ValidadorAporte.Nombre(material)}", usuario, ahoraUtc);
-            return ResultadoEdicion.Ok(string.Format(C, "Aporte registrado: {0:0.##} kg ({1}).", a.Kg, ValidadorAporte.Nombre(material)), a.Id);
+            l.Aportes.Add(ap);
+            Anotar(l, AccionCambio.Creacion, EntidadCambio.Aporte, ap.Id,
+                   $"{(cargaInicial ? "Carga inicial" : "Aportación")} de {Num(ap.Kg)} kg de {d.Nombre.ToLowerInvariant()} ({Num(Materiales.HumedadDe(ap))} % de humedad), fecha {Fecha(ap.FechaUtc)}",
+                   usuario, ahoraUtc);
+            return ResultadoEdicion.Ok(string.Format(C, "{0} registrada: {1:0.##} kg de {2}.", cargaInicial ? "Carga inicial" : "Aportación",
+                                                     ap.Kg, d.Nombre.ToLowerInvariant()), ap.Id);
         }
 
-        public static ResultadoEdicion EditarAporte(Lote l, string id, float kg, TipoMaterial material, string nota,
-                                                    string usuario, DateTime ahoraUtc)
+        public static ResultadoEdicion EditarAporte(Lote l, string id, float kg, MaterialEspecifico material, float humedadPct, string nota,
+                                                    DateTime fechaUtc, string usuario, DateTime ahoraUtc)
         {
-            var err = Comprobar(l, false) ?? ErrorAporte(kg, material);
+            var err = Comprobar(l, false) ?? ErrorAporte(kg, material, humedadPct, fechaUtc, ahoraUtc);
             if (err != null) return ResultadoEdicion.Error(err);
             var a = l.Aportes.Find(x => x != null && x.Id == id);
-            if (a == null) return ResultadoEdicion.Error("El aporte ya no existe.");
+            if (a == null) return ResultadoEdicion.Error("La aportación ya no existe.");
 
             kg = Redondear(kg, 2);
+            humedadPct = humedadPct > 0f ? Redondear(humedadPct, 1) : 0f;
             nota = ValidadorAporte.LimpiarNota(nota);
+            var antes = Materiales.Resolver(a);
             var cambios = new List<string>();
             if (a.Kg != kg) cambios.Add($"peso {Num(a.Kg)} → {Num(kg)} kg");
-            if (a.Material != material) cambios.Add($"material {ValidadorAporte.Nombre(a.Material)} → {ValidadorAporte.Nombre(material)}");
+            if (antes != material) cambios.Add($"material {Materiales.De(antes).Nombre} → {Materiales.De(material).Nombre}");
+            if (a.HumedadPct != humedadPct) cambios.Add($"humedad {HumedadTexto(a.HumedadPct)} → {HumedadTexto(humedadPct)}");
+            if (a.FechaUtc / TimeSpan.TicksPerMinute != fechaUtc.Ticks / TimeSpan.TicksPerMinute) cambios.Add($"fecha {Fecha(a.FechaUtc)} → {Fecha(fechaUtc.Ticks)}");
             if ((a.Nota ?? "") != nota) cambios.Add("nota");
             if (cambios.Count == 0) return ResultadoEdicion.Ok("No había cambios que guardar.", a.Id, true);
 
-            a.Kg = kg; a.Material = material; a.Nota = nota;
+            a.Kg = kg; a.Especifico = material; a.Material = Materiales.De(material).Grupo; a.HumedadPct = humedadPct;
+            a.FechaUtc = fechaUtc.Ticks; a.Nota = nota;
             a.EditadoPor = usuario; a.EditadoUtc = ahoraUtc.Ticks;
-            Anotar(l, AccionCambio.Edicion, EntidadCambio.Aporte, a.Id, "Cambió " + string.Join(", ", cambios), usuario, ahoraUtc);
-            return ResultadoEdicion.Ok("Aporte actualizado.", a.Id);
+            Anotar(l, AccionCambio.Edicion, EntidadCambio.Aporte, a.Id,
+                   (a.EsCargaInicial ? "Corrigió la carga inicial: " : "Cambió ") + string.Join(", ", cambios), usuario, ahoraUtc);
+            return ResultadoEdicion.Ok(a.EsCargaInicial ? "Carga inicial actualizada." : "Aportación actualizada.", a.Id);
         }
 
         public static ResultadoEdicion EliminarAporte(Lote l, string id, string usuario, DateTime ahoraUtc)
@@ -218,29 +234,111 @@ namespace Composta.Core.Lotes
             var err = Comprobar(l, false);
             if (err != null) return ResultadoEdicion.Error(err);
             int i = l.Aportes.FindIndex(x => x != null && x.Id == id);
-            if (i < 0) return ResultadoEdicion.Error("El aporte ya no existe.");
+            if (i < 0) return ResultadoEdicion.Error("La aportación ya no existe.");
             var a = l.Aportes[i];
+            if (a.EsCargaInicial)
+                return ResultadoEdicion.Error("La carga inicial no se puede eliminar porque es la base del balance. Corrígela si el peso o el material están mal.");
             l.Aportes.RemoveAt(i);
             Anotar(l, AccionCambio.Eliminacion, EntidadCambio.Aporte, a.Id,
-                   $"Eliminó el aporte de {Num(a.Kg)} kg, material {ValidadorAporte.Nombre(a.Material)}, del {Fecha(a.FechaUtc)}", usuario, ahoraUtc);
-            return ResultadoEdicion.Ok("Aporte eliminado.", a.Id);
+                   $"Eliminó la aportación de {Num(a.Kg)} kg de {Materiales.NombreDe(a).ToLowerInvariant()} del {Fecha(a.FechaUtc)} (registrada por {a.Usuario})",
+                   usuario, ahoraUtc);
+            return ResultadoEdicion.Ok("Aportación eliminada.", a.Id);
+        }
+
+        static string HumedadTexto(float h) => h > 0f ? Num(h) + " %" : "típica";
+
+        // ---------------- Maduración y cosecha (Control Manual) ----------------
+        public static ResultadoEdicion BloquearMaduracion(Lote l, bool bloquear, string usuario, DateTime ahoraUtc)
+        {
+            var err = Comprobar(l, true);
+            if (err != null) return ResultadoEdicion.Error(err.Replace("Las mediciones de campo son", "La maduración y la cosecha son"));
+            if (l.BloqueadoMaduracion == bloquear)
+                return ResultadoEdicion.Ok(bloquear ? "El lote ya estaba en maduración." : "El lote no estaba bloqueado.", l.Id, true);
+            l.BloqueadoMaduracion = bloquear;
+            l.BloqueoUtc = bloquear ? ahoraUtc.Ticks : 0;
+            Anotar(l, AccionCambio.Edicion, EntidadCambio.Lote, l.Id,
+                   bloquear ? "Inició la maduración: el lote ya no admite aportaciones" : "Quitó el bloqueo de maduración: el lote vuelve a admitir aportaciones",
+                   usuario, ahoraUtc);
+            return ResultadoEdicion.Ok(bloquear ? "Maduración iniciada: el lote ya no admite aportaciones." : "Bloqueo quitado: el lote vuelve a admitir aportaciones.", l.Id);
+        }
+
+        public const float RendimientoMaximoAceptado = 120f;    // más del 120 % de lo que entró no es físicamente posible
+
+        public static ResultadoEdicion RegistrarCosecha(Lote l, float pesoKg, DateTime fechaUtc, bool olorTierra, bool sinRestos, bool texturaSuelta,
+                                                        string nota, string usuario, DateTime ahoraUtc)
+        {
+            var err = Comprobar(l, true);
+            if (err != null) return ResultadoEdicion.Error(err.Replace("Las mediciones de campo son", "La cosecha es"));
+            if (float.IsNaN(pesoKg) || float.IsInfinity(pesoKg) || pesoKg < ValidadorAporte.KgMin)
+                return ResultadoEdicion.Error($"El peso cosechado debe ser de al menos {Num(ValidadorAporte.KgMin)} kg.");
+            if (!ValidadorFechaMedicion.ValidarUtc(fechaUtc, ahoraUtc, out string errFecha)) return ResultadoEdicion.Error(errFecha);
+            if (fechaUtc.Ticks < l.CreadoUtc - TimeSpan.TicksPerDay)
+                return ResultadoEdicion.Error("La fecha de cosecha no puede ser anterior a la creación del lote.");
+            var balance = Campo.BalanceLote.Calcular(l, fechaUtc.Ticks);
+            if (balance.PesoEntradaKg <= 0f) return ResultadoEdicion.Error("El lote no tiene peso de entrada registrado: agrega la carga inicial antes de cosechar.");
+            float rend = pesoKg / balance.PesoEntradaKg * 100f;
+            if (rend > RendimientoMaximoAceptado)
+                return ResultadoEdicion.Error(string.Format(C, "{0:0.##} kg es más de lo que entró al lote ({1:0.##} kg). Revisa el peso cosechado o las aportaciones.",
+                                                            pesoKg, balance.PesoEntradaKg));
+
+            l.Cosecha = new CosechaLote
+            {
+                FechaUtc = fechaUtc.Ticks, PesoKg = Redondear(pesoKg, 2), OlorTierra = olorTierra, SinRestos = sinRestos, TexturaSuelta = texturaSuelta,
+                Usuario = usuario, Nota = ValidadorAporte.LimpiarNota(nota)
+            };
+            l.Estado = EstadoLote.Cosechado;
+            var ev = Campo.EvaluacionCosecha.Evaluar(l);
+            Anotar(l, AccionCambio.Edicion, EntidadCambio.Lote, l.Id,
+                   string.Format(C, "Registró la cosecha: {0:0.##} kg de {1:0.##} kg de entrada (rendimiento {2:F0} %, calidad {3})",
+                                 l.Cosecha.PesoKg, ev.PesoEntradaKg, ev.RendimientoPct, ev.Calidad), usuario, ahoraUtc);
+            return ResultadoEdicion.Ok(string.Format(C, "Cosecha registrada: rendimiento {0:F0} %, calidad {1}.", ev.RendimientoPct, ev.Calidad), l.Id);
+        }
+
+        // Corregir una cosecha registrada por error: el lote vuelve a estar activo (y en maduración)
+        public static ResultadoEdicion AnularCosecha(Lote l, string usuario, DateTime ahoraUtc)
+        {
+            if (l == null) return ResultadoEdicion.Error("No hay un lote seleccionado.");
+            if (!l.TieneCosecha) return ResultadoEdicion.Error("El lote no tiene una cosecha registrada.");
+            if (l.Cambios == null) l.Cambios = new List<CambioLote>();
+            float peso = l.Cosecha.PesoKg;
+            l.Cosecha = new CosechaLote();
+            l.Estado = EstadoLote.Activo;
+            l.BloqueadoMaduracion = true;
+            if (l.BloqueoUtc == 0) l.BloqueoUtc = ahoraUtc.Ticks;
+            Anotar(l, AccionCambio.Eliminacion, EntidadCambio.Lote, l.Id, $"Anuló la cosecha de {Num(peso)} kg: el lote vuelve a maduración", usuario, ahoraUtc);
+            return ResultadoEdicion.Ok("Cosecha anulada: el lote vuelve a estar activo, en maduración.", l.Id);
         }
 
         // ---------------- Datos del lote ----------------
         // En un lote de simulación solo se puede cambiar el nombre: sus parámetros definen la simulación ya calculada
         // (cambiarlos haría que al reanudarlo saliera otra historia distinta).
-        public static ResultadoEdicion EditarLote(Lote l, string nombre, TipoComposta tipo, float relacionCN, float aislamiento,
+        public const int ComposteraMax = 30;
+
+        public static string LimpiarCompostera(string texto) => ColapsarEspacios(ValidadorCredenciales.LimpiarTexto(texto, ComposteraMax * 2));
+
+        public static string ErrorCompostera(string limpio, ModoLote modo)
+        {
+            if (limpio.Length > ComposteraMax) return $"El nombre de la compostera no puede superar {ComposteraMax} caracteres.";
+            if (modo == ModoLote.Manual && limpio.Length == 0) return "Escribe qué compostera es (por ejemplo «Cubeta A»).";
+            return null;
+        }
+
+        public static ResultadoEdicion EditarLote(Lote l, string nombre, string compostera, TipoComposta tipo, float relacionCN, float aislamiento,
                                                   string usuario, DateTime ahoraUtc)
         {
             if (l == null) return ResultadoEdicion.Error("No hay un lote abierto.");
-            if (l.Estado != EstadoLote.Activo) return ResultadoEdicion.Error("El lote está cerrado y ya no se puede modificar.");
+            if (l.Estado != EstadoLote.Activo) return ResultadoEdicion.Error(MensajeNoActivo(l));
             string n = ColapsarEspacios(ValidadorCredenciales.LimpiarTexto(nombre, NombreMax * 2));
             if (n.Length == 0) return ResultadoEdicion.Error("Escribe un nombre para el lote.");
             if (n.Length > NombreMax) return ResultadoEdicion.Error($"El nombre no puede superar {NombreMax} caracteres.");
+            string comp = LimpiarCompostera(compostera);
+            string errComp = ErrorCompostera(comp, l.Modo);
+            if (errComp != null) return ResultadoEdicion.Error(errComp);
             if (!Enum.IsDefined(typeof(TipoComposta), tipo)) return ResultadoEdicion.Error("Tipo de compostera no válido.");
 
             var cambios = new List<string>();
             if (l.Nombre != n) cambios.Add($"nombre «{l.Nombre}» → «{n}»");
+            if ((l.Compostera ?? "") != comp) cambios.Add($"compostera «{l.Compostera}» → «{comp}»");
             bool parametros = l.Tipo != tipo || l.RelacionCN != relacionCN || l.Aislamiento != aislamiento;
             if (parametros)
             {
@@ -255,7 +353,7 @@ namespace Composta.Core.Lotes
             }
             if (cambios.Count == 0) return ResultadoEdicion.Ok("No había cambios que guardar.", l.Id, true);
 
-            l.Nombre = n; l.Tipo = tipo; l.RelacionCN = relacionCN; l.Aislamiento = aislamiento;
+            l.Nombre = n; l.Compostera = comp; l.Tipo = tipo; l.RelacionCN = relacionCN; l.Aislamiento = aislamiento;
             Anotar(l, AccionCambio.Edicion, EntidadCambio.Lote, l.Id, "Cambió " + string.Join(", ", cambios), usuario, ahoraUtc);
             return ResultadoEdicion.Ok("Datos del lote actualizados.", l.Id);
         }
@@ -270,15 +368,22 @@ namespace Composta.Core.Lotes
             var c = new Lote
             {
                 Version = l.Version, Id = l.Id, Nombre = l.Nombre, Estado = l.Estado, Modo = l.Modo, RitmoReal = l.RitmoReal,
+                Numero = l.Numero, Compostera = l.Compostera, Demo = l.Demo, BloqueadoMaduracion = l.BloqueadoMaduracion, BloqueoUtc = l.BloqueoUtc,
+                Cosecha = l.Cosecha == null ? new CosechaLote() : new CosechaLote
+                {
+                    FechaUtc = l.Cosecha.FechaUtc, PesoKg = l.Cosecha.PesoKg, OlorTierra = l.Cosecha.OlorTierra, SinRestos = l.Cosecha.SinRestos,
+                    TexturaSuelta = l.Cosecha.TexturaSuelta, Usuario = l.Cosecha.Usuario, Nota = l.Cosecha.Nota
+                },
                 Tipo = l.Tipo, PesoKg = l.PesoKg, RelacionCN = l.RelacionCN, HumedadInicial = l.HumedadInicial,
                 Aislamiento = l.Aislamiento, TempAmbiente = l.TempAmbiente, Semilla = l.Semilla,
                 CreadoPor = l.CreadoPor, CreadoUtc = l.CreadoUtc, ActualizadoUtc = l.ActualizadoUtc, TicksSimulados = l.TicksSimulados,
                 Comandos = new List<Comando>(), Aportes = new List<Aporte>(), Informes = new List<InformeCampo>(), Cambios = new List<CambioLote>()
             };
             if (l.Comandos != null) foreach (var x in l.Comandos) if (x != null)
-                c.Comandos.Add(new Comando { Tick = x.Tick, Tipo = x.Tipo, Valor = x.Valor, Usuario = x.Usuario, FechaUtc = x.FechaUtc });
+                c.Comandos.Add(new Comando { Tick = x.Tick, Tipo = x.Tipo, Valor = x.Valor, Usuario = x.Usuario, FechaUtc = x.FechaUtc, Ref = x.Ref });
             if (l.Aportes != null) foreach (var x in l.Aportes) if (x != null)
                 c.Aportes.Add(new Aporte { Id = x.Id, FechaUtc = x.FechaUtc, Tick = x.Tick, Kg = x.Kg, Material = x.Material, Nota = x.Nota,
+                                           Especifico = x.Especifico, HumedadPct = x.HumedadPct, EsCargaInicial = x.EsCargaInicial,
                                            Usuario = x.Usuario, EditadoPor = x.EditadoPor, EditadoUtc = x.EditadoUtc });
             if (l.Informes != null) foreach (var x in l.Informes) if (x != null)
                 c.Informes.Add(new InformeCampo { Id = x.Id, FechaUtc = x.FechaUtc, Tick = x.Tick, Temperatura = x.Temperatura, Humedad = x.Humedad,
@@ -294,7 +399,7 @@ namespace Composta.Core.Lotes
         static string Comprobar(Lote l, bool requiereManual)
         {
             if (l == null) return "No hay un lote abierto.";
-            if (l.Estado != EstadoLote.Activo) return "El lote está cerrado y ya no se puede modificar.";
+            if (l.Estado != EstadoLote.Activo) return MensajeNoActivo(l);
             if (requiereManual && l.Modo != ModoLote.Manual) return "Las mediciones de campo son solo para lotes de Control Manual.";
             if (l.Informes == null) l.Informes = new List<InformeCampo>();
             if (l.Aportes == null) l.Aportes = new List<Aporte>();
@@ -312,12 +417,17 @@ namespace Composta.Core.Lotes
             return ValidadorFechaMedicion.ValidarUtc(fechaUtc, ahoraUtc, out var e) ? null : e;
         }
 
-        static string ErrorAporte(float kg, TipoMaterial material)
+        static string MensajeNoActivo(Lote l)
+            => l.Estado == EstadoLote.Cosechado ? "El lote ya se cosechó y no se puede modificar." : "El lote está cerrado y ya no se puede modificar.";
+
+        static string ErrorAporte(float kg, MaterialEspecifico material, float humedadPct, DateTime fechaUtc, DateTime ahoraUtc)
         {
             if (float.IsNaN(kg) || float.IsInfinity(kg) || kg < ValidadorAporte.KgMin || kg > ValidadorAporte.KgMax)
-                return $"El peso del aporte debe estar entre {Num(ValidadorAporte.KgMin)} y {ValidadorAporte.KgMax:F0} kg.";
-            if (!Enum.IsDefined(typeof(TipoMaterial), material)) return "Tipo de material no válido.";
-            return null;
+                return $"El peso debe estar entre {Num(ValidadorAporte.KgMin)} y {ValidadorAporte.KgMax:F0} kg.";
+            if (!Materiales.EsValido(material)) return "Elige el material.";
+            if (float.IsNaN(humedadPct) || (humedadPct != 0f && (humedadPct < Materiales.HumedadMin || humedadPct > Materiales.HumedadMax)))
+                return $"La humedad del material debe estar entre {Materiales.HumedadMin:F0} y {Materiales.HumedadMax:F0} %.";
+            return ValidadorFechaMedicion.ValidarUtc(fechaUtc, ahoraUtc, out var e) ? null : e;
         }
 
         static void Anotar(Lote l, AccionCambio accion, EntidadCambio entidad, string id, string detalle, string usuario, DateTime ahoraUtc)

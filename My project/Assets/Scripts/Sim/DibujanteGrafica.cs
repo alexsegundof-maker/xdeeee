@@ -148,6 +148,55 @@ public static class DibujanteGrafica
         }
     }
 
+    // Varias series en los mismos ejes (comparar lotes, o temperatura y humedad de un lote). x en días desde el inicio.
+    public static Texture2D DibujarSeries(System.Collections.Generic.IList<(System.Collections.Generic.IList<(float x, float v)> puntos, Color32 color)> series,
+                                          float yMin, float yMax, (float min, float max)? zona, int w, int h, Texture2D reutilizar = null, bool puntosGrandes = true)
+    {
+        w = Mathf.Max(w, 32); h = Mathf.Max(h, 32);
+        var buf = new Color32[w * h];
+        Rellenar(buf, w, h, 0, 0, w - 1, h - 1, ColFondo);
+        int m = Mathf.Clamp(h / 12, 4, 14);
+        int x0 = m, x1 = w - m - 1, y0 = m, y1 = h - m - 1;
+
+        float xMin = float.MaxValue, xMax = float.MinValue;
+        if (series != null)
+            foreach (var s in series)
+                if (s.puntos != null) foreach (var p in s.puntos) { xMin = Mathf.Min(xMin, p.x); xMax = Mathf.Max(xMax, p.x); }
+        if (xMin > xMax) { xMin = 0f; xMax = 7f; }
+        if (xMax - xMin < 7f) xMax = xMin + 7f;
+        if (yMax - yMin < 1e-3f) yMax = yMin + 1f;
+        int Y(float v) => y0 + Mathf.RoundToInt((Mathf.Clamp(v, yMin, yMax) - yMin) / (yMax - yMin) * (y1 - y0));
+        int X(float x) => x0 + Mathf.RoundToInt((x - xMin) / (xMax - xMin) * (x1 - x0));
+
+        if (zona.HasValue) Rellenar(buf, w, h, x0, Y(zona.Value.min), x1, Y(zona.Value.max), ColZona);
+        for (int i = 1; i < 4; i++) { int y = y0 + (y1 - y0) * i / 4; Rellenar(buf, w, h, x0, y, x1, y, ColRejilla); }
+        Rellenar(buf, w, h, x0, y0, x1, y0, ColEje);
+
+        if (series != null)
+            foreach (var s in series)
+            {
+                if (s.puntos == null) continue;
+                for (int i = 1; i < s.puntos.Count; i++)
+                    Linea(buf, w, h, X(s.puntos[i - 1].x), Y(s.puntos[i - 1].v), X(s.puntos[i].x), Y(s.puntos[i].v), s.color, puntosGrandes ? 2 : 1);
+                if (!puntosGrandes) continue;
+                foreach (var p in s.puntos)
+                {
+                    Circulo(buf, w, h, X(p.x), Y(p.v), 5, ColFondo);
+                    Circulo(buf, w, h, X(p.x), Y(p.v), 3, s.color);
+                }
+            }
+
+        var tex = reutilizar;
+        if (tex == null || tex.width != w || tex.height != h)
+        {
+            if (tex != null) Object.Destroy(tex);
+            tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        }
+        tex.SetPixels32(buf);
+        tex.Apply();
+        return tex;
+    }
+
     public static Color32 ColorDe(Magnitud m)
     {
         switch (m)

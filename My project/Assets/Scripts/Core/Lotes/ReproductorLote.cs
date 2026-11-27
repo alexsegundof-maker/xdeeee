@@ -53,7 +53,8 @@ namespace Composta.Core.Lotes
             l.Comandos.RemoveAll(c => c == null || c.Tick < 0 || c.Tick > l.TicksSimulados
                                       || !Enum.IsDefined(typeof(TipoComando), c.Tipo)
                                       || float.IsNaN(c.Valor) || float.IsInfinity(c.Valor)
-                                      || (c.Tipo == TipoComando.Informe && !InformeValido(l, c)));
+                                      || (c.Tipo == TipoComando.Informe && !InformeValido(l, c))
+                                      || (c.Tipo == TipoComando.Aporte && string.IsNullOrEmpty(c.Ref)));
             if (l.Comandos.Count != antes) avisos.Add($"{antes - l.Comandos.Count} acciones inválidas descartadas");
 
             // Orden estable por hora (List.Sort no es estable)
@@ -93,6 +94,11 @@ namespace Composta.Core.Lotes
 
         public static void Aplicar(SistemaComposta s, Comando c, Lote lote)
         {
+            if (c.Tipo == TipoComando.Aporte)
+            {
+                AplicarAporte(s, lote, c.Ref);
+                return;
+            }
             if (c.Tipo == TipoComando.Informe)
             {
                 int i = (int)c.Valor;
@@ -101,6 +107,17 @@ namespace Composta.Core.Lotes
                 return;
             }
             Aplicar(s, c);
+        }
+
+        // Aportación registrada durante una simulación: entra al modelo en la misma hora en que se registró.
+        // Si después se eliminó, ya no existe y no se aplica (la simulación se recalcula sin ella).
+        public static void AplicarAporte(SistemaComposta s, Lote lote, string idAporte)
+        {
+            if (s == null || lote?.Aportes == null || string.IsNullOrEmpty(idAporte)) return;
+            var a = lote.Aportes.Find(x => x != null && x.Id == idAporte);
+            if (a == null) return;
+            var balance = Campo.BalanceLote.Calcular(lote, a.FechaUtc);
+            s.Modelo.AgregarMaterial(a.Kg, Materiales.HumedadDe(a), s.Modelo.TempAmbiente, balance.RelacionCN);
         }
 
         public static void Aplicar(SistemaComposta s, Comando c)

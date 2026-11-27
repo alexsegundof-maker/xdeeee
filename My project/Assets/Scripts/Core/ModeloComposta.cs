@@ -31,7 +31,7 @@ namespace Composta.Core
         const float TasaDescomposicion = 0.0012f;          // por hora, en condiciones óptimas
         public float MasaKg;                               // peso actual estimado
         public float MasaDegradable;                       // lo que aún puede descomponerse
-        public float MasaDegradableInicial { get; private set; }
+        public float MasaDegradableInicial { get; private set; }     // crece con cada aportación de material
         public float UltimaPerdidaHora { get; private set; }   // kg de material degradable perdidos en la última hora
 
         // Perillas ocultas que la calibración ajusta con cada informe (1 = valor deducido del perfil)
@@ -138,6 +138,24 @@ namespace Composta.Core
             RecalcularParametros();
             Limitar();
             if (ModeloCampo) ActualizarEtapaCampo();
+        }
+
+        // Material nuevo que entra a la pila: suma masa (y masa degradable), mezcla humedad y temperatura por peso
+        // y recalcula la actividad con la nueva relación C/N de la mezcla.
+        public void AgregarMaterial(float kg, float humedadPct, float tempMaterial, float relacionCNMezcla)
+        {
+            if (float.IsNaN(kg) || float.IsInfinity(kg) || kg <= 0f) return;
+            float masaPrevia = Math.Max(MasaKg, 0.1f);
+            float total = masaPrevia + kg;
+            Humedad = (Humedad * masaPrevia + Clamp(humedadPct, 0f, 100f) * kg) / total;
+            Temperatura = (Temperatura * masaPrevia + tempMaterial * kg) / total;
+            MasaKg += kg;
+            MasaDegradable += kg * FraccionDegradable;
+            MasaDegradableInicial += kg * FraccionDegradable;
+            if (!float.IsNaN(relacionCNMezcla) && !float.IsInfinity(relacionCNMezcla) && relacionCNMezcla > 0f)
+                Perfil.RelacionCN = Clamp(relacionCNMezcla, 5f, 500f);
+            RecalcularParametros();
+            Limitar();
         }
 
         // ---- Acciones del usuario ----

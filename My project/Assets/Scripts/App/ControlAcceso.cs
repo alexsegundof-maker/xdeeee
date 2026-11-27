@@ -38,6 +38,8 @@ namespace Composta.App
         PanelRegistroCampo registro;           // formulario de medición de campo (nueva o corrección)
         PanelMediciones mediciones;            // lista completa de mediciones con editar / eliminar
         PanelLote panelLote;                   // datos del lote, auditoría y eliminación
+        PanelCosecha cosecha;                  // cierre del lote con rendimiento y calidad
+        PanelHistorial historial;              // todas las compostas: tarjetas, comparación y auditoría
         VentanaPrediccion prediccion;          // pronóstico aislado + Google Calendar
         float proximoRefrescoManual;
 
@@ -69,6 +71,15 @@ namespace Composta.App
             prediccion = gameObject.AddComponent<VentanaPrediccion>();
             mediciones = gameObject.AddComponent<PanelMediciones>();
             panelLote = gameObject.AddComponent<PanelLote>();
+            cosecha = gameObject.AddComponent<PanelCosecha>();
+            historial = gameObject.AddComponent<PanelHistorial>();
+            historial.HayLoteAbierto = () => lotes?.LoteActual != null;
+            historial.PedirNueva += AbrirNuevaComposta;
+            historial.PedirAbrir += Reanudar;
+            historial.AlCambiarDatos += () => { if (lotes?.LoteActual == null) ActualizarVista(); };
+            panelLote.PedirCosecha += () => { panelLote.Cerrar(); cosecha.Abrir(lotes); };
+            cosecha.AlCosechar += AbrirHistorial;
+            tableroManual.PedirHistorial += AbrirHistorial;
             mediciones.HayVentanaEncima = () => registro.Abierto || registro.CerradoEsteCuadro;
             mediciones.PedirNueva += AbrirRegistro;
             mediciones.PedirEditar += r => { if (lotes != null && svc.Sesion.Puede(Permiso.EditarRegistros)) registro.AbrirEdicion(lotes, r); };
@@ -160,6 +171,8 @@ namespace Composta.App
                 panelUI.PedirPrediccion += PredecirLoteActual;
                 panelUI.PedirLote -= AbrirLote;
                 panelUI.PedirLote += AbrirLote;
+                panelUI.PedirHistorial -= AbrirHistorial;
+                panelUI.PedirHistorial += AbrirHistorial;
             }
         }
 
@@ -310,6 +323,7 @@ namespace Composta.App
             if (panelBuild != null) panelBuild.PermitirCrear(puede(Permiso.CrearLote));
         }
 
+        // Con varias composteras activas a la vez, el punto de partida es el historial (filtrado a las activas)
         void ElegirLote()
         {
             bool puedeCrear = svc.Sesion.Puede(Permiso.CrearLote);
@@ -323,30 +337,26 @@ namespace Composta.App
                 return;
             }
 
-            Lote ultimo = null;
-            try { ultimo = svc.Lotes.UltimoActivo(); }
-            catch (Exception e)
+            var lista = lotes.ListarLotes(out string aviso);
+            if (aviso != null) Notificador.Mostrar(aviso, TipoMensaje.Aviso);
+            if (lista.Count > 0)
             {
-                Debug.LogException(e);
-                Notificador.Mostrar("No se pudieron leer los lotes guardados: " + e.Message, TipoMensaje.Error);
+                if (lista.Exists(l => l.Estado == EstadoLote.Activo)) historial.AbrirActivos(lotes, svc.Sesion.Puede);
+                else historial.Abrir(lotes, svc.Sesion.Puede);
+                return;
             }
-
-            if (ultimo != null)
-            {
-                string cuerpo = $"<b>{UIFabrica.SinRich(ultimo.Nombre)}</b>\n" +
-                                (ultimo.Modo == ModoLote.Manual
-                                    ? $"Control manual · {ultimo.Informes.Count} mediciones registradas"
-                                    : $"Simulación · día simulado {ultimo.DiasSimulados:F1}") +
-                                $" · {ultimo.Aportes.Count} aportes ({ultimo.TotalAportadoKg:0.#} kg)\n" +
-                                $"Creado por {ultimo.CreadoPor}";
-                if (puedeCrear)
-                    Notificador.Dialogo("Lote en curso", cuerpo,
-                        new OpcionDialogo("Nueva composta", () => { CerrarLoteGuardado(ultimo); AbrirNuevaComposta(); }),
-                        new OpcionDialogo("Continuar", () => Reanudar(ultimo), true));
-                else
-                    Notificador.Dialogo("Lote en curso", cuerpo, new OpcionDialogo("Ver lote", () => Reanudar(ultimo), true));
-            }
-            else if (puedeCrear) AbrirNuevaComposta();
+            if (puedeCrear)
+                Notificador.Dialogo("Te damos la bienvenida",
+                    "Todavía no hay compostas registradas.\n\nPuedes crear la primera ahora o cargar <b>datos de demostración</b> " +
+                    "(3 composteras activas y 4 cosechadas, marcadas como DEMO) para explorar el historial, las recomendaciones y las bitácoras. " +
+                    "Los datos DEMO se quitan de un solo toque desde el historial.",
+                    new OpcionDialogo("Cargar datos DEMO", () =>
+                    {
+                        bool ok = lotes.CargarDemo(out string msg);
+                        Notificador.Mostrar(msg, ok ? TipoMensaje.Exito : TipoMensaje.Error);
+                        if (ok) historial.Abrir(lotes, svc.Sesion.Puede); else AbrirNuevaComposta();
+                    }),
+                    new OpcionDialogo("Crear composta", AbrirNuevaComposta, true));
             else Notificador.Dialogo("Sin lotes activos",
                      "Todavía no hay una composta en curso.\nPide a una persona con rol de Operación que cree un lote.");
         }
@@ -356,24 +366,15 @@ namespace Composta.App
             if (panelBuild != null) panelBuild.AbrirFormulario(lotes.LoteActual == null);
         }
 
-        // Elegir "Nueva composta" archiva el lote pendiente (si no, quedaría "Activo" para siempre)
-        void CerrarLoteGuardado(Lote lote)
+        void AbrirHistorial()
         {
-            try
-            {
-                lote.Estado = EstadoLote.Cerrado;
-                lote.ActualizadoUtc = svc.Reloj.UtcAhora.Ticks;
-                svc.Lotes.Guardar(lote);
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-                Notificador.Mostrar("No se pudo archivar el lote anterior: " + e.Message, TipoMensaje.Aviso);
-            }
+            if (svc == null || !svc.Sesion.Activa || lotes == null) return;
+            historial.Abrir(lotes, svc.Sesion.Puede);
         }
 
         void Reanudar(Lote lote)
         {
+            if (lotes.LoteActual != null && lote != null && lotes.LoteActual.Id == lote.Id) { ActualizarVista(); return; }
             if (lotes.Reanudar(lote, out string error))
             {
                 sim.pausado = false;
@@ -399,10 +400,10 @@ namespace Composta.App
             proximoRefrescoManual = 0f;
         }
 
-        void CrearLoteManual(PerfilComposta perfil)
+        void CrearLoteManual(PerfilComposta perfil, string compostera)
         {
             if (lotes == null) return;
-            if (lotes.CrearLoteManual(perfil, out string error))
+            if (lotes.CrearLoteManual(perfil, compostera, out string error))
             {
                 if (panelBuild != null) panelBuild.Ocultar();
             }
@@ -480,23 +481,28 @@ namespace Composta.App
                 Notificador.Mostrar("No se pudo exportar: " + error, TipoMensaje.Error);
                 return;
             }
-            bool manual = lotes.EsLoteManual;
-            string hojas = manual ? "Resumen, Mediciones, Aportes y Cambios" : "Resumen, Bitácora, Historial, Aportes y Cambios";
+            MostrarExportacion("Exportación lista", r);
+        }
+
+        // Aviso común de exportación (lote, lote del historial o bitácora consolidada)
+        public static void MostrarExportacion(string titulo, ResultadoExportacion r)
+        {
             var cuerpo = new System.Text.StringBuilder();
-            cuerpo.Append($"Libro de Excel: <b>{UIFabrica.SinRich(r.NombreExcel)}</b>\nHojas: {hojas}.\n");
-            cuerpo.Append("También se guardaron los mismos datos en CSV, para otros programas.\n\n");
-            cuerpo.Append($"Carpeta: <b>{UIFabrica.SinRich(r.Carpeta)}</b>");
+            cuerpo.Append($"Libro de Excel: <b>{UIFabrica.SinRich(r.NombreExcel)}</b>\nHojas: {r.Hojas}.\n");
+            if (r.Hojas.StartsWith("Resumen", StringComparison.Ordinal))
+                cuerpo.Append("También se guardaron los mismos datos en CSV, para otros programas.\n");
+            cuerpo.Append($"\nCarpeta: <b>{UIFabrica.SinRich(r.Carpeta)}</b>");
             if (r.EnDescargas)
                 cuerpo.Append("\n\nÁbrelo desde la app Archivos (Descargas › Composta) con Excel, Google Sheets o WPS. " +
-                              "Desde ahí puedes compartirlo por WhatsApp, correo o Drive. Los CSV están en «Composta › CSV».");
+                              "Desde ahí puedes compartirlo por WhatsApp, correo o Drive.");
             string aviso = Tema.HexDe(Tema.Aviso);
             foreach (var a in r.Avisos) cuerpo.Append($"\n<color={aviso}>• {a}</color>");
             if (r.AvisoDescargas != null) cuerpo.Append($"\n<color={aviso}>• {UIFabrica.SinRich(r.AvisoDescargas)}</color>");
 
             if (Application.isMobilePlatform)
-                Notificador.Dialogo("Exportación lista", cuerpo.ToString(), new OpcionDialogo("Entendido", null, true));
+                Notificador.Dialogo(titulo, cuerpo.ToString(), new OpcionDialogo("Entendido", null, true));
             else
-                Notificador.Dialogo("Exportación lista", cuerpo.ToString(),
+                Notificador.Dialogo(titulo, cuerpo.ToString(),
                     new OpcionDialogo("Abrir carpeta", () => AbrirRuta(r.Carpeta)),
                     new OpcionDialogo("Cerrar"),
                     new OpcionDialogo("Abrir en Excel", () => AbrirRuta(r.RutaExcel), true));
@@ -525,6 +531,8 @@ namespace Composta.App
             registro.Cerrar();
             mediciones.Cerrar();
             panelLote.Cerrar();
+            cosecha.Cerrar();
+            historial.Cerrar();
             prediccion.Cerrar();
             MostrarEspacioDeTrabajo(false);
             Notificador.CerrarDialogos();

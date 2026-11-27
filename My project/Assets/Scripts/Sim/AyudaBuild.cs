@@ -71,8 +71,8 @@ public static class AyudaBuild
         => new[] { ("Sí, tapada o cubierta", 1.3f), ("No, al aire libre", 1f) };
 
     public const string AyudaMaterial =
-        "Elige lo que más abunda. Se usa para interpretar tus mediciones (por ejemplo, si la pila no se calienta, " +
-        "te sugerirá agregar material verde). No hace falta conocer la relación C/N.";
+        "Elige lo que más abunda. Define el material de la carga inicial (restos de cocina, mezcla u hojas secas) para " +
+        "calcular el balance C:N, y se usa para interpretar tus mediciones. Después podrás corregirlo en «Aportes».";
 
     public const string AyudaTapada =
         "Una pila tapada o cubierta retiene calor y humedad. Se usa para interpretar tus mediciones.";

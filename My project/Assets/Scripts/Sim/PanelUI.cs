@@ -32,6 +32,7 @@ public class PanelUI : MonoBehaviour
     public event Action PedirExportar;
     public event Action PedirPrediccion;
     public event Action PedirLote;
+    public event Action PedirHistorial;
 
     Canvas canvasUI;
     bool tableroVisible = true;
@@ -166,10 +167,12 @@ public class PanelUI : MonoBehaviour
         Boton("Exportar", i++, ancho, paso, () => PedirExportar?.Invoke(), Permiso.Exportar);
         Boton("Predicción", i++, ancho, paso, () => PedirPrediccion?.Invoke(), null, Tema.ConAlfa(Tema.AcentoPrediccion, 0.85f));
         Boton("Lote", i++, ancho, paso, () => PedirLote?.Invoke());
+        Boton("Historial", i++, ancho, paso, () => PedirHistorial?.Invoke());
         RefrescarPermisos();
     }
 
-    const int TotalBotones = 12;
+    const int TotalBotones = 13;
+    const int PorFilaCompacto = 7;
     const float paso = 1f / TotalBotones, ancho = paso - 0.006f;
     RectTransform barraBotones;
 
@@ -197,9 +200,10 @@ public class PanelUI : MonoBehaviour
     {
         float x0 = indice * paso;
         var b = UIFabrica.Boton(barraBotones, texto, new Vector2(x0, 0f), new Vector2(x0 + ancho, 1f), 19, color ?? Tema.BotonNeutro, accion);
-        // Móvil: 6 arriba y 6 abajo
-        int fila = indice < 6 ? 0 : 1, col = indice < 6 ? indice : indice - 6;
-        Responsivo.En(b, new Vector2(col / 6f + 0.004f, fila == 0 ? 0.52f : 0f), new Vector2((col + 1) / 6f - 0.004f, fila == 0 ? 1f : 0.48f));
+        // Móvil: 7 arriba y 6 abajo
+        int fila = indice < PorFilaCompacto ? 0 : 1, col = fila == 0 ? indice : indice - PorFilaCompacto;
+        float c = PorFilaCompacto;
+        Responsivo.En(b, new Vector2(col / c + 0.003f, fila == 0 ? 0.52f : 0f), new Vector2((col + 1) / c - 0.003f, fila == 0 ? 1f : 0.48f));
         var t = UIFabrica.Etiqueta(b);
         t.resizeTextForBestFit = true; t.resizeTextMinSize = 11; t.resizeTextMaxSize = 19;
         if (permiso.HasValue) botonesProtegidos.Add((b, permiso.Value));

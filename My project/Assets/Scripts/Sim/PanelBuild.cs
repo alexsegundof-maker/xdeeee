@@ -23,7 +23,7 @@ public class PanelBuild : MonoBehaviour
     public bool abrirAlIniciar = true;
 
     // La capa de aplicación crea el lote manual (no pasa por el simulador)
-    public event Action<PerfilComposta> PedirLoteManual;
+    public event Action<PerfilComposta, string> PedirLoteManual;   // perfil.PesoKg = carga inicial; string = compostera
     // Pronóstico aislado con los parámetros del formulario (ventana Predicción)
     public event Action<PerfilComposta> PedirPrediccion;
 
@@ -48,6 +48,7 @@ public class PanelBuild : MonoBehaviour
     readonly RectTransform[] bandas = new RectTransform[5];
     RectTransform bandaAceptable;                         // solo peso: zona ámbar entre extremos y recomendado
     readonly InputField[] campos = new InputField[5];
+    InputField campoCompostera, campoCarga;
     readonly List<(Image fondo, Text texto, float valor)> opcionesMaterial = new List<(Image, Text, float)>();
     readonly List<(Image fondo, Text texto, float valor)> opcionesTapada = new List<(Image, Text, float)>();
 
@@ -154,10 +155,29 @@ public class PanelBuild : MonoBehaviour
         if (modoSel == ModoLote.Manual)
         {
             if (PedirLoteManual == null) { Notificador.Mostrar("Inicia sesión para crear un lote de control manual.", TipoMensaje.Aviso); return; }
-            var perfil = PerfilComposta.Crear(tipoSel);
+            string comp = Composta.Core.Lotes.EditorLote.LimpiarCompostera(campoCompostera.text);
+            string errComp = Composta.Core.Lotes.EditorLote.ErrorCompostera(comp, ModoLote.Manual);
+            if (errComp != null) { Notificador.Mostrar(errComp, TipoMensaje.Aviso); UIFabrica.Enfocar(campoCompostera); return; }
+            if (!Composta.Core.Lotes.ValidadorAporte.IntentarLeerKg(campoCarga.text, out float carga, out string errKg))
+            {
+                Notificador.Mostrar("Carga inicial: " + errKg, TipoMensaje.Aviso);
+                UIFabrica.Enfocar(campoCarga);
+                return;
+            }
+            var perfil = PerfilComposta.Crear(tipoSel, carga, true);
             perfil.RelacionCN = cn;
             perfil.Aislamiento = aisl;
-            PedirLoteManual.Invoke(perfil);
+            if (perfil.PesoExagerado)
+            {
+                // Un dato raro puede ser real (otro recipiente): se confirma en vez de bloquear
+                Notificador.Dialogo("PESO EXAGERADO",
+                    $"{carga:0.##} kg está fuera de los límites físicos de {perfil.Nombre} ({perfil.ExtremoMin:0.#}–{perfil.ExtremoMax:0.#} kg). " +
+                    "Revisa el peso o el tipo de compostera.",
+                    new OpcionDialogo("Corregir"),
+                    new OpcionDialogo("Crear igual", () => PedirLoteManual?.Invoke(perfil, comp), true));
+                return;
+            }
+            PedirLoteManual.Invoke(perfil, comp);
             return;
         }
 
@@ -359,8 +379,11 @@ public class PanelBuild : MonoBehaviour
         string verde = Tema.HexDe(Tema.Exito), ambar = Tema.HexDe(Tema.Aviso), rojo = Tema.HexDe(Tema.Critico), tenue = Tema.HexDe(Tema.TextoTenue);
         if (manual)
         {
+            string carga = campoCarga != null && Composta.Core.Lotes.ValidadorAporte.IntentarLeerKg(campoCarga.text, out float kgCarga, out _)
+                ? $"carga inicial {kgCarga:0.##} kg ({Composta.Core.Lotes.Materiales.De(Composta.Core.Lotes.Materiales.DesdeRelacionCN(cn)).Nombre.ToLowerInvariant()})"
+                : "escribe la carga inicial en kg";
             txtResumen.text = $"<b>{p.Nombre}</b>  <color={tenue}>·</color>  peso recomendado {p.PesoMin:0.#}–{p.PesoMax:0.#} kg  " +
-                              $"<color={tenue}>·</color>  el peso real lo registrarás en la primera medición";
+                              $"<color={tenue}>·</color>  {carga}";
         }
         else
         {
@@ -605,16 +628,34 @@ public class PanelBuild : MonoBehaviour
         Pregunta(padre, "¿Qué material predomina?", AyudaBuild.AyudaMaterial, 0.98f, 0.99f, AyudaBuild.OpcionesMaterial(), true, opcionesMaterial);
         Pregunta(padre, "¿Está tapada o cubierta?", AyudaBuild.AyudaTapada, 0.55f, 0.72f, AyudaBuild.OpcionesTapada(), false, opcionesTapada);
 
+        // Compostera física y carga inicial (la carga es la primera aportación: base del balance C:N y del rendimiento)
+        var lblComp = UIFabrica.Texto(padre, "LblCompostera", new Vector2(0.015f, 0.16f), new Vector2(0.29f, 0.22f), 17, TextAnchor.LowerLeft, Tema.TextoPrimario);
+        lblComp.text = "<b>Compostera</b>";
+        UIFabrica.IconoJuntoATexto(lblComp, "Nombre del recipiente o lugar (por ejemplo «Cubeta A» o «Tambor 2»). Sirve para distinguir " +
+                                             "las composteras activas al mismo tiempo.");
+        Responsivo.En(lblComp, new Vector2(0.03f, 0.445f), new Vector2(0.48f, 0.475f));
+        campoCompostera = UIFabrica.Campo(padre, "Compostera", new Vector2(0.02f, 0.03f), new Vector2(0.285f, 0.15f), "Ej.: Cubeta A", false,
+                                          Composta.Core.Lotes.EditorLote.ComposteraMax, 18);
+        Responsivo.En(campoCompostera, new Vector2(0.03f, 0.385f), new Vector2(0.48f, 0.44f));
+        var lblCarga = UIFabrica.Texto(padre, "LblCarga", new Vector2(0.30f, 0.16f), new Vector2(0.58f, 0.22f), 17, TextAnchor.LowerLeft, Tema.TextoPrimario);
+        lblCarga.text = "<b>Carga inicial (kg)</b>";
+        UIFabrica.IconoJuntoATexto(lblCarga, "Peso de lo que pusiste al empezar. Cuenta como la primera aportación: con ella se calculan " +
+                                              "el balance C:N, la humedad estimada y, al cosechar, el rendimiento.");
+        Responsivo.En(lblCarga, new Vector2(0.52f, 0.445f), new Vector2(0.97f, 0.475f));
+        campoCarga = UIFabrica.Campo(padre, "Carga", new Vector2(0.305f, 0.03f), new Vector2(0.58f, 0.15f), "Ej.: 20", false, 10, 18);
+        campoCarga.onValueChanged.AddListener(_ => Refrescar());
+        Responsivo.En(campoCarga, new Vector2(0.52f, 0.385f), new Vector2(0.97f, 0.44f));
+
         // Cómo funciona (derecha en escritorio; abajo en móvil)
         var info = UIFabrica.Panel("Info", padre, new Vector2(0.60f, 0.04f), new Vector2(0.985f, 0.98f), Tema.SuperficieAlta, Tema.RadioTarjeta);
-        Responsivo.En(info, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.46f));
+        Responsivo.En(info, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.37f));
         var franja = UIFabrica.Panel("Acento", info, Vector2.zero, new Vector2(0f, 1f), Tema.AcentoManual, 3);
         franja.offsetMax = new Vector2(5f, 0f);
         string a = Tema.HexDe(Tema.AcentoManual);
         var t = UIFabrica.Texto(info, "Texto", new Vector2(0.05f, 0.04f), new Vector2(0.97f, 0.96f), 16, TextAnchor.UpperLeft, Tema.TextoSecundario);
         t.text = $"<color={a}><b>CÓMO FUNCIONA EL CONTROL MANUAL</b></color>\n\n" +
                  "No hay sensores ni simulación. El tablero empezará en <b>\"Esperando primer registro\"</b>.\n\n" +
-                 $"<color={a}><b>1</b></color>  Crea el lote.\n" +
+                 $"<color={a}><b>1</b></color>  Crea el lote con su carga inicial.\n" +
                  $"<color={a}><b>2</b></color>  Registra temperatura, humedad y peso medidos en la pila.\n" +
                  $"<color={a}><b>3</b></color>  Repite cada 7 días: verás tendencias, la fase estimada y qué hacer.";
         t.resizeTextForBestFit = true; t.resizeTextMinSize = 11; t.resizeTextMaxSize = 16;

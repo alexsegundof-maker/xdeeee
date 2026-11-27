@@ -197,7 +197,7 @@ namespace Composta.Tests
         public void Resumen_EnEspanol_ConNombreEscapado()
         {
             var l = LoteManual();
-            EditorLote.AgregarAporte(l, 3.5f, TipoMaterial.Cafe, "", 0, "ana", Ahora);
+            EditorLote.AgregarAporte(l, 3.5f, MaterialEspecifico.Hojarasca, 0f, "", Ahora, 0, "ana", Ahora);
             var partes = Abrir(ExportadorExcel.Generar(l, null, Mexico, Ahora, "1.1.2"));
             var hoja = Xml(partes, "xl/worksheets/sheet1.xml");
             var textos = hoja.Descendants(M + "t").Select(t => t.Value).ToList();
@@ -209,7 +209,8 @@ namespace Composta.Tests
             Assert.IsNull(hoja.Descendants(M + "pane").SingleOrDefault(), "el resumen no es una tabla");
 
             var aportes = Xml(partes, "xl/worksheets/sheet3.xml");
-            Assert.AreEqual("Café (carbono)", Texto(aportes, "C2"));
+            Assert.AreEqual("Hojarasca seca", Texto(aportes, "D2"));
+            Assert.AreEqual("Café (carbono)", Texto(aportes, "E2"));
         }
 
         [Test]

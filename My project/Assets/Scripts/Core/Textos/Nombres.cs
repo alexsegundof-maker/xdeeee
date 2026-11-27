@@ -22,7 +22,8 @@ namespace Composta.Core.Textos
 
         public static string Modo(ModoLote m) => m == ModoLote.Manual ? "Control manual" : "Simulación";
 
-        public static string Estado(EstadoLote e) => e == EstadoLote.Cerrado ? "Cerrado" : "Activo";
+        public static string Estado(EstadoLote e)
+            => e == EstadoLote.Cosechado ? "Cosechado" : e == EstadoLote.Cerrado ? "Cerrado" : "Activo";
 
         public static string Tipo(TipoComposta t) => PerfilComposta.Crear(t).Nombre;
 

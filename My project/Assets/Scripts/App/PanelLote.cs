@@ -24,7 +24,8 @@ namespace Composta.App
         RectTransform raiz;
         Text txtTitulo, txtInfo, txtNotaSimulacion, txtMensaje, txtModo;
         Image fondoModo, franjaAcento;
-        InputField campoNombre;
+        InputField campoNombre, campoCompostera;
+        Button btnMaduracion, btnCosecha;
         GameObject seccionManual;
         Button btnGuardar, btnEliminar;
         ListaDesplazable listaCambios;
@@ -38,6 +39,7 @@ namespace Composta.App
 
         public bool Abierto => raiz != null && raiz.gameObject.activeSelf;
         public event Action AlEliminarLote;
+        public event Action PedirCosecha;
 
         public void Abrir(GestorLotes g)
         {
@@ -102,6 +104,7 @@ namespace Composta.App
         void Cargar(Lote l)
         {
             campoNombre.text = l.Nombre ?? "";
+            campoCompostera.text = l.Compostera ?? "";
             tipoSel = l.Tipo; cnSel = l.RelacionCN; aislSel = l.Aislamiento;
             txtMensaje.text = "";
             bool manual = l.Modo == ModoLote.Manual;
@@ -127,11 +130,28 @@ namespace Composta.App
             string conteo = l.Modo == ModoLote.Manual
                 ? $"{l.Informes.Count} {(l.Informes.Count == 1 ? "medición" : "mediciones")}"
                 : string.Format(C, "día simulado {0:F1}", l.DiasSimulados);
-            txtInfo.text = $"Creado por <b>{UIFabrica.SinRich(l.CreadoPor)}</b> el {ValidadorFechaMedicion.Formatear(l.CreadoUtc, zona)}\n" +
-                           string.Format(C, "{0} · {1} {2} ({3:0.##} kg) · {4}", conteo, l.Aportes.Count,
-                                         l.Aportes.Count == 1 ? "aporte" : "aportes", l.TotalAportadoKg, activo ? "activo" : "cerrado");
+            var b = Composta.Core.Campo.BalanceLote.Calcular(l);
+            string estado = l.TieneCosecha ? "cosechado" : !activo ? "cerrado" : l.BloqueadoMaduracion ? "en maduración" : "activo";
+            string madurez = "";
+            if (l.Modo == ModoLote.Manual && activo)
+            {
+                var m = Composta.Core.Campo.Maduracion.Estimar(l, gestor.AhoraUtc);
+                madurez = string.Format(C, " · madurez estimada {0} ({1})", ValidadorFechaMedicion.Formatear(m.FechaMadurezUtc.Ticks, zona).Substring(0, 10),
+                                        m.DiasRestantes < 1f ? "ya debería estar madura" : $"faltan {Math.Ceiling(m.DiasRestantes):F0} días");
+            }
+            txtInfo.text = $"{UIFabrica.SinRich(l.Etiqueta)} · creado por <b>{UIFabrica.SinRich(l.CreadoPor)}</b> el {ValidadorFechaMedicion.Formatear(l.CreadoUtc, zona)} · <b>{estado}</b>{(l.Demo ? " · DEMO" : "")}\n" +
+                           string.Format(C, "{0} · entrada {1:0.##} kg ({2} {3}) · C:N ≈ {4}{5}", conteo, b.PesoEntradaKg, l.NumeroAportaciones,
+                                         l.NumeroAportaciones == 1 ? "aportación" : "aportaciones",
+                                         b.TieneDatos ? b.RelacionCN.ToString("F1", C) : "—", madurez);
+
+            bool manualActivo = activo && l.Modo == ModoLote.Manual;
+            btnMaduracion.gameObject.SetActive(manualActivo);
+            btnCosecha.gameObject.SetActive(manualActivo);
+            btnMaduracion.interactable = btnCosecha.interactable = editable;
+            UIFabrica.Etiqueta(btnMaduracion).text = l.BloqueadoMaduracion ? "Quitar bloqueo de maduración" : "Iniciar maduración";
 
             campoNombre.interactable = editable;
+            campoCompostera.interactable = editable;
             foreach (var o in opcionesTipo) o.fondo.GetComponent<Button>().interactable = editable;
             foreach (var o in opcionesMaterial) o.fondo.GetComponent<Button>().interactable = editable;
             foreach (var o in opcionesTapada) o.fondo.GetComponent<Button>().interactable = editable;
@@ -173,11 +193,35 @@ namespace Composta.App
         void Guardar()
         {
             if (gestor?.LoteActual == null) return;
-            bool ok = gestor.ActualizarLote(campoNombre.text, tipoSel, cnSel, aislSel, out string msg);
+            bool ok = gestor.ActualizarLote(campoNombre.text, campoCompostera.text, tipoSel, cnSel, aislSel, out string msg);
             if (ok) Cargar(gestor.LoteActual);              // muestra el nombre ya limpio, tal como quedó guardado
             txtMensaje.color = ok ? UIFabrica.ColExito : UIFabrica.ColError;
             txtMensaje.text = msg;
             if (ok) Refrescar(gestor.LoteActual);
+        }
+
+        void AlternarMaduracion()
+        {
+            var l = gestor?.LoteActual;
+            if (l == null) return;
+            if (l.BloqueadoMaduracion)
+            {
+                bool ok = gestor.BloquearMaduracion(false, out string msg);
+                Mostrar(msg, ok);
+                return;
+            }
+            Notificador.Dialogo("¿Iniciar la maduración?",
+                "Desde ahora el lote <b>no admitirá nuevas aportaciones</b>: el material fresco reiniciaría la descomposición y " +
+                "retrasaría la cosecha. Sigue registrando mediciones hasta que esté listo. Puedes quitar el bloqueo si fue un error.",
+                new OpcionDialogo("Cancelar"),
+                new OpcionDialogo("Iniciar maduración", () => { bool ok = gestor.BloquearMaduracion(true, out string msg); Mostrar(msg, ok); }, true));
+        }
+
+        void Mostrar(string msg, bool ok)
+        {
+            txtMensaje.color = ok ? UIFabrica.ColExito : UIFabrica.ColError;
+            txtMensaje.text = msg;
+            if (gestor?.LoteActual != null) Refrescar(gestor.LoteActual);
         }
 
         void ConfirmarEliminar()
@@ -239,15 +283,30 @@ namespace Composta.App
             txtTitulo.resizeTextForBestFit = true; txtTitulo.resizeTextMinSize = 14; txtTitulo.resizeTextMaxSize = Tema.TxtSubtitulo + 4;
             Responsivo.En(txtTitulo, new Vector2(0.02f, 0.92f), new Vector2(0.98f, 0.957f));
             txtInfo = UIFabrica.Texto(w, "Info", new Vector2(0.02f, 0.79f), new Vector2(0.98f, 0.86f), Tema.TxtPequeno, TextAnchor.UpperLeft, Tema.TextoSecundario);
+            // Maduración y cosecha (solo lotes de Control Manual activos)
+            btnMaduracion = UIFabrica.Boton(w, "Iniciar maduración", new Vector2(0.51f, 0.735f), new Vector2(0.74f, 0.785f), 16, Tema.BotonNeutro, AlternarMaduracion);
+            Responsivo.En(btnMaduracion, new Vector2(0.02f, 0.395f), new Vector2(0.49f, 0.432f));
+            btnCosecha = UIFabrica.Boton(w, "Registrar cosecha", new Vector2(0.75f, 0.735f), new Vector2(0.98f, 0.785f), 16,
+                                         Tema.ConAlfa(Tema.Exito, 0.85f), () => PedirCosecha?.Invoke());
+            Responsivo.En(btnCosecha, new Vector2(0.51f, 0.395f), new Vector2(0.98f, 0.432f));
+            foreach (var bt in new[] { btnMaduracion, btnCosecha })
+            {
+                var e = UIFabrica.Etiqueta(bt); e.resizeTextForBestFit = true; e.resizeTextMinSize = 10; e.resizeTextMaxSize = 16;
+            }
             txtInfo.resizeTextForBestFit = true; txtInfo.resizeTextMinSize = 10; txtInfo.resizeTextMaxSize = Tema.TxtPequeno;
             Responsivo.En(txtInfo, new Vector2(0.02f, 0.885f), new Vector2(0.98f, 0.92f));
 
             // Columna izquierda: formulario
-            var lblNombre = UIFabrica.Texto(w, "LblNombre", new Vector2(0.02f, 0.735f), new Vector2(0.49f, 0.78f), 18, TextAnchor.LowerLeft, Tema.TextoPrimario);
+            var lblNombre = UIFabrica.Texto(w, "LblNombre", new Vector2(0.02f, 0.735f), new Vector2(0.31f, 0.78f), 18, TextAnchor.LowerLeft, Tema.TextoPrimario);
             lblNombre.text = "<b>Nombre del lote</b>";
-            Responsivo.En(lblNombre, new Vector2(0.02f, 0.86f), new Vector2(0.98f, 0.882f));
-            campoNombre = UIFabrica.Campo(w, "Nombre", new Vector2(0.03f, 0.67f), new Vector2(0.48f, 0.73f), "Ej.: Composta del huerto", false, EditorLote.NombreMax, 20);
-            Responsivo.En(campoNombre, new Vector2(0.03f, 0.828f), new Vector2(0.97f, 0.857f));
+            Responsivo.En(lblNombre, new Vector2(0.02f, 0.86f), new Vector2(0.58f, 0.882f));
+            campoNombre = UIFabrica.Campo(w, "Nombre", new Vector2(0.03f, 0.67f), new Vector2(0.30f, 0.73f), "Ej.: Composta del huerto", false, EditorLote.NombreMax, 18);
+            Responsivo.En(campoNombre, new Vector2(0.03f, 0.828f), new Vector2(0.58f, 0.857f));
+            var lblComp = UIFabrica.Texto(w, "LblCompostera", new Vector2(0.31f, 0.735f), new Vector2(0.49f, 0.78f), 18, TextAnchor.LowerLeft, Tema.TextoPrimario);
+            lblComp.text = "<b>Compostera</b>";
+            Responsivo.En(lblComp, new Vector2(0.60f, 0.86f), new Vector2(0.98f, 0.882f));
+            campoCompostera = UIFabrica.Campo(w, "Compostera", new Vector2(0.31f, 0.67f), new Vector2(0.48f, 0.73f), "Ej.: Cubeta A", false, EditorLote.ComposteraMax, 18);
+            Responsivo.En(campoCompostera, new Vector2(0.60f, 0.828f), new Vector2(0.97f, 0.857f));
 
             txtNotaSimulacion = UIFabrica.Texto(w, "NotaSimulacion", new Vector2(0.02f, 0.50f), new Vector2(0.49f, 0.66f), 15, TextAnchor.UpperLeft, Tema.TextoSecundario);
             txtNotaSimulacion.text = "En un lote de simulación solo se puede cambiar el nombre: el tipo de compostera, el peso y los demás " +
@@ -274,8 +333,8 @@ namespace Composta.App
             }
 
             // Columna derecha: historial de cambios (auditoría)
-            var marco = UIFabrica.Panel("Cambios", w, new Vector2(0.51f, 0.12f), new Vector2(0.98f, 0.78f), UIFabrica.ColCampo);
-            Responsivo.En(marco, new Vector2(0.02f, 0.01f), new Vector2(0.98f, 0.43f));
+            var marco = UIFabrica.Panel("Cambios", w, new Vector2(0.51f, 0.12f), new Vector2(0.98f, 0.72f), UIFabrica.ColCampo);
+            Responsivo.En(marco, new Vector2(0.02f, 0.01f), new Vector2(0.98f, 0.39f));
             var tit = UIFabrica.Texto(marco, "Titulo", new Vector2(0f, 1f), new Vector2(1f, 1f), 16, TextAnchor.MiddleLeft, Tema.TextoSecundario);
             tit.rectTransform.offsetMin = new Vector2(12f, -44f); tit.rectTransform.offsetMax = new Vector2(-12f, -6f);
             tit.text = "<b>HISTORIAL DE CAMBIOS</b>";

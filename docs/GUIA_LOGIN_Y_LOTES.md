@@ -30,10 +30,13 @@ Assets/Scripts/
 
 | Orden | Canvas | Contenido |
 |---|---|---|
-| 0 | Canvas UI (PanelUI) | tarjetas, gráficas, alertas, 12 botones inferiores (incluye «Predicción» y «Lote») |
+| 0 | Canvas UI (PanelUI) | tarjetas, gráficas, alertas, 13 botones inferiores (incluye «Predicción», «Lote» e «Historial») |
+| 15 | Canvas Historial | historial de compostas (tarjetas), debajo de la sesión y de «+ Nueva composta» |
 | 10 | Canvas Build (PanelBuild) | botón «Nueva composta» y ventana de builds |
 | 20 | Canvas Sesion | `Nombre · Rol` + «Usuarios/Mi cuenta» + «Salir» (x 0.405–0.655 de la barra superior) |
+| 37 | Canvas Detalle / Comparar lotes | auditoría completa de un lote y comparación de 2–3 lotes |
 | 38 | Canvas Mediciones / Lote | lista de mediciones y datos del lote (debajo del formulario de edición) |
+| 41 | Canvas Cosecha | registrar la cosecha con rendimiento y calidad en vivo |
 | 40 | Canvas Aportes / Usuarios / Registro | modales |
 | 60 | Canvas Dialogo | confirmaciones y reportes |
 | 100 | Canvas Login | fondo opaco + tarjeta centrada (x 0.34–0.66, y 0.12–0.88) |
@@ -181,3 +184,47 @@ hereda el estilo; cambiar la identidad visual es editar `Tema.cs`.
   `ZipSinCompresion` empaqueta sin depender de bibliotecas nativas de compresión (IL2CPP);
   `ExportadorExcel` arma las hojas; `Core/Textos/Nombres` da los nombres en español que usan
   pantallas, Excel y CSV.
+
+## Aportaciones, cosecha e historial de compostas (versión 1.1.2)
+
+### Aportaciones como motor de cálculo
+- Cada aportación guarda **material específico** (restos de cocina, césped, posos de café, estiércol, hojarasca, paja,
+  aserrín, cartón, papel o mezcla), peso, **humedad** (vacía = típica del material) y **fecha**. El grupo verde/café se
+  deduce del material. Tabla de valores en `Core/Lotes/Materiales.cs` (C:N, % de N y humedad típica de referencia).
+- Al crear un lote de Control Manual se piden la **compostera** («Cubeta A») y la **carga inicial** en kg: es la
+  primera aportación (marcada «CARGA INICIAL»; se corrige pero no se elimina).
+- `Core/Campo/BalanceLote.cs`, ponderado por **materia seca**:
+  `seca = kg × (1 − h)`, `N = seca × %N`, `C = N × C:N` → **C:N de la mezcla = ΣC / ΣN**;
+  humedad de la mezcla = Σ(kg × h) / Σkg; la última medición real de humedad manda y solo se le suma lo que entró después.
+  Clasificación: < 20 exceso de nitrógeno · 20–25 algo baja · 25–35 óptima · 35–40 algo alta · > 40 exceso de carbono.
+- **Kilos para corregir**: `x = (30·N − C) / (s·(c − 30·n))` con los datos del material sugerido (hojarasca, cartón o restos de cocina).
+- **Peso de entrada total** = carga inicial + aportaciones. La pérdida de peso de las mediciones descuenta lo aportado entre ellas.
+- **Madurez** (`Maduracion.cs`): duración base por tipo (doméstica 84 días, cerrada 70, pila 112, industrial 63, vermicomposta 90).
+  El verde fresco recorre la fecha: `f = kg verde / peso de la pila`, `candidato = mín(base, f / 0.30 × fase activa)`
+  (mezcla cuenta a la mitad; el café no recorre la fecha).
+- **Maduración**: «Lote › Iniciar maduración» bloquea nuevas aportaciones (se pueden corregir las existentes). La app lo sugiere
+  cuando el lote está estabilizado (temperatura baja y peso casi sin cambio).
+- En **simulaciones**, cada aportación también entra al modelo (masa, humedad, temperatura y C:N) en la hora simulada en que
+  se registra (`TipoComando.Aporte`); si se corrige o elimina, la simulación se recalcula desde la bitácora. Los lotes
+  anteriores no tienen aportaciones en su bitácora y se reproducen igual que antes.
+
+### Cosecha
+- «Lote › Registrar cosecha»: peso cosechado, fecha y revisión (olor a tierra, sin restos reconocibles, textura suelta).
+- **Rendimiento** = peso cosechado / peso de entrada total. **Calidad**: 6 criterios (los 3 de la revisión + temperatura
+  final ≤ máx(30, ambiente + 8) °C + humedad final 35–55 % + rendimiento 30–60 %) → A con 5–6, B con 3–4, C con 2 o menos.
+- Se rechaza un peso mayor al 120 % de lo que entró. La cosecha se puede anular desde el historial (vuelve a maduración).
+
+### Historial de compostas
+- Tarjetas por lote con estado (activo, en maduración, simulación, cosechado, archivado), mini curva de temperatura y
+  sus indicadores. Búsqueda, filtros por estado y calidad.
+- **Comparar**: marca 2 o 3 lotes → indicadores lado a lado y curvas de temperatura superpuestas.
+- **Ver detalle**: indicadores, criterios de calidad, gráfica de temperatura y humedad, línea de tiempo (carga, aportaciones,
+  mediciones, acciones de simulación y correcciones) y descarga de la bitácora de ese lote en Excel.
+- **Bitácora consolidada**: un Excel con la hoja «Lotes» (una fila por lote) y todas las mediciones, aportaciones y cambios
+  con columna «Lote».
+- Varias composteras de Control Manual pueden estar activas a la vez; la simulación sigue siendo de una a la vez.
+
+### Datos de demostración
+- Al iniciar sin lotes se ofrece **«Cargar datos DEMO»** (también en el historial): 3 composteras activas (exceso de
+  nitrógeno, fase termófila óptima y estabilizada) y 4 cosechadas (calidad A, B, A y C). Se crean con las mismas validaciones
+  que los datos reales (`DatosDemo.cs`), se marcan **DEMO** en tarjetas, tablero y Excel, y «Quitar datos DEMO» los mueve a la papelera.

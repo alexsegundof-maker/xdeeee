@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Composta.Core.Lotes;
@@ -27,6 +27,9 @@ namespace Composta.Core.Campo
         public float? PerdidaSemanalPct;           // ritmo del último tramo, normalizado a 7 días
         public NivelEstado NivelTemp = NivelEstado.SinDato, NivelHum = NivelEstado.SinDato, NivelPeso = NivelEstado.SinDato;
         public readonly List<Recomendacion> Recomendaciones = new List<Recomendacion>();
+        public BalanceMezcla Balance = new BalanceMezcla();       // C:N, humedad y peso de entrada (con aportaciones)
+        public EstimacionMaduracion Madurez;                       // null si no se indicó la fecha actual
+        public bool Estabilizado;                                  // listo para iniciar la maduración
     }
 
     // Interpreta los registros de campo con reglas de compostaje conocidas.
@@ -46,12 +49,22 @@ namespace Composta.Core.Campo
         public static float Dias(InformeCampo desde, InformeCampo hasta)
             => (float)new TimeSpan(hasta.FechaUtc - desde.FechaUtc).TotalDays;
 
-        public static EstadoCampo Analizar(Lote lote)
+        public static EstadoCampo Analizar(Lote lote) => Analizar(lote, null);
+
+        // ahoraUtc: necesario para los días que faltan a la madurez
+        public static EstadoCampo Analizar(Lote lote, DateTime? ahoraUtc)
         {
             var e = new EstadoCampo();
             var regs = Ordenados(lote);
             e.Registros = regs.Count;
-            if (regs.Count == 0) return e;
+            if (lote == null) return e;
+            e.Balance = BalanceLote.Calcular(lote);
+            if (ahoraUtc.HasValue) e.Madurez = Maduracion.Estimar(lote, ahoraUtc.Value);
+            if (regs.Count == 0)
+            {
+                RecomendarBalance(e, PerfilComposta.Crear(lote.Tipo, lote.PesoKg, true), lote);
+                return e;
+            }
 
             var perfil = PerfilComposta.Crear(lote.Tipo, lote.PesoKg, true);
             var primero = regs[0];
@@ -64,15 +77,28 @@ namespace Composta.Core.Campo
                 e.DeltaTemp = e.Ultimo.Temperatura - e.Anterior.Temperatura;
                 e.DeltaHum = e.Ultimo.Humedad - e.Anterior.Humedad;
                 float dias = Math.Max(0.5f, Dias(e.Anterior, e.Ultimo));
-                if (e.Anterior.PesoKg > 0f)
-                    e.PerdidaSemanalPct = (e.Anterior.PesoKg - e.Ultimo.PesoKg) / e.Anterior.PesoKg * 100f * 7f / dias;
+                // Lo que se aportó entre dos mediciones no es "ganancia": se suma a la referencia
+                float refAnterior = e.Anterior.PesoKg + AportadoEntre(lote, e.Anterior.FechaUtc, e.Ultimo.FechaUtc);
+                if (refAnterior > 0f)
+                    e.PerdidaSemanalPct = (refAnterior - e.Ultimo.PesoKg) / refAnterior * 100f * 7f / dias;
             }
-            if (primero.PesoKg > 0f) e.PerdidaPesoTotalPct = (primero.PesoKg - e.Ultimo.PesoKg) / primero.PesoKg * 100f;
+            float refInicio = primero.PesoKg + AportadoEntre(lote, primero.FechaUtc, e.Ultimo.FechaUtc);
+            if (refInicio > 0f) e.PerdidaPesoTotalPct = (refInicio - e.Ultimo.PesoKg) / refInicio * 100f;
 
             EvaluarNiveles(e, perfil);
             DeducirFase(e, regs, perfil);
             Recomendar(e, perfil, lote);
             return e;
+        }
+
+        // kg aportados (sin la carga inicial) con fecha en (desde, hasta]
+        public static float AportadoEntre(Lote l, long desde, long hasta)
+        {
+            float kg = 0f;
+            if (l?.Aportes != null)
+                foreach (var a in l.Aportes)
+                    if (a != null && !a.EsCargaInicial && a.FechaUtc > desde && a.FechaUtc <= hasta) kg += a.Kg;
+            return kg;
         }
 
         static void EvaluarNiveles(EstadoCampo e, PerfilComposta p)
@@ -157,12 +183,75 @@ namespace Composta.Core.Campo
                 Add(NivelEstado.Ok, "Peso fuera del rango ideal",
                     string.Format(C, "{0:0.#} kg funciona, pero el rango ideal para {1} es {2:0.#}–{3:0.#} kg.", u.PesoKg, p.Nombre, p.PesoMin, p.PesoMax));
 
-            if (e.Fase == Etapa.Maduracion)
-                Add(NivelEstado.Ok, "Compost casi listo",
-                    "Deja madurar 2–4 semanas más sin voltear. Estará listo cuando huela a tierra y no se distingan los restos.");
+            e.Estabilizado = e.Fase == Etapa.Maduracion;
+            if (e.Estabilizado && !lote.BloqueadoMaduracion)
+                Add(NivelEstado.Aviso, "Lote estabilizado: evita nuevas aportaciones",
+                    "La temperatura bajó y el peso ya casi no cambia. Inicia la maduración en «Lote» para que no entren más residuos.");
+            else if (lote.BloqueadoMaduracion)
+                Add(NivelEstado.Ok, "En maduración",
+                    "Deja reposar 2–4 semanas sin voltear. Cosecha cuando huela a tierra, no se distingan los restos y la temperatura sea la ambiente.");
+
+            RecomendarBalance(e, p, lote);
+
+            bool termofilaOptima = p.Tipo != TipoComposta.Vermicomposta && u.Temperatura >= 55f && u.Temperatura <= 65f &&
+                                   u.Humedad >= lh.AvisoMin && u.Humedad <= lh.AvisoMax &&
+                                   (e.Balance.Nivel == NivelCN.Optima || e.Balance.Nivel == NivelCN.AlgoBaja || e.Balance.Nivel == NivelCN.AlgoAlta);
+            if (termofilaOptima)
+                Add(NivelEstado.Ok, "Temperatura óptima termófila",
+                    string.Format(C, "{0:F0} °C con C:N ≈ {1:F0}: mantén la humedad entre {2:F0} y {3:F0} % y voltea si pasa de {4:F0} °C.",
+                                  u.Temperatura, e.Balance.RelacionCN, lh.AvisoMin, lh.AvisoMax, lt.AvisoMax));
 
             if (e.Recomendaciones.Count == 0)
                 Add(NivelEstado.Ok, "Todo en orden", "Los valores medidos están dentro de lo recomendado. Sigue registrando cada semana.");
+        }
+
+        // Recomendaciones que salen de lo que ENTRÓ al lote (carga inicial + aportaciones)
+        static void RecomendarBalance(EstadoCampo e, PerfilComposta p, Lote lote)
+        {
+            var b = e.Balance;
+            void Add(NivelEstado n, string titulo, string detalle) => e.Recomendaciones.Add(new Recomendacion { Nivel = n, Titulo = titulo, Detalle = detalle });
+            if (!b.TieneDatos) return;
+
+            string causa = "";
+            var ua = b.UltimaAportacion;
+            if (ua != null)
+            {
+                var d = Materiales.De(Materiales.Resolver(ua));
+                causa = string.Format(C, " tras la última aportación ({0:0.#} kg de {1})", ua.Kg, d.Nombre.ToLowerInvariant());
+            }
+
+            if (b.Nivel == NivelCN.ExcesoNitrogeno)
+            {
+                float hojas = BalanceLote.KgParaObjetivo(b, MaterialEspecifico.Hojarasca);
+                float carton = BalanceLote.KgParaObjetivo(b, MaterialEspecifico.Carton);
+                Add(b.RelacionCN < 15f ? NivelEstado.Critico : NivelEstado.Aviso, string.Format(C, "Exceso de nitrógeno (C:N ≈ {0:F0})", b.RelacionCN),
+                    string.Format(C, "La mezcla quedó baja en carbono{0}. Agrega {1:0.#} kg de hojarasca seca (o {2:0.#} kg de cartón) y voltea para llegar a C:N 30 y evitar olor a amoniaco.",
+                                  causa, hojas, carton));
+            }
+            else if (b.Nivel == NivelCN.ExcesoCarbono)
+            {
+                float verde = BalanceLote.KgParaObjetivo(b, MaterialEspecifico.RestosCocina);
+                Add(NivelEstado.Aviso, string.Format(C, "Exceso de carbono (C:N ≈ {0:F0})", b.RelacionCN),
+                    string.Format(C, "Hay mucho material café{0}: la pila tardará en calentarse. Agrega {1:0.#} kg de restos de cocina o césped y humedece.",
+                                  causa, verde));
+            }
+
+            // Humedad de lo que entró después de la última medición
+            if (b.HumedadActualPct.HasValue && b.UltimaAportacion != null && e.Ultimo != null && b.UltimaAportacion.FechaUtc > e.Ultimo.FechaUtc)
+            {
+                var lh = p.LimitesDe(Magnitud.Humedad);
+                float h = b.HumedadActualPct.Value;
+                if (h > lh.AvisoMax)
+                    Add(NivelEstado.Aviso, string.Format(C, "Las aportaciones humedecieron la pila (≈{0:F0} %)", h),
+                        "Agrega material seco (hojarasca, cartón) junto con los residuos húmedos y confirma con la próxima medición.");
+                else if (h < lh.AvisoMin)
+                    Add(NivelEstado.Aviso, string.Format(C, "Las aportaciones secaron la pila (≈{0:F0} %)", h),
+                        "Riega un poco al mezclar el material seco y confirma con la próxima medición.");
+            }
+
+            if (e.Madurez != null && e.Madurez.Reajustada && !lote.BloqueadoMaduracion)
+                Add(NivelEstado.Ok, "Fecha de madurez recorrida", e.Madurez.Motivo +
+                    string.Format(C, " Nueva fecha estimada: {0:dd/MM/yyyy}.", e.Madurez.FechaMadurezUtc));
         }
     }
 }

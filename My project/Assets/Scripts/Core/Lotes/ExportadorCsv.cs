@@ -51,7 +51,7 @@ namespace Composta.Core.Lotes
 
         public static string Aportes(Lote l)
         {
-            var sb = new StringBuilder("fecha_utc,tick,dia,kg,material,usuario,nota,editado_por,editado_utc\n");
+            var sb = new StringBuilder("fecha_utc,tick,dia,kg,material,grupo,humedad_pct,carga_inicial,usuario,nota,editado_por,editado_utc\n");
             foreach (var a in l.Aportes)
             {
                 if (a == null) continue;
@@ -59,7 +59,10 @@ namespace Composta.Core.Lotes
                   .Append(a.Tick.ToString(C)).Append(',')
                   .Append((a.Tick / 24f).ToString("F2", C)).Append(',')
                   .Append(a.Kg.ToString("F2", C)).Append(',')
-                  .Append(Campo(Nombres.Material(a.Material))).Append(',')
+                  .Append(Campo(Materiales.NombreDe(a))).Append(',')
+                  .Append(Campo(Nombres.Material(Materiales.De(Materiales.Resolver(a)).Grupo))).Append(',')
+                  .Append(Materiales.HumedadDe(a).ToString("F1", C)).Append(',')
+                  .Append(a.EsCargaInicial ? "sí" : "no").Append(',')
                   .Append(Campo(a.Usuario)).Append(',')
                   .Append(Campo(a.Nota)).Append(',')
                   .Append(Campo(a.EditadoPor)).Append(',')
@@ -108,6 +111,9 @@ namespace Composta.Core.Lotes
             var sb = new StringBuilder("campo,valor\n");
             void Fila(string k, string v) => sb.Append(k).Append(',').Append(Campo(v)).Append('\n');
             Fila("lote", l.Nombre);
+            Fila("numero", l.Numero > 0 ? l.Numero.ToString(C) : "");
+            Fila("compostera", l.Compostera);
+            Fila("demo", l.Demo ? "sí" : "no");
             Fila("id", l.Id);
             Fila("estado", Nombres.Estado(l.Estado));
             Fila("modo", Nombres.Modo(l.Modo));
@@ -121,8 +127,21 @@ namespace Composta.Core.Lotes
             Fila("creado_por", l.CreadoPor);
             Fila("creado_utc", Fecha(l.CreadoUtc));
             Fila("dias_simulados", l.DiasSimulados.ToString("F2", C));
+            var b = Composta.Core.Campo.BalanceLote.Calcular(l);
+            Fila("peso_entrada_total_kg", b.PesoEntradaKg.ToString("F2", C));
             Fila("aportes_total_kg", l.TotalAportadoKg.ToString("F2", C));
-            Fila("aportes_registrados", (l.Aportes?.Count ?? 0).ToString(C));
+            Fila("aportes_registrados", l.NumeroAportaciones.ToString(C));
+            Fila("relacion_cn_mezcla", float.IsNaN(b.RelacionCN) ? "" : b.RelacionCN.ToString("F1", C));
+            Fila("humedad_mezcla_pct", float.IsNaN(b.HumedadMezclaPct) ? "" : b.HumedadMezclaPct.ToString("F1", C));
+            Fila("en_maduracion", l.BloqueadoMaduracion ? "sí" : "no");
+            if (l.TieneCosecha)
+            {
+                var ev = Composta.Core.Campo.EvaluacionCosecha.Evaluar(l);
+                Fila("cosecha_utc", Fecha(l.Cosecha.FechaUtc));
+                Fila("peso_cosechado_kg", l.Cosecha.PesoKg.ToString("F2", C));
+                Fila("rendimiento_pct", ev.RendimientoPct.ToString("F1", C));
+                Fila("calidad", ev.Calidad.ToString());
+            }
             if (l.Modo == ModoLote.Manual) Fila("mediciones_registradas", (l.Informes?.Count ?? 0).ToString(C));
             Fila("cambios_auditados", (l.Cambios?.Count ?? 0).ToString(C));
             return sb.ToString();

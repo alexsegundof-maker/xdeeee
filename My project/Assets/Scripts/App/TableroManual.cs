@@ -20,11 +20,14 @@ namespace Composta.App
         public event Action PedirPrediccion;
         public event Action PedirMediciones;      // lista completa para corregir o eliminar
         public event Action PedirLote;            // datos del lote e historial de cambios
+        public event Action PedirHistorial;       // todas las composteras: activas y cosechadas
 
         static readonly CultureInfo C = CultureInfo.InvariantCulture;
         const int AnchoGraf = 640, AltoGraf = 300;
 
         RectTransform raiz, contenido, vacio;
+        Text txtBalance, txtBalanceNivel;
+        Image fondoBalanceNivel;
         Text txtLote, txtEstadoBanner, txtFase, txtFaseDetalle, txtRecs, txtHistorial, txtVacioPie;
         Image fondoBanner;
         Button btnRegistrarBanner, btnRegistrarVacio;
@@ -56,8 +59,11 @@ namespace Composta.App
             var e = gestor.Analisis();
             var perfil = PerfilComposta.Crear(lote.Tipo, lote.PesoKg, true);
 
-            txtLote.text = $"<b>{UIFabrica.SinRich(perfil.Nombre)}</b>  <color={Tema.HexDe(Tema.TextoTenue)}>·</color>  " +
-                           $"{e.Registros} {(e.Registros == 1 ? "medición" : "mediciones")}";
+            string sep = $"  <color={Tema.HexDe(Tema.TextoTenue)}>·</color>  ";
+            txtLote.text = $"<b>{UIFabrica.SinRich(lote.Etiqueta)}</b>{sep}{UIFabrica.SinRich(perfil.Nombre)}{sep}" +
+                           $"{e.Registros} {(e.Registros == 1 ? "medición" : "mediciones")}" +
+                           (lote.BloqueadoMaduracion ? $"{sep}<color={Tema.HexDe(Tema.Aviso)}>en maduración</color>" : "") +
+                           (lote.Demo ? $"{sep}<color={Tema.HexDe(Tema.AcentoPrediccion)}>DEMO</color>" : "");
             ActualizarBanner(s, puedeRegistrar);
 
             bool sinDatos = e.Registros == 0;
@@ -81,6 +87,7 @@ namespace Composta.App
             Kpi(2, string.Format(C, "{0:0.#} kg", u.PesoKg), deltaPeso, " kg", e.NivelPeso);
 
             Graficas(lote, perfil);
+            Balance(e, lote);
             Recomendaciones(e);
             Historial(lote);
         }
@@ -131,6 +138,29 @@ namespace Composta.App
             txtGrafInfo[0].text = string.Format(C, "ideal {0:F0}–{1:F0} °C · {2}", zt.min, zt.max, rango);
             txtGrafInfo[1].text = string.Format(C, "ideal {0:F0}–{1:F0} % · {2}", zh.min, zh.max, rango);
             txtGrafInfo[2].text = string.Format(C, "recomendado {0:0.#}–{1:0.#} kg · {2}", perfil.PesoMin, perfil.PesoMax, rango);
+        }
+
+        // Balance de lo que entró (carga inicial + aportaciones) y fecha estimada de madurez
+        void Balance(EstadoCampo e, Lote lote)
+        {
+            var b = e.Balance;
+            var nivelColor = b.Nivel == NivelCN.Optima ? Tema.Exito
+                           : b.Nivel == NivelCN.ExcesoNitrogeno || b.Nivel == NivelCN.ExcesoCarbono ? Tema.Critico
+                           : b.Nivel == NivelCN.SinDatos ? Tema.TextoTenue : Tema.Aviso;
+            txtBalanceNivel.text = b.TieneDatos ? BalanceLote.NombreNivel(b.Nivel).ToUpperInvariant() : "SIN DATOS";
+            txtBalanceNivel.color = nivelColor;
+            fondoBalanceNivel.color = Tema.ConAlfa(nivelColor, 0.18f);
+            string tenue = Tema.HexDe(Tema.TextoSecundario);
+            var m = e.Madurez;
+            string madurez = m == null ? "" : lote.BloqueadoMaduracion
+                ? "En maduración: ya no admite aportaciones."
+                : string.Format(C, "Madurez estimada: <b>{0:dd/MM/yyyy}</b> ({1}){2}", m.FechaMadurezUtc.ToLocalTime(),
+                                m.DiasRestantes < 1f ? "ya debería estar madura" : $"faltan {Math.Ceiling(m.DiasRestantes):F0} días",
+                                m.Reajustada ? $" <color={tenue}>· recorrida por material verde reciente</color>" : "");
+            txtBalance.text = (b.TieneDatos
+                ? string.Format(C, "C:N ≈ <b>{0:F1}</b> <color={1}>(ideal 25–35)</color> · humedad estimada {2:F0} %\nEntrada total <b>{3:0.#} kg</b> <color={1}>= carga {4:0.#} kg + {5:0.#} kg en {6} aportaciones</color>\n",
+                                  b.RelacionCN, tenue, b.HumedadActualPct ?? b.HumedadMezclaPct, b.PesoEntradaKg, b.CargaBaseKg, b.AportadoKg, lote.NumeroAportaciones)
+                : "Registra la carga inicial en «Aportes» para calcular el balance C:N.\n") + madurez;
         }
 
         void Recomendaciones(EstadoCampo e)
@@ -190,13 +220,20 @@ namespace Composta.App
             Responsivo.En(barra, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(12, -64), new Vector2(-12, -8));
             var pild = UIFabrica.Pildora(barra, "Modo", new Vector2(0.006f, 0.18f), new Vector2(0.125f, 0.82f), "CONTROL MANUAL",
                               Tema.ConAlfa(Tema.AcentoManual, 0.18f), Tema.AcentoManual, 15);
-            Responsivo.En(pild.transform.parent, new Vector2(0.01f, 0.15f), new Vector2(0.42f, 0.85f));
+            Responsivo.En(pild.transform.parent, new Vector2(0.01f, 0.15f), new Vector2(0.30f, 0.85f));
             txtLote = UIFabrica.Texto(barra, "Lote", new Vector2(0.13f, 0f), new Vector2(0.40f, 1f), 20, TextAnchor.MiddleLeft, Tema.TextoPrimario);
             txtLote.resizeTextForBestFit = true; txtLote.resizeTextMinSize = 11; txtLote.resizeTextMaxSize = 20;
-            Responsivo.En(txtLote, new Vector2(0.43f, 0f), new Vector2(1f, 1f));
-            // "Lote" siempre visible (también antes del primer registro): en móvil, junto a la barra de sesión
-            var bLote = UIFabrica.Boton(raiz, "Lote", new Vector2(0.905f, 0.941f), new Vector2(0.985f, 0.984f), 17, Tema.BotonNeutro, () => PedirLote?.Invoke());
-            Responsivo.En(bLote, new Vector2(0.64f, 1f), new Vector2(1f, 1f), new Vector2(4f, -128f), new Vector2(-12f, -72f));
+            Responsivo.En(txtLote, new Vector2(0.31f, 0f), new Vector2(0.63f, 1f));
+            // "Historial" y "Lote" siempre visibles (también antes del primer registro). En escritorio, entre la sesión y
+            // «+ Nueva composta» (que se dibuja encima); en móvil, en la barra del modo.
+            var bHist = UIFabrica.Boton(raiz, "Historial", new Vector2(0.662f, 0.941f), new Vector2(0.743f, 0.984f), 17, Tema.BotonNeutro, () => PedirHistorial?.Invoke());
+            Responsivo.En(bHist, new Vector2(0.64f, 1f), new Vector2(0.82f, 1f), new Vector2(0f, -60f), new Vector2(-3f, -12f));
+            var bLote = UIFabrica.Boton(raiz, "Lote", new Vector2(0.748f, 0.941f), new Vector2(0.828f, 0.984f), 17, Tema.BotonNeutro, () => PedirLote?.Invoke());
+            Responsivo.En(bLote, new Vector2(0.82f, 1f), new Vector2(1f, 1f), new Vector2(3f, -60f), new Vector2(-16f, -12f));
+            foreach (var b in new[] { bLote, bHist })
+            {
+                var et = UIFabrica.Etiqueta(b); et.resizeTextForBestFit = true; et.resizeTextMinSize = 11; et.resizeTextMaxSize = 17;
+            }
 
             // Franja: sensores no conectados + estado de la medición semanal + Predicción + CTA (alto fijo en móvil)
             var banner = UIFabrica.Tarjeta("Banner", raiz, new Vector2(0.01f, 0.868f), new Vector2(0.99f, 0.925f));
@@ -263,7 +300,7 @@ namespace Composta.App
 
         void ConstruirContenido()
         {
-            var vista = UIFabrica.Desplazable("Contenido", raiz, new Vector2(0f, 0f), new Vector2(1f, 0.86f), 3000f, out var cuerpo);
+            var vista = UIFabrica.Desplazable("Contenido", raiz, new Vector2(0f, 0f), new Vector2(1f, 0.86f), 3300f, out var cuerpo);
             Responsivo.En(vista, Vector2.zero, Vector2.one, new Vector2(0, 8), new Vector2(0, -368));
             contenido = vista;
             // Coordenadas relativas al cuerpo (en escritorio = 86 % de la pantalla; en móvil, 3000 u desplazables)
@@ -284,8 +321,8 @@ namespace Composta.App
             string[] nombres = { "TEMPERATURA", "HUMEDAD", "PESO" };
             for (int i = 0; i < 3; i++)
             {
-                float top = 0.82f - i * 0.18f;
-                var card = UIFabrica.Tarjeta("Kpi " + i, cuerpo, new Vector2(0.01f, top - 0.165f), new Vector2(0.30f, top));
+                float top = 0.82f - i * 0.145f;
+                var card = UIFabrica.Tarjeta("Kpi " + i, cuerpo, new Vector2(0.01f, top - 0.135f), new Vector2(0.30f, top));
                 float topC = 0.91f - i * 0.072f;
                 Responsivo.En(card, new Vector2(0.02f, topC - 0.068f), new Vector2(0.98f, topC));
                 var franja = UIFabrica.Panel("Estado", card, Vector2.zero, new Vector2(0f, 1f), Tema.Exito, 3);
@@ -324,9 +361,24 @@ namespace Composta.App
                 imgGraf[i].color = Color.clear;
             }
 
+            // Balance de la mezcla (aportaciones) y madurez estimada
+            var bal = UIFabrica.Tarjeta("Balance", cuerpo, new Vector2(0.01f, 0.265f), new Vector2(0.30f, 0.385f));
+            Responsivo.En(bal, new Vector2(0.02f, 0.228f), new Vector2(0.98f, 0.285f));
+            var franjaB = UIFabrica.Panel("Acento", bal, Vector2.zero, new Vector2(0f, 1f), Tema.AcentoManual, 3);
+            franjaB.offsetMax = new Vector2(6f, 0f);
+            var lblBal = UIFabrica.Texto(bal, "Lbl", new Vector2(0.03f, 0.74f), new Vector2(0.62f, 0.98f), 14, TextAnchor.MiddleLeft, Tema.TextoSecundario);
+            lblBal.text = "<b>BALANCE DE LA MEZCLA</b>";
+            UIFabrica.IconoJuntoATexto(lblBal, "Sale de todo lo que entró: carga inicial y aportaciones, ponderadas por materia seca. " +
+                                               "La C:N ideal es 25–35: menos huele a amoniaco (exceso de verde), más tarda en calentarse (exceso de café). " +
+                                               "El material verde que llega tarde recorre la fecha de madurez.");
+            txtBalanceNivel = UIFabrica.Pildora(bal, "Nivel", new Vector2(0.62f, 0.76f), new Vector2(0.97f, 0.96f), "—", Tema.SuperficieAlta, Tema.TextoTenue, 12);
+            fondoBalanceNivel = txtBalanceNivel.transform.parent.GetComponent<Image>();
+            txtBalance = UIFabrica.Texto(bal, "Texto", new Vector2(0.03f, 0.03f), new Vector2(0.98f, 0.75f), 14, TextAnchor.UpperLeft, Tema.TextoPrimario);
+            txtBalance.resizeTextForBestFit = true; txtBalance.resizeTextMinSize = 9; txtBalance.resizeTextMaxSize = 14;
+
             // Recomendaciones
             var recs = UIFabrica.Tarjeta("Recomendaciones", cuerpo, new Vector2(0.66f, 0.27f), new Vector2(0.99f, 0.585f));
-            Responsivo.En(recs, new Vector2(0.02f, 0.15f), new Vector2(0.98f, 0.285f));
+            Responsivo.En(recs, new Vector2(0.02f, 0.15f), new Vector2(0.98f, 0.223f));
             UIFabrica.Texto(recs, "Titulo", new Vector2(0.02f, 0.86f), new Vector2(0.98f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario)
                 .text = "<b>QUÉ HACER AHORA</b>";
             txtRecs = UIFabrica.Texto(recs, "Texto", new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.86f), 16, TextAnchor.UpperLeft, Tema.TextoPrimario);
