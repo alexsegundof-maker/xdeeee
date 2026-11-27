@@ -34,3 +34,9 @@ crashlytics-build.properties
 # --- Escenas de recuperación tras un crash ---
 [Aa]ssets/_Recovery/
 [Aa]ssets/_Recovery.meta
+
+# --- Credenciales de Google (nunca al repositorio) ---
+[Aa]ssets/[Rr]esources/ConfiguracionGoogle.asset
+[Aa]ssets/[Rr]esources/ConfiguracionGoogle.asset.meta
+*.keystore
+*.jks

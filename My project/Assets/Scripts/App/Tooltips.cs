@@ -1,7 +1,9 @@
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Composta.App
@@ -44,11 +46,28 @@ namespace Composta.App
             }
         }
 
-        public static void Mostrar(RectTransform ancla, string contenido, UnityEngine.Object quien)
+        public static void Mostrar(RectTransform ancla, string contenido, UnityEngine.Object quien, bool porToque = false)
         {
             if (ancla == null || string.IsNullOrEmpty(contenido)) return;
             var t = Instancia;
-            if (t != null) t.MostrarInterno(ancla, contenido, quien);
+            if (t == null) return;
+            t.MostrarInterno(ancla, contenido, quien);
+            t.porToque = porToque;
+            t.ocultarEn = porToque ? Time.unscaledTime + SegundosToque : float.MaxValue;
+        }
+
+        public static bool VisiblePara(UnityEngine.Object quien) => instancia != null && instancia.dueno == quien && instancia.card.gameObject.activeSelf;
+
+        // En pantallas táctiles no hay "hover": un toque abre el tooltip y se cierra al tocar en otro lugar o tras unos segundos
+        const float SegundosToque = 7f;
+        bool porToque;
+        float ocultarEn = float.MaxValue;
+
+        void Update()
+        {
+            if (dueno == null || !card.gameObject.activeSelf) return;
+            bool nuevoToque = Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+            if ((porToque && nuevoToque) || Time.unscaledTime > ocultarEn) OcultarInterno();
         }
 
         // Solo oculta si el tooltip visible pertenece a quien lo pide (evita que un ícono apague el de otro)
@@ -113,7 +132,9 @@ namespace Composta.App
         void Dimensionar()
         {
             float rellenoH = Relleno * 2f + 3f, rellenoV = Relleno * 1.6f;
-            float ancho = Mathf.Min(AnchoMax, texto.preferredWidth + rellenoH + 2f);
+            // Nunca más ancho que la pantalla (teléfonos en vertical)
+            float maxPantalla = Mathf.Max(160f, canvasRT.rect.width - 2f * Margen);
+            float ancho = Mathf.Min(Mathf.Min(AnchoMax, maxPantalla), texto.preferredWidth + rellenoH + 2f);
             card.sizeDelta = new Vector2(ancho, 10f);
             card.sizeDelta = new Vector2(ancho, texto.preferredHeight + rellenoV);
         }
@@ -178,8 +199,12 @@ namespace Composta.App
             Resaltar(false);
         }
 
+        static bool EsToque(PointerEventData e)
+            => (e is ExtendedPointerEventData x && x.pointerType == UIPointerType.Touch) || Application.isMobilePlatform;
+
         public void OnPointerEnter(PointerEventData e)
         {
+            if (EsToque(e)) return;                     // con el dedo, "entrar" no significa pasar por encima
             Resaltar(true);
             TooltipPanel.Mostrar((RectTransform)transform, Texto, this);
         }
@@ -187,10 +212,16 @@ namespace Composta.App
         public void OnPointerExit(PointerEventData e)
         {
             Resaltar(false);
+            if (EsToque(e)) return;                     // al levantar el dedo el tooltip sigue abierto
             TooltipPanel.Ocultar(this);
         }
 
-        public void OnPointerClick(PointerEventData e) => TooltipPanel.Mostrar((RectTransform)transform, Texto, this);
+        // Toque/clic: abre (o cierra si ya estaba abierto). También consume el clic para no activar el botón padre.
+        public void OnPointerClick(PointerEventData e)
+        {
+            if (TooltipPanel.VisiblePara(this) && !EsToque(e)) { TooltipPanel.Ocultar(this); return; }
+            TooltipPanel.Mostrar((RectTransform)transform, Texto, this, EsToque(e));
+        }
 
         // Si la ventana se cierra con el ratón encima, no debe quedar un tooltip huérfano
         void OnDisable()

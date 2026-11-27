@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -93,7 +93,7 @@ namespace Composta.App
             while (toasts.Count >= MaxToasts) { Destroy(toasts[0]); toasts.RemoveAt(0); }
             for (int i = 0; i < toasts.Count; i++) Reubicar(toasts[i], toasts.Count - i);
 
-            var rt = UIFabrica.Panel("Toast", raizToasts, new Vector2(0.30f, 0.86f), new Vector2(0.70f, 0.915f), ColorDe(tipo));
+            var rt = UIFabrica.Panel("Toast", raizToasts, new Vector2(X0, 0.86f), new Vector2(X1, 0.915f), ColorDe(tipo));
             var cg = rt.gameObject.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
             var t = UIFabrica.Texto(rt, "Texto", Vector2.zero, Vector2.one, 20, TextAnchor.MiddleCenter, Color.white);
@@ -107,8 +107,8 @@ namespace Composta.App
         {
             var rt = (RectTransform)toast.transform;
             float y1 = 0.915f - nivel * 0.06f;
-            rt.anchorMin = new Vector2(0.30f, y1 - 0.055f);
-            rt.anchorMax = new Vector2(0.70f, y1);
+            rt.anchorMin = new Vector2(X0, y1 - 0.055f);
+            rt.anchorMax = new Vector2(X1, y1);
         }
 
         IEnumerator VidaToast(GameObject go, CanvasGroup cg, float duracion)
@@ -119,6 +119,10 @@ namespace Composta.App
             for (float t = 0f; t < 0.35f && cg != null; t += Time.unscaledDeltaTime) { cg.alpha = 1f - t / 0.35f; yield return null; }
             if (go != null) { toasts.Remove(go); Destroy(go); }
         }
+
+        // En móvil los avisos usan casi todo el ancho
+        static float X0 => AdaptadorPantalla.Compacto ? 0.03f : 0.30f;
+        static float X1 => AdaptadorPantalla.Compacto ? 0.97f : 0.70f;
 
         static Color ColorDe(TipoMensaje t)
         {
@@ -141,7 +145,8 @@ namespace Composta.App
             dialogoActual = fondo.gameObject;
             GuardiaEntrada.Bloquear(this);
 
-            var card = UIFabrica.Panel("Card", fondo, new Vector2(0.25f, 0.25f), new Vector2(0.75f, 0.75f), UIFabrica.ColPanel);
+            var card = UIFabrica.Tarjeta("Card", fondo, new Vector2(0.25f, 0.25f), new Vector2(0.75f, 0.75f), UIFabrica.ColPanel);
+            Responsivo.En(card, new Vector2(0.03f, 0.15f), new Vector2(0.97f, 0.85f));
             UIFabrica.Texto(card, "Titulo", new Vector2(0.03f, 0.84f), new Vector2(0.97f, 0.97f), 30, TextAnchor.MiddleLeft, Color.white).text = titulo;
             var c = UIFabrica.Texto(card, "Cuerpo", new Vector2(0.03f, 0.18f), new Vector2(0.97f, 0.83f), 20, TextAnchor.UpperLeft, new Color(1, 1, 1, 0.9f));
             c.text = cuerpo;
@@ -155,6 +160,7 @@ namespace Composta.App
                 var op = opciones[i];
                 var b = UIFabrica.Boton(card, op.Texto, new Vector2(x1 - ancho, 0.04f), new Vector2(x1, 0.14f), 22,
                     op.Primaria ? UIFabrica.ColPrimario : UIFabrica.ColBoton, () => Elegir(op));
+                var et = UIFabrica.Etiqueta(b); et.resizeTextForBestFit = true; et.resizeTextMinSize = 11; et.resizeTextMaxSize = 22;
                 if (op.Primaria || primero == null) primero = b;
                 x1 -= ancho + 0.02f;
             }

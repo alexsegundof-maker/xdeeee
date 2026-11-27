@@ -77,6 +77,10 @@ public static class AyudaBuild
     public const string AyudaTapada =
         "Una pila tapada o cubierta retiene calor y humedad. Se usa para interpretar tus mediciones.";
 
+    public const string Prediccion =
+        "Abre una ventana de pronóstico con estos datos: curvas proyectadas, fechas previstas (fase caliente, volteos, " +
+        "maduración y cosecha) y la opción de enviarlas a tu Google Calendar. No crea ni modifica ningún lote.";
+
     public const string Cancelar =
         "Cierra esta ventana sin cambiar nada. Solo aparece si ya tienes un lote en curso.";
 

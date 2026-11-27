@@ -24,6 +24,8 @@ public class PanelBuild : MonoBehaviour
 
     // La capa de aplicación crea el lote manual (no pasa por el simulador)
     public event Action<PerfilComposta> PedirLoteManual;
+    // Pronóstico aislado con los parámetros del formulario (ventana Predicción)
+    public event Action<PerfilComposta> PedirPrediccion;
 
     // ---- Estado del formulario ----
     TipoComposta tipoSel;
@@ -399,23 +401,33 @@ public class PanelBuild : MonoBehaviour
     void ConstruirUI()
     {
         var rc = UIFabrica.Canvas("Canvas Build", null, 10);     // encima del tablero
-        canvasBuild = rc.GetComponent<Canvas>();
+        canvasBuild = rc.GetComponentInParent<Canvas>();
         raiz = rc;
 
-        // --- HUD permanente (esquina superior derecha) ---
+        // --- HUD permanente (esquina superior derecha; en móvil, segunda fila bajo la barra) ---
         btnNueva = UIFabrica.Boton(raiz, "+  Nueva composta", new Vector2(0.835f, 0.943f), new Vector2(0.985f, 0.982f), 18,
                                    Tema.BotonNeutro, () => Abrir(false));
+        Responsivo.En(btnNueva, new Vector2(0.62f, 1f), new Vector2(1f, 1f), new Vector2(4, -128), new Vector2(-12, -72));
         insigniaHud = Insignia(raiz, new Vector2(0.66f, 0.943f), new Vector2(0.825f, 0.982f));
+        Responsivo.OcultarEnCompacto(insigniaHud.transform);   // en móvil el aviso aparece en las alertas
         insigniaHud.SetActive(false);
 
-        // --- Ventana ---
+        // --- Ventana (en móvil ocupa toda el área segura) ---
         ventana = UIFabrica.Panel("Ventana", raiz, Vector2.zero, Vector2.one, Tema.Velo).gameObject;
         var w = UIFabrica.Tarjeta("Marco", ventana.transform, new Vector2(0.06f, 0.05f), new Vector2(0.94f, 0.95f));
+        Responsivo.En(w, Vector2.zero, Vector2.one, new Vector2(6, 6), new Vector2(-6, -6));
+
+        // Cuerpo desplazable. Y(y): fracción del marco (diseño amplio) → fracción del cuerpo
+        var vista = UIFabrica.Desplazable("Cuerpo", w, new Vector2(0f, 0.095f), new Vector2(1f, 0.995f), 2100f, out var c);
+        Responsivo.En(vista, Vector2.zero, Vector2.one, new Vector2(0, 96), new Vector2(0, -6));
+        float Y(float y) => (y - 0.095f) / 0.90f;
 
         // Cabecera: título + selector de modo segmentado + insignia de peso
-        UIFabrica.Texto(w, "Titulo", new Vector2(0.015f, 0.905f), new Vector2(0.30f, 0.985f), Tema.TxtTitulo, TextAnchor.MiddleLeft, Tema.TextoPrimario)
-            .text = "<b>Nueva composta</b>";
-        var selector = UIFabrica.Panel("Selector", w, new Vector2(0.30f, 0.912f), new Vector2(0.63f, 0.978f), Tema.SuperficieCampo, Tema.RadioBoton);
+        var titulo = UIFabrica.Texto(c, "Titulo", new Vector2(0.015f, Y(0.905f)), new Vector2(0.30f, Y(0.985f)), Tema.TxtTitulo, TextAnchor.MiddleLeft, Tema.TextoPrimario);
+        titulo.text = "<b>Nueva composta</b>";
+        Responsivo.En(titulo, new Vector2(0.03f, 0.962f), new Vector2(0.97f, 0.995f));
+        var selector = UIFabrica.Panel("Selector", c, new Vector2(0.30f, Y(0.912f)), new Vector2(0.63f, Y(0.978f)), Tema.SuperficieCampo, Tema.RadioBoton);
+        Responsivo.En(selector, new Vector2(0.03f, 0.925f), new Vector2(0.86f, 0.958f));
         var modos = new[] { ModoLote.Simular, ModoLote.Manual };
         var nombres = new[] { "Simulación", "Control manual" };
         for (int i = 0; i < 2; i++)
@@ -427,42 +439,89 @@ public class PanelBuild : MonoBehaviour
             fondoModo[i].raycastTarget = true;
             textoModo[i] = UIFabrica.Etiqueta(b);
             textoModo[i].fontStyle = FontStyle.Bold;
+            textoModo[i].resizeTextForBestFit = true; textoModo[i].resizeTextMinSize = 12; textoModo[i].resizeTextMaxSize = 20;
         }
-        UIFabrica.IconoInfo(w, AyudaBuild.Modo, new Vector2(0.635f, 0.945f), new Vector2(0f, 0.5f), Vector2.zero);
-        insigniaVentana = Insignia(w, new Vector2(0.72f, 0.915f), new Vector2(0.985f, 0.975f));
-        txtDescripcionModo = UIFabrica.Texto(w, "DescripcionModo", new Vector2(0.015f, 0.86f), new Vector2(0.985f, 0.905f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario);
+        var ayudaModo = UIFabrica.IconoInfo(c, AyudaBuild.Modo, new Vector2(0.635f, Y(0.945f)), new Vector2(0f, 0.5f), Vector2.zero);
+        Responsivo.En(ayudaModo, new Vector2(0.88f, 0.9415f), new Vector2(0.88f, 0.9415f), new Vector2(0f, -13f), new Vector2(26f, 13f));
+        insigniaVentana = Insignia(c, new Vector2(0.72f, Y(0.915f)), new Vector2(0.985f, Y(0.975f)));
+        Responsivo.En(insigniaVentana.transform, new Vector2(0.03f, 0.862f), new Vector2(0.75f, 0.884f));
+        txtDescripcionModo = UIFabrica.Texto(c, "DescripcionModo", new Vector2(0.015f, Y(0.86f)), new Vector2(0.985f, Y(0.905f)), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario);
+        txtDescripcionModo.resizeTextForBestFit = true; txtDescripcionModo.resizeTextMinSize = 11; txtDescripcionModo.resizeTextMaxSize = 17;
+        Responsivo.En(txtDescripcionModo, new Vector2(0.03f, 0.887f), new Vector2(0.97f, 0.922f));
 
-        // 1 · Tipo de compostera
-        UIFabrica.Texto(w, "Seccion1", new Vector2(0.015f, 0.815f), new Vector2(0.6f, 0.855f), 15, TextAnchor.MiddleLeft, Tema.TextoTenue)
-            .text = "<b>1 · TIPO DE COMPOSTERA</b>";
+        // 1 · Tipo de compostera (fila repartida en escritorio; carrusel deslizable en móvil)
+        var s1 = UIFabrica.Texto(c, "Seccion1", new Vector2(0.015f, Y(0.815f)), new Vector2(0.6f, Y(0.855f)), 15, TextAnchor.MiddleLeft, Tema.TextoTenue);
+        s1.text = "<b>1 · TIPO DE COMPOSTERA</b>";
+        Responsivo.En(s1, new Vector2(0.03f, 0.84f), new Vector2(0.97f, 0.86f));
+        var carrusel = UIFabrica.CrearCarrusel("Tipos", c, new Vector2(0.015f, Y(0.575f)), new Vector2(0.985f, Y(0.81f)));
+        Responsivo.En(carrusel, new Vector2(0.02f, 0.665f), new Vector2(0.98f, 0.835f));
         var tipos = (TipoComposta[])Enum.GetValues(typeof(TipoComposta));
-        for (int i = 0; i < tipos.Length; i++) ConstruirTarjetaTipo(w, i, tipos[i]);
+        for (int i = 0; i < tipos.Length; i++) carrusel.Tarjetas.Add(ConstruirTarjetaTipo(carrusel.contenido, i, tipos[i]));
+        carrusel.Recalcular();
 
         // 2 · Parámetros / datos del lote
-        txtSeccionParametros = UIFabrica.Texto(w, "Seccion2", new Vector2(0.015f, 0.525f), new Vector2(0.6f, 0.565f), 15, TextAnchor.MiddleLeft, Tema.TextoTenue);
-        seccionSimulacion = UIFabrica.Panel("Simulacion", w, new Vector2(0f, 0.14f), new Vector2(1f, 0.525f), new Color(0, 0, 0, 0)).gameObject;
+        txtSeccionParametros = UIFabrica.Texto(c, "Seccion2", new Vector2(0.015f, Y(0.525f)), new Vector2(0.6f, Y(0.565f)), 15, TextAnchor.MiddleLeft, Tema.TextoTenue);
+        Responsivo.En(txtSeccionParametros, new Vector2(0.03f, 0.635f), new Vector2(0.97f, 0.655f));
+        var sim = UIFabrica.Panel("Simulacion", c, new Vector2(0f, Y(0.14f)), new Vector2(1f, Y(0.525f)), new Color(0, 0, 0, 0));
+        Responsivo.En(sim, new Vector2(0f, 0.075f), new Vector2(1f, 0.63f));
+        seccionSimulacion = sim.gameObject;
         for (int i = 0; i < 5; i++) ConstruirFilaParametro(seccionSimulacion.transform, i);
-        seccionManual = UIFabrica.Panel("Manual", w, new Vector2(0f, 0.14f), new Vector2(1f, 0.525f), new Color(0, 0, 0, 0)).gameObject;
+        var man = UIFabrica.Panel("Manual", c, new Vector2(0f, Y(0.14f)), new Vector2(1f, Y(0.525f)), new Color(0, 0, 0, 0));
+        Responsivo.En(man, new Vector2(0f, 0.075f), new Vector2(1f, 0.63f));
+        seccionManual = man.gameObject;
         ConstruirSeccionManual(seccionManual.transform);
 
         // Resumen
-        txtResumen = UIFabrica.Texto(w, "Resumen", new Vector2(0.015f, 0.095f), new Vector2(0.985f, 0.14f), 17, TextAnchor.MiddleLeft, Tema.TextoPrimario);
-        txtResumen.resizeTextForBestFit = true; txtResumen.resizeTextMinSize = 12; txtResumen.resizeTextMaxSize = 17;
+        txtResumen = UIFabrica.Texto(c, "Resumen", new Vector2(0.015f, Y(0.095f)), new Vector2(0.985f, Y(0.14f)), 17, TextAnchor.MiddleLeft, Tema.TextoPrimario);
+        txtResumen.resizeTextForBestFit = true; txtResumen.resizeTextMinSize = 11; txtResumen.resizeTextMaxSize = 17;
+        Responsivo.En(txtResumen, new Vector2(0.03f, 0.005f), new Vector2(0.97f, 0.07f));
         UIFabrica.IconoInfo(txtResumen.rectTransform, AyudaBuild.Resumen, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero);
 
-        // Pie: Cancelar / Iniciar
+        // Pie fijo: Cancelar / Predicción / Iniciar (en móvil, tres botones de 74 u de alto)
         btnCancelar = UIFabrica.Boton(w, "Cancelar", new Vector2(0.015f, 0.02f), new Vector2(0.20f, 0.085f), 20, Tema.BotonNeutro, Cerrar);
-        UIFabrica.IconoInfo(btnCancelar.transform, AyudaBuild.Cancelar, new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(10f, 0f));
+        Responsivo.En(btnCancelar, new Vector2(0f, 0f), new Vector2(0.30f, 0f), new Vector2(10, 10), new Vector2(-5, 84));
+        var ayudaCancelar = UIFabrica.IconoInfo(btnCancelar.transform, AyudaBuild.Cancelar, new Vector2(1f, 0.5f), new Vector2(0f, 0.5f), new Vector2(10f, 0f));
+        Responsivo.OcultarEnCompacto(ayudaCancelar);
+
+        var btnPrediccion = UIFabrica.Boton(w, "Predicción", new Vector2(0.38f, 0.02f), new Vector2(0.60f, 0.085f), 20,
+                                            Tema.ConAlfa(Tema.AcentoPrediccion, 0.9f), PedirPronostico);
+        UIFabrica.Etiqueta(btnPrediccion).fontStyle = FontStyle.Bold;
+        Responsivo.En(btnPrediccion, new Vector2(0.30f, 0f), new Vector2(0.60f, 0f), new Vector2(5, 10), new Vector2(-5, 84));
+        var ayudaPred = UIFabrica.IconoInfo(btnPrediccion.transform, AyudaBuild.Prediccion, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-10f, 0f));
+        Responsivo.OcultarEnCompacto(ayudaPred);
+
         btnIniciar = UIFabrica.Boton(w, "Iniciar simulación", new Vector2(0.62f, 0.02f), new Vector2(0.985f, 0.085f), 22, Tema.AcentoSimulacion, Iniciar);
-        UIFabrica.Etiqueta(btnIniciar).fontStyle = FontStyle.Bold;
-        UIFabrica.IconoInfo(btnIniciar.transform, AyudaBuild.IniciarSimulacion, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-10f, 0f));
+        var etIniciar = UIFabrica.Etiqueta(btnIniciar);
+        etIniciar.fontStyle = FontStyle.Bold;
+        etIniciar.resizeTextForBestFit = true; etIniciar.resizeTextMinSize = 12; etIniciar.resizeTextMaxSize = 22;
+        Responsivo.En(btnIniciar, new Vector2(0.60f, 0f), new Vector2(1f, 0f), new Vector2(5, 10), new Vector2(-10, 84));
+        var ayudaIniciar = UIFabrica.IconoInfo(btnIniciar.transform, AyudaBuild.IniciarSimulacion, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-10f, 0f));
+        Responsivo.OcultarEnCompacto(ayudaIniciar);
     }
 
-    void ConstruirTarjetaTipo(RectTransform w, int i, TipoComposta t)
+    // Pronóstico con los parámetros actuales del formulario (no crea ni modifica ningún lote)
+    void PedirPronostico()
+    {
+        if (PedirPrediccion == null) { Notificador.Mostrar("Inicia sesión para ver la predicción.", TipoMensaje.Aviso); return; }
+        PerfilComposta p;
+        if (modoSel == ModoLote.Manual)
+        {
+            p = PerfilComposta.Crear(tipoSel);
+            p.RelacionCN = cn; p.Aislamiento = aisl;
+        }
+        else
+        {
+            p = PerfilDelFormulario();
+            if (p.PesoExagerado) { Notificador.Mostrar("PESO EXAGERADO: ajusta el peso antes de pedir una predicción.", TipoMensaje.Aviso); return; }
+        }
+        PedirPrediccion.Invoke(p);
+    }
+
+    // El tamaño y la posición de la tarjeta los decide el Carrusel
+    RectTransform ConstruirTarjetaTipo(RectTransform padre, int i, TipoComposta t)
     {
         var d = PerfilComposta.Crear(t);
-        float x0 = 0.015f + i * 0.195f;
-        var card = UIFabrica.Panel("Tipo " + d.Nombre, w, new Vector2(x0, 0.575f), new Vector2(x0 + 0.185f, 0.81f), Tema.SuperficieAlta, Tema.RadioTarjeta);
+        var card = UIFabrica.Panel("Tipo " + d.Nombre, padre, Vector2.zero, new Vector2(0f, 1f), Tema.SuperficieAlta, Tema.RadioTarjeta);
         fondoCards[i] = card.GetComponent<Image>();
         bordeCards[i] = card.gameObject.AddComponent<Outline>();
         bordeCards[i].effectDistance = new Vector2(2f, -2f);
@@ -505,37 +564,50 @@ public class PanelBuild : MonoBehaviour
         var marca = UIFabrica.Pildora(card, "Seleccionada", new Vector2(0.50f, 0.62f), new Vector2(0.96f, 0.76f), "SELECCIONADA",
                                       Tema.ConAlfa(Tema.TextoPrimario, 0.10f), Tema.TextoPrimario, 11);
         marcaSeleccion[i] = marca.transform.parent.gameObject;
+        return card;
     }
 
     void ConstruirFilaParametro(Transform padre, int i)
     {
         int idx = i;
         float top = 0.98f - i * 0.195f, bot = top - 0.17f;
+        // Móvil: cada parámetro en dos líneas (etiqueta arriba; control, valor y −/+ abajo)
+        float topC = 0.995f - i * 0.198f, botC = topC - 0.188f, h = topC - botC;
+        float yEtq = botC + 0.55f * h, yCtl = botC + 0.45f * h;
+
         var etiqueta = UIFabrica.Texto(padre, "Etiqueta", new Vector2(0.015f, bot), new Vector2(0.21f, top), 19, TextAnchor.MiddleLeft, Tema.TextoPrimario);
         etiqueta.text = Etiquetas[i];
         UIFabrica.IconoJuntoATexto(etiqueta, AyudaBuild.Parametros[i]);
+        Responsivo.En(etiqueta, new Vector2(0.03f, yEtq), new Vector2(0.97f, topC));
 
         sliders[i] = CrearSlider(padre, new Vector2(0.22f, bot), new Vector2(0.70f, top), SliderMin(i), SliderMax(i),
                                  v => AlCambiarSlider(idx, v), out bandas[i], i == 0 ? (RectTransform r) => bandaAceptable = r : (Action<RectTransform>)null);
+        Responsivo.En(sliders[i], new Vector2(0.03f, botC), new Vector2(0.47f, yCtl));
 
         // Lectura numérica editable (pastilla)
         campos[i] = UIFabrica.Campo(padre, "Valor " + Etiquetas[i], new Vector2(0.72f, bot + 0.02f), new Vector2(0.835f, top - 0.02f), "valor", false, 10, 20);
         campos[i].textComponent.alignment = TextAnchor.MiddleRight;
         campos[i].onEndEdit.AddListener(t => AlEditarCampo(idx, t));
-        UIFabrica.Texto(padre, "Unidad", new Vector2(0.835f, bot), new Vector2(0.88f, top), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario).text = Unidades[i];
+        Responsivo.En(campos[i], new Vector2(0.49f, botC + 0.04f * h), new Vector2(0.68f, botC + 0.43f * h));
+        var unidad = UIFabrica.Texto(padre, "Unidad", new Vector2(0.835f, bot), new Vector2(0.88f, top), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario);
+        unidad.text = Unidades[i];
+        Responsivo.En(unidad, new Vector2(0.68f, botC), new Vector2(0.76f, yCtl));
 
-        UIFabrica.Boton(padre, "−", new Vector2(0.885f, bot + 0.02f), new Vector2(0.93f, top - 0.02f), 24, Tema.BotonNeutro, () => Paso(idx, -1));
-        UIFabrica.Boton(padre, "+", new Vector2(0.94f, bot + 0.02f), new Vector2(0.985f, top - 0.02f), 24, Tema.BotonNeutro, () => Paso(idx, +1));
+        var menos = UIFabrica.Boton(padre, "−", new Vector2(0.885f, bot + 0.02f), new Vector2(0.93f, top - 0.02f), 24, Tema.BotonNeutro, () => Paso(idx, -1));
+        Responsivo.En(menos, new Vector2(0.765f, botC + 0.03f * h), new Vector2(0.87f, botC + 0.44f * h));
+        var mas = UIFabrica.Boton(padre, "+", new Vector2(0.94f, bot + 0.02f), new Vector2(0.985f, top - 0.02f), 24, Tema.BotonNeutro, () => Paso(idx, +1));
+        Responsivo.En(mas, new Vector2(0.88f, botC + 0.03f * h), new Vector2(0.985f, botC + 0.44f * h));
     }
 
     void ConstruirSeccionManual(Transform padre)
     {
-        // Preguntas fáciles (izquierda)
-        Pregunta(padre, "¿Qué material predomina?", AyudaBuild.AyudaMaterial, 0.98f, AyudaBuild.OpcionesMaterial(), true, opcionesMaterial);
-        Pregunta(padre, "¿Está tapada o cubierta?", AyudaBuild.AyudaTapada, 0.55f, AyudaBuild.OpcionesTapada(), false, opcionesTapada);
+        // Preguntas fáciles (izquierda en escritorio; arriba en móvil)
+        Pregunta(padre, "¿Qué material predomina?", AyudaBuild.AyudaMaterial, 0.98f, 0.99f, AyudaBuild.OpcionesMaterial(), true, opcionesMaterial);
+        Pregunta(padre, "¿Está tapada o cubierta?", AyudaBuild.AyudaTapada, 0.55f, 0.72f, AyudaBuild.OpcionesTapada(), false, opcionesTapada);
 
-        // Cómo funciona (derecha)
+        // Cómo funciona (derecha en escritorio; abajo en móvil)
         var info = UIFabrica.Panel("Info", padre, new Vector2(0.60f, 0.04f), new Vector2(0.985f, 0.98f), Tema.SuperficieAlta, Tema.RadioTarjeta);
+        Responsivo.En(info, new Vector2(0.03f, 0.02f), new Vector2(0.97f, 0.46f));
         var franja = UIFabrica.Panel("Acento", info, Vector2.zero, new Vector2(0f, 1f), Tema.AcentoManual, 3);
         franja.offsetMax = new Vector2(5f, 0f);
         string a = Tema.HexDe(Tema.AcentoManual);
@@ -548,19 +620,23 @@ public class PanelBuild : MonoBehaviour
         t.resizeTextForBestFit = true; t.resizeTextMinSize = 11; t.resizeTextMaxSize = 16;
     }
 
-    void Pregunta(Transform padre, string titulo, string ayuda, float top, (string texto, float valor)[] ops, bool material,
+    void Pregunta(Transform padre, string titulo, string ayuda, float top, float topCompacto, (string texto, float valor)[] ops, bool material,
                   List<(Image, Text, float)> destino)
     {
         var lbl = UIFabrica.Texto(padre, "Pregunta", new Vector2(0.015f, top - 0.12f), new Vector2(0.58f, top), 19, TextAnchor.MiddleLeft, Tema.TextoPrimario);
         lbl.text = "<b>" + titulo + "</b>";
         UIFabrica.IconoJuntoATexto(lbl, ayuda);
-        float ancho = 0.565f / ops.Length;
+        Responsivo.En(lbl, new Vector2(0.03f, topCompacto - 0.08f), new Vector2(0.97f, topCompacto));
+        float ancho = 0.565f / ops.Length, anchoC = 0.94f / ops.Length;
         for (int k = 0; k < ops.Length; k++)
         {
             float v = ops[k].valor;
-            float x0 = 0.015f + k * ancho;
+            float x0 = 0.015f + k * ancho, x0C = 0.03f + k * anchoC;
             var b = UIFabrica.Boton(padre, ops[k].texto, new Vector2(x0, top - 0.33f), new Vector2(x0 + ancho - 0.01f, top - 0.14f), 17,
                                     Tema.SuperficieAlta, () => ElegirOpcion(material, v));
+            Responsivo.En(b, new Vector2(x0C, topCompacto - 0.21f), new Vector2(x0C + anchoC - 0.012f, topCompacto - 0.095f));
+            var et = UIFabrica.Etiqueta(b);
+            et.resizeTextForBestFit = true; et.resizeTextMinSize = 11; et.resizeTextMaxSize = 17;
             var borde = b.gameObject.AddComponent<Outline>();
             borde.effectDistance = new Vector2(2f, -2f);
             destino.Add((b.GetComponent<Image>(), UIFabrica.Etiqueta(b), v));

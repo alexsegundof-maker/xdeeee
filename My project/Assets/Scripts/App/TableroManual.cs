@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -17,6 +17,7 @@ namespace Composta.App
         public event Action PedirRegistro;
         public event Action PedirAportes;
         public event Action PedirExportar;
+        public event Action PedirPrediccion;
 
         static readonly CultureInfo C = CultureInfo.InvariantCulture;
         const int AnchoGraf = 640, AltoGraf = 300;
@@ -169,23 +170,36 @@ namespace Composta.App
 
             // Barra superior con la pastilla de modo (ámbar = medido a mano)
             var barra = UIFabrica.Panel("Barra", raiz, new Vector2(0.01f, 0.935f), new Vector2(0.99f, 0.99f), Tema.Superficie);
-            UIFabrica.Pildora(barra, "Modo", new Vector2(0.006f, 0.18f), new Vector2(0.125f, 0.82f), "CONTROL MANUAL",
+            Responsivo.En(barra, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(12, -64), new Vector2(-12, -8));
+            var pild = UIFabrica.Pildora(barra, "Modo", new Vector2(0.006f, 0.18f), new Vector2(0.125f, 0.82f), "CONTROL MANUAL",
                               Tema.ConAlfa(Tema.AcentoManual, 0.18f), Tema.AcentoManual, 15);
+            Responsivo.En(pild.transform.parent, new Vector2(0.01f, 0.15f), new Vector2(0.42f, 0.85f));
             txtLote = UIFabrica.Texto(barra, "Lote", new Vector2(0.13f, 0f), new Vector2(0.40f, 1f), 20, TextAnchor.MiddleLeft, Tema.TextoPrimario);
-            txtLote.resizeTextForBestFit = true; txtLote.resizeTextMinSize = 12; txtLote.resizeTextMaxSize = 20;
+            txtLote.resizeTextForBestFit = true; txtLote.resizeTextMinSize = 11; txtLote.resizeTextMaxSize = 20;
+            Responsivo.En(txtLote, new Vector2(0.43f, 0f), new Vector2(1f, 1f));
 
-            // Franja: sensores no conectados + estado de la medición semanal + CTA
+            // Franja: sensores no conectados + estado de la medición semanal + Predicción + CTA (alto fijo en móvil)
             var banner = UIFabrica.Tarjeta("Banner", raiz, new Vector2(0.01f, 0.868f), new Vector2(0.99f, 0.925f));
+            Responsivo.En(banner, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(12, -360), new Vector2(-12, -140));
             fondoBanner = banner.GetComponent<Image>();
-            UIFabrica.IconoInfo(banner, "Este lote no tiene sensores físicos ni simulación. Todo lo que ves sale de las mediciones " +
+            var icono = UIFabrica.IconoInfo(banner, "Este lote no tiene sensores físicos ni simulación. Todo lo que ves sale de las mediciones " +
                                         "que registras a mano (temperatura, humedad y peso). Registra una medición cada 7 días.",
                                 new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(14f, 0f), "!", 26f, UIFabrica.ColIconoAviso);
+            // Móvil: arriba a la derecha (con anclas puntuales, los desplazamientos definen posición y tamaño 26×26)
+            Responsivo.En(icono, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-38f, -38f), new Vector2(-12f, -12f), new Vector2(1f, 1f));
             var aviso = UIFabrica.Texto(banner, "Aviso", new Vector2(0.025f, 0f), new Vector2(0.43f, 1f), 18, TextAnchor.MiddleLeft, Tema.AcentoManual);
             aviso.text = "<b>Sensores físicos no conectados</b> · Modo de registro manual activo";
             aviso.resizeTextForBestFit = true; aviso.resizeTextMinSize = 12; aviso.resizeTextMaxSize = 18;
-            txtEstadoBanner = UIFabrica.Texto(banner, "Estado", new Vector2(0.43f, 0f), new Vector2(0.78f, 1f), 18, TextAnchor.MiddleLeft, Tema.TextoPrimario);
+            Responsivo.En(aviso, new Vector2(0.02f, 0.68f), new Vector2(0.88f, 0.98f));
+            txtEstadoBanner = UIFabrica.Texto(banner, "Estado", new Vector2(0.43f, 0f), new Vector2(0.64f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoPrimario);
+            txtEstadoBanner.resizeTextForBestFit = true; txtEstadoBanner.resizeTextMinSize = 11; txtEstadoBanner.resizeTextMaxSize = 17;
+            Responsivo.En(txtEstadoBanner, new Vector2(0.02f, 0.40f), new Vector2(0.98f, 0.68f));
+            var prediccion = UIFabrica.Boton(banner, "Predicción", new Vector2(0.65f, 0.14f), new Vector2(0.78f, 0.86f), 18,
+                                             Tema.ConAlfa(Tema.AcentoPrediccion, 0.85f), () => PedirPrediccion?.Invoke());
+            Responsivo.En(prediccion, new Vector2(0.02f, 0.04f), new Vector2(0.36f, 0.37f));
             btnRegistrarBanner = UIFabrica.Boton(banner, "Registrar medición semanal", new Vector2(0.79f, 0.14f), new Vector2(0.995f, 0.86f), 18,
                                                  Tema.AcentoManual, () => PedirRegistro?.Invoke());
+            Responsivo.En(btnRegistrarBanner, new Vector2(0.38f, 0.04f), new Vector2(0.98f, 0.37f));
             UIFabrica.Etiqueta(btnRegistrarBanner).color = Tema.Fondo;
             UIFabrica.Etiqueta(btnRegistrarBanner).fontStyle = FontStyle.Bold;
 
@@ -197,8 +211,11 @@ namespace Composta.App
         // Estado vacío: explica qué medir y lleva a la acción principal
         void ConstruirVacio()
         {
-            vacio = UIFabrica.Panel("Vacio", raiz, new Vector2(0f, 0f), new Vector2(1f, 0.86f), new Color(0, 0, 0, 0));
-            var card = UIFabrica.Tarjeta("Card", vacio, new Vector2(0.29f, 0.12f), new Vector2(0.71f, 0.92f));
+            var vistaVacio = UIFabrica.Desplazable("Vacio", raiz, new Vector2(0f, 0f), new Vector2(1f, 0.86f), 1000f, out var cVacio);
+            Responsivo.En(vistaVacio, Vector2.zero, Vector2.one, new Vector2(0, 8), new Vector2(0, -368));
+            vacio = vistaVacio;
+            var card = UIFabrica.Tarjeta("Card", cVacio, new Vector2(0.29f, 0.12f), new Vector2(0.71f, 0.92f));
+            Responsivo.En(card, new Vector2(0.03f, 0.01f), new Vector2(0.97f, 0.99f));
             var circulo = UIFabrica.Panel("Icono", card, new Vector2(0.5f, 0.80f), new Vector2(0.5f, 0.80f), Tema.ConAlfa(Tema.AcentoManual, 0.16f), 0);
             circulo.sizeDelta = new Vector2(96, 96);
             circulo.GetComponent<Image>().sprite = UIFabrica.SpriteCirculo;
@@ -226,11 +243,14 @@ namespace Composta.App
 
         void ConstruirContenido()
         {
-            contenido = UIFabrica.Panel("Contenido", raiz, new Vector2(0f, 0f), new Vector2(1f, 0.86f), new Color(0, 0, 0, 0));
-            // Coordenadas relativas a "contenido" (alto = 86 % de la pantalla)
+            var vista = UIFabrica.Desplazable("Contenido", raiz, new Vector2(0f, 0f), new Vector2(1f, 0.86f), 3000f, out var cuerpo);
+            Responsivo.En(vista, Vector2.zero, Vector2.one, new Vector2(0, 8), new Vector2(0, -368));
+            contenido = vista;
+            // Coordenadas relativas al cuerpo (en escritorio = 86 % de la pantalla; en móvil, 3000 u desplazables)
 
             // Fase estimada
-            var fase = UIFabrica.Tarjeta("Fase", contenido, new Vector2(0.01f, 0.835f), new Vector2(0.30f, 0.995f));
+            var fase = UIFabrica.Tarjeta("Fase", cuerpo, new Vector2(0.01f, 0.835f), new Vector2(0.30f, 0.995f));
+            Responsivo.En(fase, new Vector2(0.02f, 0.92f), new Vector2(0.98f, 0.995f));
             var franjaF = UIFabrica.Panel("Acento", fase, Vector2.zero, new Vector2(0f, 1f), Tema.AcentoManual, 3);
             franjaF.offsetMax = new Vector2(6f, 0f);
             UIFabrica.Texto(fase, "Lbl", new Vector2(0.03f, 0.70f), new Vector2(0.6f, 0.97f), 15, TextAnchor.MiddleLeft, Tema.TextoSecundario).text = "<b>FASE ESTIMADA</b>";
@@ -245,7 +265,9 @@ namespace Composta.App
             for (int i = 0; i < 3; i++)
             {
                 float top = 0.82f - i * 0.18f;
-                var card = UIFabrica.Tarjeta("Kpi " + i, contenido, new Vector2(0.01f, top - 0.165f), new Vector2(0.30f, top));
+                var card = UIFabrica.Tarjeta("Kpi " + i, cuerpo, new Vector2(0.01f, top - 0.165f), new Vector2(0.30f, top));
+                float topC = 0.91f - i * 0.072f;
+                Responsivo.En(card, new Vector2(0.02f, topC - 0.068f), new Vector2(0.98f, topC));
                 var franja = UIFabrica.Panel("Estado", card, Vector2.zero, new Vector2(0f, 1f), Tema.Exito, 3);
                 franja.offsetMax = new Vector2(6f, 0f);
                 kpiFranja[i] = franja.GetComponent<Image>();
@@ -268,7 +290,9 @@ namespace Composta.App
             };
             for (int i = 0; i < 3; i++)
             {
-                var g = UIFabrica.Tarjeta("Grafica " + i, contenido, rects[i].Item1, rects[i].Item2);
+                var g = UIFabrica.Tarjeta("Grafica " + i, cuerpo, rects[i].Item1, rects[i].Item2);
+                float topG = 0.69f - i * 0.135f;
+                Responsivo.En(g, new Vector2(0.02f, topG - 0.13f), new Vector2(0.98f, topG));
                 UIFabrica.Texto(g, "Titulo", new Vector2(0.01f, 0.86f), new Vector2(0.5f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario).text = titulos[i];
                 txtGrafInfo[i] = UIFabrica.Texto(g, "Info", new Vector2(0.45f, 0.86f), new Vector2(0.99f, 1f), 13, TextAnchor.MiddleRight, Tema.TextoTenue);
                 var go = new GameObject("Img", typeof(RectTransform), typeof(RawImage));
@@ -281,19 +305,26 @@ namespace Composta.App
             }
 
             // Recomendaciones
-            var recs = UIFabrica.Tarjeta("Recomendaciones", contenido, new Vector2(0.66f, 0.27f), new Vector2(0.99f, 0.585f));
+            var recs = UIFabrica.Tarjeta("Recomendaciones", cuerpo, new Vector2(0.66f, 0.27f), new Vector2(0.99f, 0.585f));
+            Responsivo.En(recs, new Vector2(0.02f, 0.15f), new Vector2(0.98f, 0.285f));
             UIFabrica.Texto(recs, "Titulo", new Vector2(0.02f, 0.86f), new Vector2(0.98f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario)
                 .text = "<b>QUÉ HACER AHORA</b>";
             txtRecs = UIFabrica.Texto(recs, "Texto", new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.86f), 16, TextAnchor.UpperLeft, Tema.TextoPrimario);
             txtRecs.resizeTextForBestFit = true; txtRecs.resizeTextMinSize = 11; txtRecs.resizeTextMaxSize = 16;
 
             // Historial de mediciones + acciones secundarias
-            var hist = UIFabrica.Tarjeta("Historial", contenido, new Vector2(0.01f, 0.015f), new Vector2(0.99f, 0.255f));
-            UIFabrica.Texto(hist, "Titulo", new Vector2(0.01f, 0.80f), new Vector2(0.6f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario)
-                .text = "<b>MEDICIONES REGISTRADAS</b>";
-            UIFabrica.Boton(hist, "Aportes", new Vector2(0.80f, 0.80f), new Vector2(0.89f, 0.97f), 16, Tema.BotonNeutro, () => PedirAportes?.Invoke());
-            UIFabrica.Boton(hist, "Exportar", new Vector2(0.90f, 0.80f), new Vector2(0.995f, 0.97f), 16, Tema.BotonNeutro, () => PedirExportar?.Invoke());
+            var hist = UIFabrica.Tarjeta("Historial", cuerpo, new Vector2(0.01f, 0.015f), new Vector2(0.99f, 0.255f));
+            Responsivo.En(hist, new Vector2(0.02f, 0.005f), new Vector2(0.98f, 0.145f));
+            var tituloHist = UIFabrica.Texto(hist, "Titulo", new Vector2(0.01f, 0.80f), new Vector2(0.6f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario);
+            tituloHist.text = "<b>MEDICIONES REGISTRADAS</b>";
+            tituloHist.resizeTextForBestFit = true; tituloHist.resizeTextMinSize = 11; tituloHist.resizeTextMaxSize = 17;
+            Responsivo.En(tituloHist, new Vector2(0.01f, 0.84f), new Vector2(0.45f, 0.99f));
+            var bAportes = UIFabrica.Boton(hist, "Aportes", new Vector2(0.80f, 0.80f), new Vector2(0.89f, 0.97f), 16, Tema.BotonNeutro, () => PedirAportes?.Invoke());
+            Responsivo.En(bAportes, new Vector2(0.46f, 0.84f), new Vector2(0.72f, 0.99f));
+            var bExportar = UIFabrica.Boton(hist, "Exportar", new Vector2(0.90f, 0.80f), new Vector2(0.995f, 0.97f), 16, Tema.BotonNeutro, () => PedirExportar?.Invoke());
+            Responsivo.En(bExportar, new Vector2(0.73f, 0.84f), new Vector2(0.99f, 0.99f));
             txtHistorial = UIFabrica.Texto(hist, "Tabla", new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.80f), 16, TextAnchor.UpperLeft, Tema.TextoPrimario);
+            Responsivo.En(txtHistorial, new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.83f));
             txtHistorial.verticalOverflow = VerticalWrapMode.Truncate;
         }
     }

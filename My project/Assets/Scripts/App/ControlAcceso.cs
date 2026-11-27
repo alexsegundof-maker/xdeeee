@@ -36,6 +36,7 @@ namespace Composta.App
         PanelUsuarios usuarios;
         TableroManual tableroManual;           // vista del modo Control Manual (sin simulación)
         PanelRegistroCampo registro;           // formulario de medición de campo
+        VentanaPrediccion prediccion;          // pronóstico aislado + Google Calendar
         float proximoRefrescoManual;
 
         Usuario pendienteDeCambio;
@@ -63,9 +64,11 @@ namespace Composta.App
             usuarios = gameObject.AddComponent<PanelUsuarios>();
             tableroManual = gameObject.AddComponent<TableroManual>();
             registro = gameObject.AddComponent<PanelRegistroCampo>();
+            prediccion = gameObject.AddComponent<VentanaPrediccion>();
             tableroManual.PedirRegistro += AbrirRegistro;
             tableroManual.PedirAportes += AbrirAportes;
             tableroManual.PedirExportar += Exportar;
+            tableroManual.PedirPrediccion += PredecirLoteActual;
             registro.AlRegistrar += () => proximoRefrescoManual = 0f;
 
             login.EnviarLogin += AlEnviarLogin;
@@ -131,6 +134,8 @@ namespace Composta.App
             {
                 panelBuild.PedirLoteManual -= CrearLoteManual;
                 panelBuild.PedirLoteManual += CrearLoteManual;
+                panelBuild.PedirPrediccion -= PredecirParametros;
+                panelBuild.PedirPrediccion += PredecirParametros;
             }
 
             if (panelUI != null)
@@ -139,6 +144,8 @@ namespace Composta.App
                 panelUI.PedirAportes += AbrirAportes;
                 panelUI.PedirExportar -= Exportar;
                 panelUI.PedirExportar += Exportar;
+                panelUI.PedirPrediccion -= PredecirLoteActual;
+                panelUI.PedirPrediccion += PredecirLoteActual;
             }
         }
 
@@ -391,7 +398,9 @@ namespace Composta.App
             if (lotes.Exportar(out string carpeta, out string error))
                 Notificador.Dialogo("Exportación lista",
                     $"Se guardaron resumen, bitácora, aportes e historial en:\n{carpeta}",
-                    new OpcionDialogo("Abrir carpeta", () => Application.OpenURL(new Uri(carpeta).AbsoluteUri)),
+                    // En Android no hay explorador de carpetas al que saltar: los archivos quedan en el almacenamiento de la app
+                    Application.isMobilePlatform ? new OpcionDialogo("Entendido")
+                                                 : new OpcionDialogo("Abrir carpeta", () => Application.OpenURL(new Uri(carpeta).AbsoluteUri)),
                     new OpcionDialogo("Aceptar", null, true));
             else
                 Notificador.Mostrar("No se pudo exportar: " + error, TipoMensaje.Error);
@@ -407,6 +416,7 @@ namespace Composta.App
             aportes.Cerrar();
             usuarios.Cerrar();
             registro.Cerrar();
+            prediccion.Cerrar();
             MostrarEspacioDeTrabajo(false);
             Notificador.CerrarDialogos();
             svc.Sesion.Cerrar();
@@ -429,8 +439,47 @@ namespace Composta.App
                 CerrarSesion($"Sesión cerrada por {minutosInactividad:0} min de inactividad.");
         }
 
+        // ---------------- Predicción (siempre en una instancia aislada del simulador) ----------------
+        void PredecirParametros(PerfilComposta perfil)
+        {
+            if (!svc.Sesion.Activa) return;
+            AbrirPrediccion(() => Core.Pronostico.MotorPronostico.DesdePerfil(perfil, sim != null ? sim.semilla : 2024),
+                            Core.Pronostico.PlanCalendario.ClavePrediccion(null, perfil),
+                            $"Plan: {perfil.Nombre} {perfil.PesoKg:0.#} kg");
+        }
+
+        void PredecirLoteActual()
+        {
+            if (!svc.Sesion.Activa) return;
+            var lote = lotes?.LoteActual;
+            if (lote == null)
+            {
+                if (sim != null && sim.Sistema != null) PredecirParametros(sim.Sistema.Perfil);
+                return;
+            }
+            // Lectura de una COPIA: nunca altera el lote ni el simulador en vivo
+            AbrirPrediccion(() => lote.Modo == ModoLote.Manual ? Core.Pronostico.MotorPronostico.DesdeMediciones(lote)
+                                                               : Core.Pronostico.MotorPronostico.DesdeLoteSimulado(lote),
+                            Core.Pronostico.PlanCalendario.ClavePrediccion(lote.Id, null), lote.Nombre);
+        }
+
+        void AbrirPrediccion(Func<Core.Pronostico.ResultadoPronostico> calcular, string clave, string nombre)
+        {
+            Core.Pronostico.ResultadoPronostico r;
+            try { r = calcular(); }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+                Notificador.Mostrar("No se pudo calcular la predicción: " + e.Message, TipoMensaje.Error);
+                return;
+            }
+            prediccion.Abrir(r, clave, nombre);
+        }
+
         static bool HuboActividad()
         {
+            var t = Touchscreen.current;                // Android: cualquier toque cuenta como actividad
+            if (t != null && t.primaryTouch.press.isPressed) return true;
             var k = Keyboard.current;
             if (k != null && k.anyKey.wasPressedThisFrame) return true;
             var m = Mouse.current;

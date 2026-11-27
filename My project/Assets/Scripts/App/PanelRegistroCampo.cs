@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Composta.Core;
@@ -108,7 +108,7 @@ namespace Composta.App
             if (raiz != null) return;
             raiz = UIFabrica.Canvas("Canvas Registro", transform, 40);
             UIFabrica.Panel("Velo", raiz, Vector2.zero, Vector2.one, Tema.Velo);
-            var w = UIFabrica.Tarjeta("Marco", raiz, new Vector2(0.29f, 0.09f), new Vector2(0.71f, 0.91f));
+            var w = UIFabrica.ModalDesplazable(raiz, new Vector2(0.29f, 0.09f), new Vector2(0.71f, 0.91f), 1250f);
             var franja = UIFabrica.Panel("Acento", w, new Vector2(0f, 1f), Vector2.one, Tema.AcentoManual, 3);
             franja.offsetMin = new Vector2(0f, -5f);
 

@@ -30,6 +30,7 @@ public class PanelUI : MonoBehaviour
     // Acciones que resuelve la capa de aplicación (ControlAcceso)
     public event Action PedirAportes;
     public event Action PedirExportar;
+    public event Action PedirPrediccion;
 
     Canvas canvasUI;
     bool tableroVisible = true;
@@ -65,24 +66,36 @@ public class PanelUI : MonoBehaviour
     void Construir()
     {
         raiz = UIFabrica.Canvas("Canvas UI", null, 0);
-        canvasUI = raiz.GetComponent<Canvas>();
+        canvasUI = raiz.GetComponentInParent<Canvas>();
         canvasUI.enabled = tableroVisible;
 
         UIFabrica.Panel("Fondo", raiz, Vector2.zero, Vector2.one, Tema.Fondo);
 
         // Barra superior: pastilla de modo + estado. El centro es de la sesión y la derecha de "Nueva composta".
         var barra = UIFabrica.Panel("Barra", raiz, new Vector2(0.01f, 0.935f), new Vector2(0.99f, 0.99f), Tema.Superficie);
-        UIFabrica.Pildora(barra, "Modo", new Vector2(0.006f, 0.18f), new Vector2(0.095f, 0.82f), "SIMULACIÓN",
+        Responsivo.En(barra, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(12, -64), new Vector2(-12, -8));   // móvil: alto fijo
+        var pildora = UIFabrica.Pildora(barra, "Modo", new Vector2(0.006f, 0.18f), new Vector2(0.095f, 0.82f), "SIMULACIÓN",
                           Tema.ConAlfa(Tema.AcentoSimulacion, 0.18f), Tema.AcentoSimulacion, 15);
+        Responsivo.En(pildora.transform.parent, new Vector2(0.01f, 0.15f), new Vector2(0.32f, 0.85f));
         txtCabecera = UIFabrica.Texto(barra, "Cabecera", new Vector2(0.10f, 0f), new Vector2(0.40f, 1f), 22, TextAnchor.MiddleLeft, Tema.TextoPrimario);
         txtCabecera.resizeTextForBestFit = true; txtCabecera.resizeTextMinSize = 13; txtCabecera.resizeTextMaxSize = 22;
+        Responsivo.En(txtCabecera, new Vector2(0.33f, 0f), new Vector2(1f, 1f));
         txtCabecera.text = "Iniciando simulación…";
 
-        // 4 indicadores (izquierda)
+        // Cuerpo: en escritorio ocupa la pantalla; en móvil se apila y se desplaza con el dedo.
+        // Y(y) convierte las fracciones de pantalla del diseño amplio a fracciones del cuerpo.
+        var vista = UIFabrica.Desplazable("Cuerpo", raiz, new Vector2(0f, 0.095f), new Vector2(1f, 0.93f), 2200f, out var cuerpo);
+        Responsivo.En(vista, Vector2.zero, Vector2.one, new Vector2(0, 156), new Vector2(0, -136));
+        float Y(float y) => (y - 0.095f) / 0.835f;
+
+        // 4 indicadores (izquierda en amplio; cuadrícula 2×2 en móvil)
         for (int m = 0; m < 4; m++)
         {
             float top = 0.92f - m * 0.155f;
-            var card = UIFabrica.Tarjeta("Card " + m, raiz, new Vector2(0.01f, top - 0.142f), new Vector2(0.33f, top));
+            var card = UIFabrica.Tarjeta("Card " + m, cuerpo, new Vector2(0.01f, Y(top - 0.142f)), new Vector2(0.33f, Y(top)));
+            int fila = m / 2, columna = m % 2;
+            float topC = 0.995f - fila * 0.095f;
+            Responsivo.En(card, new Vector2(0.02f + columna * 0.485f, topC - 0.088f), new Vector2(0.495f + columna * 0.485f, topC));
             var franja = UIFabrica.Panel("Estado", card, Vector2.zero, new Vector2(0f, 1f), Tema.Exito, 3);
             franja.offsetMax = new Vector2(6f, 0f);
             franjaCard[m] = franja.GetComponent<Image>();
@@ -94,9 +107,12 @@ public class PanelUI : MonoBehaviour
             txtEstado[m] = UIFabrica.Pildora(card, "Pildora", new Vector2(0.74f, 0.70f), new Vector2(0.97f, 0.93f), "OK",
                                              Tema.ExitoSuave, Tema.Exito, 13);
             fondoEstado[m] = txtEstado[m].transform.parent.GetComponent<Image>();
+            Responsivo.En(txtEstado[m].transform.parent, new Vector2(0.56f, 0.70f), new Vector2(0.97f, 0.93f));
             txtValor[m] = UIFabrica.Texto(card, "Valor", new Vector2(0.02f, 0.26f), new Vector2(0.7f, 0.72f), Tema.TxtKpi, TextAnchor.MiddleLeft, Tema.TextoPrimario);
             txtValor[m].fontStyle = FontStyle.Bold;
             txtReal[m] = UIFabrica.Texto(card, "Real", new Vector2(0.6f, 0.30f), new Vector2(0.98f, 0.62f), 15, TextAnchor.MiddleRight, Tema.TextoTenue);
+            Responsivo.OcultarEnCompacto(txtReal[m]);              // no cabe en media pantalla de teléfono
+            Responsivo.En(nombre, new Vector2(0.02f, 0.66f), new Vector2(0.56f, 0.98f));
             txtSensor[m] = UIFabrica.Texto(card, "Sensor", new Vector2(0.02f, 0.02f), new Vector2(0.98f, 0.30f), 15, TextAnchor.MiddleLeft, Tema.TextoSecundario);
             txtValor[m].text = "—";
         }
@@ -107,7 +123,9 @@ public class PanelUI : MonoBehaviour
             int fila = m / 2, col = m % 2;
             float x0 = col == 0 ? 0.34f : 0.67f, x1 = col == 0 ? 0.66f : 0.99f;
             float y1 = fila == 0 ? 0.92f : 0.605f, y0 = y1 - 0.305f;
-            var cuadro = UIFabrica.Tarjeta("Grafica " + m, raiz, new Vector2(x0, y0), new Vector2(x1, y1));
+            var cuadro = UIFabrica.Tarjeta("Grafica " + m, cuerpo, new Vector2(x0, Y(y0)), new Vector2(x1, Y(y1)));
+            float topG = 0.80f - m * 0.175f;
+            Responsivo.En(cuadro, new Vector2(0.02f, topG - 0.165f), new Vector2(0.98f, topG));
 
             var mag = (Magnitud)m;
             var titulo = UIFabrica.Texto(cuadro, "Titulo", new Vector2(0.01f, 0.86f), new Vector2(1f, 1f), 17, TextAnchor.MiddleLeft, Tema.TextoSecundario);
@@ -124,15 +142,16 @@ public class PanelUI : MonoBehaviour
         }
 
         // Alertas
-        var panelAl = UIFabrica.Tarjeta("Alertas", raiz, new Vector2(0.01f, 0.105f), new Vector2(0.99f, 0.285f));
+        var panelAl = UIFabrica.Tarjeta("Alertas", cuerpo, new Vector2(0.01f, Y(0.105f)), new Vector2(0.99f, Y(0.285f)));
+        Responsivo.En(panelAl, new Vector2(0.02f, 0.005f), new Vector2(0.98f, 0.10f));
         UIFabrica.Texto(panelAl, "Titulo", new Vector2(0.005f, 0.80f), new Vector2(0.5f, 1f), 16, TextAnchor.MiddleLeft, Tema.TextoSecundario)
             .text = "<b>ALERTAS ACTIVAS</b>";
         txtAlertas = UIFabrica.Texto(panelAl, "Texto", new Vector2(0.005f, 0f), new Vector2(1f, 0.82f), 19, TextAnchor.UpperLeft, Tema.TextoPrimario);
         txtAlertas.verticalOverflow = VerticalWrapMode.Truncate;
 
-        // Botones (10 en una fila)
-        const int total = 10;
-        float paso = 0.98f / total, ancho = paso - 0.008f;
+        // Botones: una fila en escritorio; en móvil, barra fija abajo con 2 filas de toques ≥ 48 dp
+        barraBotones = UIFabrica.Panel("BarraBotones", raiz, new Vector2(0.01f, 0.02f), new Vector2(0.99f, 0.088f), new Color(0, 0, 0, 0), 0);
+        Responsivo.En(barraBotones, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(8, 8), new Vector2(-8, 148));
         int i = 0;
         Boton("Voltear", i++, ancho, paso, simulador.Voltear, Permiso.OperarComposta, Tema.ConAlfa(Tema.AcentoSimulacion, 0.85f));
         Boton("Regar", i++, ancho, paso, simulador.Regar, Permiso.OperarComposta, Tema.ConAlfa(Tema.AcentoSimulacion, 0.85f));
@@ -144,8 +163,13 @@ public class PanelUI : MonoBehaviour
         txtGraf = Boton("Gráficas", i++, ancho, paso, () => { if (graficas != null) graficas.CambiarGranularidad(); });
         Boton("Aportes", i++, ancho, paso, () => PedirAportes?.Invoke());
         Boton("Exportar", i++, ancho, paso, () => PedirExportar?.Invoke(), Permiso.Exportar);
+        Boton("Predicción", i++, ancho, paso, () => PedirPrediccion?.Invoke(), null, Tema.ConAlfa(Tema.AcentoPrediccion, 0.85f));
         RefrescarPermisos();
     }
+
+    const int TotalBotones = 11;
+    const float paso = 1f / TotalBotones, ancho = paso - 0.006f;
+    RectTransform barraBotones;
 
     // Sin sesión, o con un lote de Control Manual abierto, este tablero no se dibuja
     public void MostrarTablero(bool visible)
@@ -169,10 +193,15 @@ public class PanelUI : MonoBehaviour
 
     Text Boton(string texto, int indice, float ancho, float paso, UnityAction accion, Permiso? permiso = null, Color? color = null)
     {
-        float x0 = 0.01f + indice * paso;
-        var b = UIFabrica.Boton(raiz, texto, new Vector2(x0, 0.02f), new Vector2(x0 + ancho, 0.088f), 19, color ?? Tema.BotonNeutro, accion);
+        float x0 = indice * paso;
+        var b = UIFabrica.Boton(barraBotones, texto, new Vector2(x0, 0f), new Vector2(x0 + ancho, 1f), 19, color ?? Tema.BotonNeutro, accion);
+        // Móvil: 6 arriba y 5 abajo
+        int fila = indice < 6 ? 0 : 1, col = indice < 6 ? indice : indice - 6;
+        Responsivo.En(b, new Vector2(col / 6f + 0.004f, fila == 0 ? 0.52f : 0f), new Vector2((col + 1) / 6f - 0.004f, fila == 0 ? 1f : 0.48f));
+        var t = UIFabrica.Etiqueta(b);
+        t.resizeTextForBestFit = true; t.resizeTextMinSize = 11; t.resizeTextMaxSize = 19;
         if (permiso.HasValue) botonesProtegidos.Add((b, permiso.Value));
-        return UIFabrica.Etiqueta(b);
+        return t;
     }
 
     // ---------------- Actualización ----------------

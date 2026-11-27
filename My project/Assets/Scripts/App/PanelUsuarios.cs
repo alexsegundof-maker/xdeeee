@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Composta.Core.Seguridad;
@@ -169,16 +169,18 @@ namespace Composta.App
             if (raiz != null) return;
             raiz = UIFabrica.Canvas("Canvas Usuarios", transform, 40);
             var fondo = UIFabrica.Panel("Fondo", raiz, Vector2.zero, Vector2.one, new Color(0, 0, 0, 0.75f));
-            var w = UIFabrica.Panel("Marco", fondo, new Vector2(0.08f, 0.06f), new Vector2(0.92f, 0.94f), UIFabrica.ColPanel);
+            var w = UIFabrica.ModalDesplazable(fondo, new Vector2(0.08f, 0.06f), new Vector2(0.92f, 0.94f), 1900f);
             UIFabrica.Texto(w, "Titulo", new Vector2(0.02f, 0.91f), new Vector2(0.6f, 0.98f), 30, TextAnchor.MiddleLeft, Color.white).text = "Cuentas y acceso";
 
             // Lista de cuentas
             seccionLista = UIFabrica.Panel("Lista", w, new Vector2(0.02f, 0.10f), new Vector2(0.57f, 0.90f), new Color(0, 0, 0, 0));
+            Responsivo.En(seccionLista, new Vector2(0.02f, 0.52f), new Vector2(0.98f, 0.90f));      // móvil: secciones apiladas
             UIFabrica.Texto(seccionLista, "Sub", new Vector2(0f, 0.93f), new Vector2(1f, 1f), 22, TextAnchor.MiddleLeft, Color.white).text = "Cuentas registradas";
             contenedorFilas = UIFabrica.Panel("Filas", seccionLista, new Vector2(0f, 0f), new Vector2(1f, 0.92f), new Color(0, 0, 0, 0));
 
             // Nueva cuenta
             seccionNueva = UIFabrica.Panel("Nueva", w, new Vector2(0.60f, 0.45f), new Vector2(0.98f, 0.90f), new Color(0, 0, 0, 0));
+            Responsivo.En(seccionNueva, new Vector2(0.02f, 0.29f), new Vector2(0.98f, 0.505f));
             UIFabrica.Texto(seccionNueva, "Sub", new Vector2(0f, 0.86f), new Vector2(1f, 1f), 22, TextAnchor.MiddleLeft, Color.white).text = "Nueva cuenta";
             campoUsuario = UIFabrica.Campo(seccionNueva, "Usuario", new Vector2(0.02f, 0.70f), new Vector2(0.98f, 0.84f), "Usuario (ej.: ana.lopez)", false, ValidadorCredenciales.UsuarioMax, 20);
             campoNombre = UIFabrica.Campo(seccionNueva, "Nombre", new Vector2(0.02f, 0.54f), new Vector2(0.98f, 0.68f), "Nombre completo", false, ValidadorCredenciales.NombreMax, 20);
@@ -195,6 +197,7 @@ namespace Composta.App
 
             // Mi contraseña
             var propia = UIFabrica.Panel("Propia", w, new Vector2(0.60f, 0.10f), new Vector2(0.98f, 0.43f), new Color(0, 0, 0, 0));
+            Responsivo.En(propia, new Vector2(0.02f, 0.09f), new Vector2(0.98f, 0.275f));
             UIFabrica.Texto(propia, "Sub", new Vector2(0f, 0.80f), new Vector2(1f, 1f), 22, TextAnchor.MiddleLeft, Color.white).text = "Mi contraseña";
             campoActual = UIFabrica.Campo(propia, "Actual", new Vector2(0.02f, 0.60f), new Vector2(0.98f, 0.78f), "Contraseña actual", true, ValidadorCredenciales.ContrasenaMax, 20);
             campoNueva = UIFabrica.Campo(propia, "NuevaC", new Vector2(0.02f, 0.40f), new Vector2(0.98f, 0.58f), "Nueva contraseña", true, ValidadorCredenciales.ContrasenaMax, 20);

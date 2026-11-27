@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -252,10 +252,14 @@ namespace Composta.App
 
             // Fondo opaco: no se ven datos de los lotes sin iniciar sesión
             var fondo = UIFabrica.Panel("Fondo", raiz, Vector2.zero, Vector2.one, UIFabrica.ColFondo);
-            UIFabrica.Texto(fondo, "Marca", new Vector2(0.02f, 0.92f), new Vector2(0.5f, 0.99f), 22, TextAnchor.MiddleLeft, UIFabrica.ColTextoTenue)
-                .text = "Compostaje comunitario · monitoreo de lotes";
+            var marca = UIFabrica.Texto(fondo, "Marca", new Vector2(0.02f, 0.92f), new Vector2(0.5f, 0.99f), 22, TextAnchor.MiddleLeft, UIFabrica.ColTextoTenue);
+            marca.text = "Compostaje comunitario · monitoreo de lotes";
+            Responsivo.OcultarEnCompacto(marca);
 
-            card = UIFabrica.Panel("Card", fondo, new Vector2(0.34f, 0.12f), new Vector2(0.66f, 0.88f), UIFabrica.ColPanel);
+            // En móvil la tarjeta ocupa el ancho y se desplaza si el teclado o la pantalla horizontal la recortan
+            UIFabrica.Desplazable("Cuerpo", fondo, Vector2.zero, Vector2.one, 1150f, out var cuerpo);
+            card = UIFabrica.Tarjeta("Card", cuerpo, new Vector2(0.34f, 0.12f), new Vector2(0.66f, 0.88f), UIFabrica.ColPanel);
+            Responsivo.En(card, new Vector2(0.03f, 0.01f), new Vector2(0.97f, 0.99f));
             UIFabrica.Panel("Acento", card, new Vector2(0f, 0.985f), Vector2.one, UIFabrica.ColPrimario);
             txtTitulo = UIFabrica.Texto(card, "Titulo", new Vector2(0.05f, 0.88f), new Vector2(0.95f, 0.97f), 36, TextAnchor.MiddleLeft, Color.white);
             txtTitulo.text = "Compostaje comunitario";

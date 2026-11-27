@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Composta.Core.Seguridad;
 using UnityEngine;
 using UnityEngine.UI;
@@ -34,6 +34,8 @@ namespace Composta.App
             raiz = UIFabrica.Canvas("Canvas Sesion", transform, 20);
             // Ocupa el hueco entre la cabecera de PanelUI (izquierda) y el HUD de PanelBuild (derecha)
             var franja = UIFabrica.Panel("Sesion", raiz, new Vector2(0.405f, 0.943f), new Vector2(0.655f, 0.982f), new Color(0, 0, 0, 0));
+            // Móvil: segunda fila bajo la barra superior (izquierda), con "Nueva composta" a la derecha
+            Responsivo.En(franja, new Vector2(0f, 1f), new Vector2(0.62f, 1f), new Vector2(12, -128), new Vector2(-4, -72));
             txtUsuario = UIFabrica.Texto(franja, "Usuario", new Vector2(0f, 0f), new Vector2(0.52f, 1f), 18, TextAnchor.MiddleRight, Color.white);
             txtUsuario.resizeTextForBestFit = true; txtUsuario.resizeTextMinSize = 11; txtUsuario.resizeTextMaxSize = 18;
             btnCuenta = UIFabrica.Boton(franja, "Cuenta", new Vector2(0.53f, 0f), new Vector2(0.75f, 1f), 17, UIFabrica.ColBoton, () => PedirCuenta?.Invoke());

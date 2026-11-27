@@ -33,18 +33,76 @@ namespace Composta.App
                 new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
         }
 
+        // Devuelve la raíz de contenido del lienzo: un hijo ajustado al ÁREA SEGURA (notch, barra de navegación).
+        // El escalado se adapta solo a escritorio o móvil (ver AdaptadorPantalla).
         public static RectTransform Canvas(string nombre, Transform padre, int orden)
         {
-            var go = new GameObject(nombre, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(CanvasGroup));
+            var go = new GameObject(nombre, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             if (padre != null) go.transform.SetParent(padre, false);
             var c = go.GetComponent<Canvas>();
             c.renderMode = RenderMode.ScreenSpaceOverlay;
             c.sortingOrder = orden;
-            var sc = go.GetComponent<CanvasScaler>();
-            sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            sc.referenceResolution = new Vector2(1920, 1080);
-            sc.matchWidthOrHeight = 0.5f;
-            return (RectTransform)go.transform;
+            AdaptadorPantalla.Configurar(go.GetComponent<CanvasScaler>());
+            go.AddComponent<EscaladorAdaptable>();
+
+            var seguro = new GameObject("AreaSegura", typeof(RectTransform), typeof(CanvasGroup), typeof(AreaSegura));
+            seguro.transform.SetParent(go.transform, false);
+            var rt = (RectTransform)seguro.transform;
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            return rt;
+        }
+
+        // Zona con desplazamiento vertical: en diseño amplio no se desplaza; en compacto mide "altoCompacto".
+        // Los hijos se anclan a "contenido" (fracciones de su alto).
+        public static RectTransform Desplazable(string nombre, Transform padre, Vector2 aMin, Vector2 aMax, float altoCompacto,
+                                                out RectTransform contenido)
+        {
+            var vista = Panel(nombre, padre, aMin, aMax, new Color(0, 0, 0, 0), 0);
+            vista.GetComponent<Image>().raycastTarget = true;           // permite arrastrar desde zonas vacías
+            vista.gameObject.AddComponent<RectMask2D>();
+            var go = new GameObject("Contenido", typeof(RectTransform));
+            go.transform.SetParent(vista, false);
+            contenido = (RectTransform)go.transform;
+            contenido.anchorMin = new Vector2(0f, 1f); contenido.anchorMax = new Vector2(1f, 1f);
+            contenido.pivot = new Vector2(0.5f, 1f);
+            contenido.anchoredPosition = Vector2.zero;
+            var sr = vista.gameObject.AddComponent<ScrollRect>();
+            sr.content = contenido; sr.viewport = vista;
+            sr.horizontal = false; sr.vertical = true;
+            sr.movementType = ScrollRect.MovementType.Elastic;
+            sr.inertia = true; sr.decelerationRate = 0.12f; sr.scrollSensitivity = 30f;
+            var cd = vista.gameObject.AddComponent<ContenidoDesplazable>();
+            cd.contenido = contenido; cd.scroll = sr; cd.altoCompacto = altoCompacto;
+            cd.Recalcular();
+            return vista;
+        }
+
+        // Tarjeta modal: en escritorio centrada; en móvil ocupa el ancho y, si no cabe en alto, se desplaza
+        public static RectTransform ModalDesplazable(Transform padre, Vector2 aMin, Vector2 aMax, float altoCompacto)
+        {
+            Desplazable("Desplazable", padre, Vector2.zero, Vector2.one, altoCompacto, out var c);
+            var card = Tarjeta("Marco", c, aMin, aMax);
+            Responsivo.En(card, new Vector2(0.02f, 0.005f), new Vector2(0.98f, 0.995f));
+            return card;
+        }
+
+        // Fila horizontal de tarjetas (se reparte el ancho en amplio; carrusel deslizable en compacto)
+        public static Carrusel CrearCarrusel(string nombre, Transform padre, Vector2 aMin, Vector2 aMax)
+        {
+            var vista = Panel(nombre, padre, aMin, aMax, new Color(0, 0, 0, 0), 0);
+            vista.GetComponent<Image>().raycastTarget = true;
+            vista.gameObject.AddComponent<RectMask2D>();
+            var go = new GameObject("Contenido", typeof(RectTransform));
+            go.transform.SetParent(vista, false);
+            var contenido = (RectTransform)go.transform;
+            var sr = vista.gameObject.AddComponent<ScrollRect>();
+            sr.content = contenido; sr.viewport = vista;
+            sr.horizontal = true; sr.vertical = false;
+            sr.movementType = ScrollRect.MovementType.Elastic;
+            var c = vista.gameObject.AddComponent<Carrusel>();
+            c.contenido = contenido; c.scroll = sr;
+            return c;
         }
 
         // radio: -1 = automático (esquinas redondeadas salvo en fondos de pantalla completa), 0 = recto
@@ -144,6 +202,7 @@ namespace Composta.App
             var b = rt.gameObject.AddComponent<Button>();
             b.targetGraphic = rt.GetComponent<Image>();
             AplicarEstilo(b);
+            AreaTactilMinima.Agregar(b);
             if (accion != null) b.onClick.AddListener(accion);
             var t = Texto(rt, "Etiqueta", Vector2.zero, Vector2.one, tam, TextAnchor.MiddleCenter, Color.white);
             t.text = texto;
@@ -227,6 +286,7 @@ namespace Composta.App
             t.fontStyle = FontStyle.Bold;
             t.text = simbolo;
 
+            AreaTactilMinima.Agregar(rt);
             var trig = go.GetComponent<TooltipTrigger>();
             trig.Configurar(texto, img, t, colorReposo ?? (simbolo == "!" ? ColIconoAviso : TooltipTrigger.ColNormal));
             return trig;

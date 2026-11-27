@@ -1,4 +1,4 @@
-using Composta.Core;
+﻿using Composta.Core;
 using Composta.Core.Campo;
 using UnityEngine;
 
@@ -30,6 +30,7 @@ namespace Composta.App
         // ---- Acentos por modo ----
         public static readonly Color AcentoSimulacion = Hex(0x4C8DFF);
         public static readonly Color AcentoManual = Hex(0xF0A24A);
+        public static readonly Color AcentoPrediccion = Hex(0xA78BFA);      // VIOLETA = proyección (ni simulado en vivo ni medido)
 
         // ---- Estados ----
         public static readonly Color Exito = Hex(0x3FB37F);
