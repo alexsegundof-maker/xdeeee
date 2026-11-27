@@ -108,6 +108,7 @@ public class GeneradorGraficas : MonoBehaviour
     void OnGUI()
     {
         if (!mostrarEnPantalla || texturas[0] == null) return;
+        if (GuardiaEntrada.SesionActiva != null && !GuardiaEntrada.SesionActiva()) return;   // sin sesión no se ve nada
 
         float cw = Mathf.Min(Screen.width / 2f - 15f, (Screen.height / 2f - 30f) * ancho / alto);
         float ch = cw * alto / ancho;

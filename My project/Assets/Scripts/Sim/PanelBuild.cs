@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Globalization;
+using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
@@ -17,14 +18,20 @@ public class PanelBuild : MonoBehaviour
 
     public bool abrirAlIniciar = true;
 
-    // Estado del formulario (todo libre)
+    // Estado del formulario
     TipoComposta tipoSel;
+    ModoLote modoSel = ModoLote.Simular;
     float peso, cn, humIni, aisl, amb;
 
     Font fuente;
     Transform raiz;
     GameObject ventana, insigniaHud, insigniaVentana;
-    Button btnCancelar, btnNueva;
+    Button btnCancelar, btnNueva, btnIniciar;
+    Canvas canvasBuild;
+    bool hudVisible = true;
+    readonly Image[] fondoModo = new Image[2];
+    readonly InputField[] campos = new InputField[5];     // edición exacta (solo modo Manual)
+    readonly Text[] txtUnidades = new Text[5];
     Text txtResumen;
     RectTransform iconoResumenExagerado;      // "!" que sigue al final de la línea de resumen
     readonly Image[] fondoCards = new Image[5];
@@ -33,10 +40,14 @@ public class PanelBuild : MonoBehaviour
     readonly Text[] txtValores = new Text[5];
     bool pausaPrevia;
 
-    const float LogMax = 4.30103f;       // log10(20000)
     static readonly string[] Etiquetas = { "Peso", "Relación C/N", "Humedad inicial", "Aislamiento", "Temp. ambiente" };
-    static readonly float[] Min = { 0f, 10f, 20f, 0.5f, 0f };
-    static readonly float[] Max = { LogMax, 60f, 90f, 2f, 40f };
+    static readonly string[] Unidades = { "kg", ": 1", "%", "x", "°C" };
+    static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    // Los límites ya no son constantes: dependen del modo (ver RangosParametros en Core)
+    Rango RangoDe(int i) => RangosParametros.De(modoSel, (Parametro)i);
+    float SliderMin(int i) => i == 0 ? Mathf.Log10(RangoDe(0).Min) : RangoDe(i).Min;   // el peso usa escala logarítmica
+    float SliderMax(int i) => i == 0 ? Mathf.Log10(RangoDe(0).Max) : RangoDe(i).Max;
 
     static readonly Color ColPanel = new Color(0.14f, 0.15f, 0.18f);
     static readonly Color ColCard = new Color(0.20f, 0.22f, 0.27f);
@@ -62,6 +73,14 @@ public class PanelBuild : MonoBehaviour
         ventana.SetActive(false);
         if (abrirAlIniciar && !hayLogin) Abrir(true);
         btnNueva.interactable = permitirCrear;
+        canvasBuild.enabled = hudVisible;
+    }
+
+    // Sin sesión no debe verse ni el HUD ni la ventana (lo controla ControlAcceso)
+    public void MostrarHud(bool visible)
+    {
+        hudVisible = visible;
+        if (canvasBuild != null) canvasBuild.enabled = visible;
     }
 
     void OnDestroy() => GuardiaEntrada.Liberar(this);
@@ -127,6 +146,15 @@ public class PanelBuild : MonoBehaviour
             Notificador.Mostrar("Tu rol no permite crear compostas nuevas.", TipoMensaje.Aviso);
             return;
         }
+        // En modo Simular el aviso de peso es estricto: bloquea el inicio
+        if (BloqueadoPorSimular(PerfilDelFormulario()))
+        {
+            Notificador.Mostrar("Peso fuera del rango recomendado. Ajústalo a la barra verde o cambia a modo Manual.", TipoMensaje.Aviso);
+            return;
+        }
+        simulador.modo = modoSel;
+        // Simular = progresión automatizada (control automático); Manual = la persona decide cuándo voltear/regar
+        simulador.modoAutomatico = modoSel == ModoLote.Simular;
         simulador.tipo = tipoSel;
         simulador.pesoKg = peso;
         simulador.relacionCN = cn;
@@ -148,6 +176,73 @@ public class PanelBuild : MonoBehaviour
         humIni = simulador.humedadInicial >= 0f ? simulador.humedadInicial : d.HumedadInicial;
         aisl = simulador.aislamiento >= 0f ? simulador.aislamiento : d.Aislamiento;
         amb = simulador.tempAmbiente;
+        modoSel = simulador.modo;                   // se propone el modo del último lote
+        AplicarModo(false);
+    }
+
+    // ---------------- Modo Simular / Manual ----------------
+    void ElegirModo(ModoLote m)
+    {
+        if (m == modoSel) return;
+        modoSel = m;
+        AplicarModo(true);
+    }
+
+    void AplicarModo(bool avisarAjustes)
+    {
+        for (int i = 0; i < fondoModo.Length; i++)
+            fondoModo[i].color = i == (int)modoSel ? ColSel : ColCard;
+
+        // Se guarda antes de tocar los sliders: cambiar min/max dispara onValueChanged si el valor queda fuera
+        float[] antes = { peso, cn, humIni, aisl, amb };
+        bool manual = modoSel == ModoLote.Manual;
+        for (int i = 0; i < 5; i++)
+        {
+            sliders[i].minValue = SliderMin(i);
+            sliders[i].maxValue = SliderMax(i);
+            campos[i].gameObject.SetActive(manual);
+            txtUnidades[i].gameObject.SetActive(manual);
+            txtValores[i].gameObject.SetActive(!manual);
+        }
+
+        // Al volver a Simular, los valores experimentales se recortan a los rangos guiados
+        Refrescar();
+        float[] despues = { peso, cn, humIni, aisl, amb };
+        if (avisarAjustes)
+            for (int i = 0; i < 5; i++)
+                if (!Mathf.Approximately(antes[i], despues[i]))
+                {
+                    Notificador.Mostrar("Algunos valores se ajustaron a los rangos del modo Simular.", TipoMensaje.Info);
+                    break;
+                }
+    }
+
+    bool BloqueadoPorSimular(PerfilComposta p) => modoSel == ModoLote.Simular && p.PesoExagerado;
+
+    // Valor escrito a mano (modo Manual): acepta coma o punto; se limita a los márgenes físicos del modelo
+    void AlEditarCampo(int i, string texto)
+    {
+        if (!RangosParametros.IntentarLeer(texto, out float v))
+        {
+            Notificador.Mostrar($"«{texto}» no es un número válido para {Etiquetas[i]}.", TipoMensaje.Aviso);
+            Refrescar();
+            return;
+        }
+        var r = RangoDe(i);
+        if (!r.Contiene(v))
+        {
+            Notificador.Mostrar($"{Etiquetas[i]} se limitó a {r.Min.ToString("0.##", Inv)} – {r.Max.ToString("0.##", Inv)} (límite del modelo).", TipoMensaje.Info);
+            v = r.Limitar(v);
+        }
+        switch (i)
+        {
+            case 0: peso = v; break;
+            case 1: cn = v; break;
+            case 2: humIni = v; break;
+            case 3: aisl = v; break;
+            default: amb = v; break;
+        }
+        Refrescar();
     }
 
     void ElegirBuild(TipoComposta t)
@@ -192,23 +287,25 @@ public class PanelBuild : MonoBehaviour
         Refrescar();
     }
 
-    static float PasoPeso(float p) => p < 100f ? 1f : p < 1000f ? 5f : p < 10000f ? 50f : 500f;
+    static float PasoPeso(float p) => p < 10f ? 0.5f : p < 100f ? 1f : p < 1000f ? 5f : p < 10000f ? 50f : 500f;
 
+    // Los límites los aplica Refrescar según el modo
     static float Redondear(float p)
     {
-        if (p < 100f) return Mathf.Max(1f, Mathf.Round(p));
+        if (p < 10f) return Mathf.Round(p * 10f) / 10f;
+        if (p < 100f) return Mathf.Round(p);
         if (p < 1000f) return Mathf.Round(p / 5f) * 5f;
         if (p < 10000f) return Mathf.Round(p / 50f) * 50f;
-        return Mathf.Min(20000f, Mathf.Round(p / 500f) * 500f);
+        return Mathf.Round(p / 500f) * 500f;
     }
 
     void Refrescar()
     {
-        peso = Mathf.Clamp(peso, 1f, 20000f);
-        cn = Mathf.Clamp(cn, Min[1], Max[1]);
-        humIni = Mathf.Clamp(humIni, Min[2], Max[2]);
-        aisl = Mathf.Clamp(aisl, Min[3], Max[3]);
-        amb = Mathf.Clamp(amb, Min[4], Max[4]);
+        peso = RangoDe(0).Limitar(peso);
+        cn = RangoDe(1).Limitar(cn);
+        humIni = RangoDe(2).Limitar(humIni);
+        aisl = RangoDe(3).Limitar(aisl);
+        amb = RangoDe(4).Limitar(amb);
 
         var p = PerfilDelFormulario();
         var m = new ModeloComposta(p, 1);
@@ -225,12 +322,22 @@ public class PanelBuild : MonoBehaviour
         txtValores[3].text = "x" + aisl.ToString("F2");
         txtValores[4].text = amb.ToString("F0") + " °C";
 
-        var z = p.ZonaIdeal(Magnitud.Humedad);
-        Banda(0, Mathf.Log10(p.PesoMin), Mathf.Log10(p.PesoMax));
-        Banda(1, 25f, 30f);
-        Banda(2, z.min, z.max);
-        Banda(3, Min[3], Min[3]);
-        Banda(4, Min[4], Min[4]);
+        float[] valores = { peso, cn, humIni, aisl, amb };
+        for (int i = 0; i < 5; i++)
+        {
+            if (!campos[i].isFocused) campos[i].SetTextWithoutNotify(valores[i].ToString("0.##", Inv));
+
+            // Barra verde = rango recomendado; en Manual, un valor fuera de ella se marca en ámbar (no bloquea)
+            var rec = RangosParametros.Recomendado(p, (Parametro)i);
+            if (rec.HasValue)
+            {
+                var r = rec.Value;
+                if (i == 0) Banda(0, Mathf.Log10(r.Min), Mathf.Log10(r.Max)); else Banda(i, r.Min, r.Max);
+            }
+            else Banda(i, SliderMin(i), SliderMin(i));
+            bool fuera = rec.HasValue && !rec.Value.Contiene(valores[i]);
+            campos[i].textComponent.color = fuera ? new Color(1f, 0.75f, 0.35f) : Color.white;
+        }
 
         var tipos = (TipoComposta[])System.Enum.GetValues(typeof(TipoComposta));
         for (int i = 0; i < fondoCards.Length; i++)
@@ -239,8 +346,12 @@ public class PanelBuild : MonoBehaviour
         string fase = m.FaseCalientePosible
             ? $"fase caliente ~{m.TempPlateau:F0} °C"
             : $"no alcanza fase caliente (máx. ~{m.TempPlateau:F0} °C)";
-        txtResumen.text = $"{p.Nombre}  ·  peso recomendado {p.PesoMin:F0}-{p.PesoMax:F0} kg  ·  {fase}" +
-                          (p.PesoExagerado ? "  ·  <color=#ffb454>PESO EXAGERADO</color>" : "");
+        bool bloqueado = BloqueadoPorSimular(p);
+        string aviso = !p.PesoExagerado ? ""
+                     : bloqueado ? "  ·  <color=#ff8a6b>PESO EXAGERADO (ajústalo o usa Manual)</color>"
+                     : "  ·  <color=#ffb454>PESO EXAGERADO (informativo)</color>";
+        txtResumen.text = $"<b>{RangosParametros.Nombre(modoSel)}</b>  ·  {p.Nombre}  ·  peso recomendado {p.PesoMin:F0}-{p.PesoMax:F0} kg  ·  {fase}{aviso}";
+        btnIniciar.interactable = !bloqueado;
         insigniaVentana.SetActive(p.PesoExagerado);
         iconoResumenExagerado.gameObject.SetActive(p.PesoExagerado);
         if (p.PesoExagerado) UIFabrica.UbicarTrasTexto(iconoResumenExagerado, txtResumen);
@@ -248,8 +359,8 @@ public class PanelBuild : MonoBehaviour
 
     void Banda(int i, float a, float b)
     {
-        float t0 = Mathf.InverseLerp(Min[i], Max[i], a);
-        float t1 = Mathf.InverseLerp(Min[i], Max[i], b);
+        float t0 = Mathf.InverseLerp(SliderMin(i), SliderMax(i), a);
+        float t1 = Mathf.InverseLerp(SliderMin(i), SliderMax(i), b);
         bandas[i].anchorMin = new Vector2(t0, 0f);
         bandas[i].anchorMax = new Vector2(t1, 1f);
     }
@@ -258,7 +369,7 @@ public class PanelBuild : MonoBehaviour
     void ConstruirUI()
     {
         var cgo = new GameObject("Canvas Build", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        var canvas = cgo.GetComponent<Canvas>();
+        var canvas = canvasBuild = cgo.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 10;                       // encima de la UI principal
         var sc = cgo.GetComponent<CanvasScaler>();
@@ -278,6 +389,18 @@ public class PanelBuild : MonoBehaviour
 
         Texto(w, "Titulo", new Vector2(0.02f, 0.91f), new Vector2(0.58f, 0.99f), 34, TextAnchor.MiddleLeft, Color.white).text = "Nueva composta";
         insigniaVentana = Insignia(w, new Vector2(0.62f, 0.92f), new Vector2(0.98f, 0.985f));
+
+        // Selector de modo (Simular / Manual)
+        var modos = new[] { ModoLote.Simular, ModoLote.Manual };
+        var nombresModo = new[] { "Simular", "Manual" };
+        for (int i = 0; i < modos.Length; i++)
+        {
+            var m = modos[i];
+            float x0 = 0.24f + i * 0.15f;
+            Boton(w, nombresModo[i], new Vector2(x0, 0.925f), new Vector2(x0 + 0.145f, 0.982f), 22, ColCard, () => ElegirModo(m), out var b);
+            fondoModo[i] = b.GetComponent<Image>();
+        }
+        UIFabrica.IconoInfo(w, AyudaBuild.Modo, new Vector2(0.54f, 0.9535f), new Vector2(0f, 0.5f), new Vector2(8f, 0f));
 
         // 5 builds
         var tipos = (TipoComposta[])System.Enum.GetValues(typeof(TipoComposta));
@@ -318,13 +441,21 @@ public class PanelBuild : MonoBehaviour
             var etiqueta = Texto(w, "Etiqueta", new Vector2(0.02f, bot), new Vector2(0.25f, top), 22, TextAnchor.MiddleLeft, Color.white);
             etiqueta.text = Etiquetas[i];
             UIFabrica.IconoJuntoATexto(etiqueta, AyudaBuild.Parametros[i]);
-            sliders[i] = CrearSlider(w, new Vector2(0.27f, bot), new Vector2(0.72f, top), Min[i], Max[i], v => AlCambiarSlider(idx, v), out bandas[i]);
+            sliders[i] = CrearSlider(w, new Vector2(0.27f, bot), new Vector2(0.72f, top), SliderMin(i), SliderMax(i), v => AlCambiarSlider(idx, v), out bandas[i]);
             txtValores[i] = Texto(w, "Valor", new Vector2(0.73f, bot), new Vector2(0.86f, top), 22, TextAnchor.MiddleLeft, Color.white);
+
+            // Modo Manual: campo para escribir el valor exacto (reemplaza al texto)
+            campos[i] = UIFabrica.Campo(w, "Campo " + Etiquetas[i], new Vector2(0.735f, bot + 0.012f), new Vector2(0.815f, top - 0.012f), "valor", false, 10, 22);
+            campos[i].onEndEdit.AddListener(t => AlEditarCampo(idx, t));
+            txtUnidades[i] = Texto(w, "Unidad", new Vector2(0.81f, bot), new Vector2(0.87f, top), 20, TextAnchor.MiddleLeft, new Color(1, 1, 1, 0.7f));
+            txtUnidades[i].text = Unidades[i];
+            campos[i].gameObject.SetActive(false);
+            txtUnidades[i].gameObject.SetActive(false);
             Boton(w, "-", new Vector2(0.87f, bot + 0.008f), new Vector2(0.915f, top - 0.008f), 28, ColBoton, () => { Paso(idx, -1); }, out _);
             Boton(w, "+", new Vector2(0.925f, bot + 0.008f), new Vector2(0.97f, top - 0.008f), 28, ColBoton, () => { Paso(idx, +1); }, out _);
         }
 
-        Boton(w, "Iniciar composta", new Vector2(0.62f, 0.015f), new Vector2(0.97f, 0.085f), 26, new Color(0.18f, 0.45f, 0.25f), Iniciar, out var btnIniciar);
+        Boton(w, "Iniciar composta", new Vector2(0.62f, 0.015f), new Vector2(0.97f, 0.085f), 26, new Color(0.18f, 0.45f, 0.25f), Iniciar, out btnIniciar);
         Boton(w, "Cancelar", new Vector2(0.02f, 0.015f), new Vector2(0.25f, 0.085f), 24, ColBoton, Cerrar, out btnCancelar);
 
         // Íconos fuera del botón: a la izquierda de "Iniciar" y a la derecha de "Cancelar".

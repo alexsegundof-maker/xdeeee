@@ -85,6 +85,14 @@ namespace Composta.Core
             Limitar();
         }
 
+        // Ajuste manual durante el monitoreo (cambio de clima, traslado de la pila...)
+        public void EstablecerTempAmbiente(float grados)
+        {
+            if (float.IsNaN(grados) || float.IsInfinity(grados)) return;
+            TempAmbiente = grados;
+            Limitar();
+        }
+
         // litros < 0 = riego estándar del perfil (8% del peso). El efecto depende del peso.
         public void Regar(float litros = -1f)
         {

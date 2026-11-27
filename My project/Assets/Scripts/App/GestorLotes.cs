@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using Composta.Core;
 using Composta.Core.Lotes;
@@ -52,7 +52,7 @@ namespace Composta.App
             }
 
             sistemaDelLote = nuevo;
-            LoteActual = Lote.Crear(nuevo.Perfil, sim.semilla, Usuario, svc.Reloj.UtcAhora);
+            LoteActual = Lote.Crear(nuevo.Perfil, sim.semilla, Usuario, svc.Reloj.UtcAhora, sim.modo);
             // Estado inicial de los ajustes que afectan la simulación (necesario para reproducirla)
             Anotar(TipoComando.Automatico, sim.modoAutomatico ? 1f : 0f);
             Anotar(TipoComando.ProbFalla, sim.probFallaPorHora);
@@ -64,10 +64,12 @@ namespace Composta.App
         public bool Reanudar(Lote lote, out string error)
         {
             error = null;
+            if (!svc.Sesion.Activa) { error = "Inicia sesión para abrir un lote."; return false; }
             try
             {
                 var avisos = ReproductorLote.Sanear(lote);
                 var s = ReproductorLote.Reconstruir(lote, out var ultimo);
+                sim.modo = lote.Modo;                     // antes de CargarSistema: los oyentes de AlCargar lo leen
                 sim.CargarSistema(s, ultimo, lote.Semilla);
                 sistemaDelLote = s;
                 LoteActual = lote;

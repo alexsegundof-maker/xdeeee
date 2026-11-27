@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Text;
 
@@ -56,6 +56,7 @@ namespace Composta.Core.Lotes
             Fila("lote", l.Nombre);
             Fila("id", l.Id);
             Fila("estado", l.Estado.ToString());
+            Fila("modo", RangosParametros.Nombre(l.Modo));
             Fila("tipo", l.Tipo.ToString());
             Fila("peso_inicial_kg", l.PesoKg.ToString("F1", C));
             Fila("relacion_cn", l.RelacionCN.ToString("F1", C));

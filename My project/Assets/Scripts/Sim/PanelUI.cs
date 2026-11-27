@@ -30,6 +30,12 @@ public class PanelUI : MonoBehaviour
     // Acciones que resuelve la capa de aplicación (ControlAcceso)
     public event Action PedirAportes;
     public event Action PedirExportar;
+    public event Action PedirAjustes;
+
+    Canvas canvasUI;
+    bool tableroVisible = true;
+    bool ajustesDisponibles;
+    Button btnAjustes;
 
     static readonly Color ColFondo = new Color(0.08f, 0.09f, 0.11f);
     static readonly Color ColPanel = new Color(0.14f, 0.15f, 0.18f);
@@ -76,7 +82,9 @@ public class PanelUI : MonoBehaviour
     void Construir()
     {
         var cgo = new GameObject("Canvas UI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        cgo.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+        canvasUI = cgo.GetComponent<Canvas>();
+        canvasUI.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvasUI.enabled = tableroVisible;
         var sc = cgo.GetComponent<CanvasScaler>();
         sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         sc.referenceResolution = new Vector2(1920, 1080);
@@ -132,8 +140,8 @@ public class PanelUI : MonoBehaviour
         txtAlertas = Texto(panelAl, "Texto", Vector2.zero, Vector2.one, 22, TextAnchor.UpperLeft, Color.white);
         txtAlertas.verticalOverflow = VerticalWrapMode.Truncate;
 
-        // Botones (10 en una fila)
-        const int total = 10;
+        // Botones (11 en una fila)
+        const int total = 11;
         float paso = 0.98f / total, ancho = paso - 0.0075f;
         int i = 0;
         Boton("Voltear", i++, ancho, paso, simulador.Voltear, Permiso.OperarComposta);
@@ -146,6 +154,22 @@ public class PanelUI : MonoBehaviour
         txtGraf = Boton("Gráficas", i++, ancho, paso, () => { if (graficas != null) graficas.CambiarGranularidad(); });
         Boton("Aportes", i++, ancho, paso, () => PedirAportes?.Invoke());
         Boton("Exportar", i++, ancho, paso, () => PedirExportar?.Invoke(), Permiso.Exportar);
+        Boton("Ajustes", i++, ancho, paso, () => PedirAjustes?.Invoke());
+        btnAjustes = UltimoBoton;
+        RefrescarPermisos();
+    }
+
+    // Sin sesión el tablero no se dibuja (no basta con taparlo): lo controla ControlAcceso
+    public void MostrarTablero(bool visible)
+    {
+        tableroVisible = visible;
+        if (canvasUI != null) canvasUI.enabled = visible;
+    }
+
+    // "Ajustes manuales" solo tiene sentido en lotes en modo Manual
+    public void HabilitarAjustes(bool disponible)
+    {
+        ajustesDisponibles = disponible;
         RefrescarPermisos();
     }
 
@@ -160,6 +184,8 @@ public class PanelUI : MonoBehaviour
     {
         foreach (var (boton, permiso) in botonesProtegidos)
             if (boton != null) boton.interactable = permisos == null || permisos(permiso);
+        if (btnAjustes != null)
+            btnAjustes.interactable = ajustesDisponibles && (permisos == null || permisos(Permiso.OperarComposta));
     }
 
     RectTransform Panel(string nombre, Transform padre, Vector2 aMin, Vector2 aMax, Color color)
@@ -186,6 +212,8 @@ public class PanelUI : MonoBehaviour
         return t;
     }
 
+    Button UltimoBoton;
+
     Text Boton(string texto, int indice, float ancho, float paso, UnityAction accion, Permiso? permiso = null)
     {
         float x0 = 0.01f + indice * paso;
@@ -193,6 +221,7 @@ public class PanelUI : MonoBehaviour
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = rt.GetComponent<Image>();
         b.onClick.AddListener(accion);
+        UltimoBoton = b;
         if (permiso.HasValue) botonesProtegidos.Add((b, permiso.Value));
         var t = Texto(rt, "Etiqueta", Vector2.zero, Vector2.one, 20, TextAnchor.MiddleCenter, Color.white);
         t.text = texto;
@@ -229,7 +258,7 @@ public class PanelUI : MonoBehaviour
 
     void ActualizarCabecera(ResultadoPaso r)
     {
-        txtCabecera.text = $"Día {r.Medida.Dias:F1}  ·  {r.Medida.Etapa}  ·  " +
+        txtCabecera.text = $"{RangosParametros.Nombre(simulador.modo)}  ·  Día {r.Medida.Dias:F1}  ·  {r.Medida.Etapa}  ·  " +
                            (simulador.modoAutomatico ? "Automático" : "Manual") +
                            (simulador.pausado ? "  ·  <color=#ffd166>PAUSADO</color>" : "");
     }

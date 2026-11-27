@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
+using Composta.Core;
 using Composta.Core.Lotes;
 using Composta.Core.Persistencia;
 using Composta.Core.Seguridad;
@@ -10,8 +11,8 @@ using UnityEngine.SceneManagement;
 namespace Composta.App
 {
     // Orquesta el flujo de acceso de la app (presentador): login -> elegir/reanudar lote -> uso -> cierre.
-    // Se crea solo al arrancar (no hay que tocar la escena). Para desactivarlo, define el símbolo
-    // COMPOSTA_SIN_LOGIN en Project Settings > Player > Scripting Define Symbols.
+    // Se crea solo al arrancar (no hay que tocar la escena). El símbolo COMPOSTA_SIN_LOGIN lo desactiva
+    // SOLO dentro del Editor (para depurar): en una build el login es siempre obligatorio.
     [DefaultExecutionOrder(-500)]
     public sealed class ControlAcceso : MonoBehaviour
     {
@@ -32,12 +33,13 @@ namespace Composta.App
         PanelSesion barra;
         PanelAportes aportes;
         PanelUsuarios usuarios;
+        PanelAjustesManuales ajustes;
 
         Usuario pendienteDeCambio;
         float ultimaActividad;
         bool pausaAlSalir;
 
-#if !COMPOSTA_SIN_LOGIN
+#if !(COMPOSTA_SIN_LOGIN && UNITY_EDITOR)
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Arrancar()
         {
@@ -56,6 +58,7 @@ namespace Composta.App
             barra = gameObject.AddComponent<PanelSesion>();
             aportes = gameObject.AddComponent<PanelAportes>();
             usuarios = gameObject.AddComponent<PanelUsuarios>();
+            ajustes = gameObject.AddComponent<PanelAjustesManuales>();
 
             login.EnviarLogin += AlEnviarLogin;
             login.EnviarConfiguracion += AlEnviarConfiguracion;
@@ -88,6 +91,7 @@ namespace Composta.App
             panelBuild = FindAnyObjectByType<PanelBuild>();
 
             sim.pausado = true;
+            MostrarEspacioDeTrabajo(false);          // sin sesión no se dibuja el tablero
             UIFabrica.AsegurarEventSystem();
             Cablear();
             IniciarFlujo();
@@ -112,6 +116,7 @@ namespace Composta.App
 
             lotes?.Dispose();
             lotes = new GestorLotes(sim, svc);
+            lotes.AlCambiarLote += l => { if (panelUI != null) panelUI.HabilitarAjustes(l != null && l.Modo == ModoLote.Manual); };
 
             if (panelUI != null)
             {
@@ -119,6 +124,8 @@ namespace Composta.App
                 panelUI.PedirAportes += AbrirAportes;
                 panelUI.PedirExportar -= Exportar;
                 panelUI.PedirExportar += Exportar;
+                panelUI.PedirAjustes -= AbrirAjustes;
+                panelUI.PedirAjustes += AbrirAjustes;
             }
         }
 
@@ -214,6 +221,7 @@ namespace Composta.App
             svc.Sesion.Iniciar(u, svc.Reloj.UtcAhora);
             ultimaActividad = Time.unscaledTime;
             login.Ocultar();
+            MostrarEspacioDeTrabajo(true);
             barra.Mostrar(u);
             AplicarPermisos();
             Notificador.Mostrar($"Hola, {u.NombreVisible}.", TipoMensaje.Exito);
@@ -298,6 +306,23 @@ namespace Composta.App
             }
         }
 
+        void MostrarEspacioDeTrabajo(bool visible)
+        {
+            if (panelUI != null) panelUI.MostrarTablero(visible);
+            if (panelBuild != null) panelBuild.MostrarHud(visible);
+        }
+
+        void AbrirAjustes()
+        {
+            if (!svc.Sesion.Puede(Permiso.OperarComposta)) return;
+            if (lotes.LoteActual == null || lotes.LoteActual.Modo != ModoLote.Manual)
+            {
+                Notificador.Mostrar("Los ajustes manuales están disponibles en lotes creados en modo Manual.", TipoMensaje.Info);
+                return;
+            }
+            ajustes.Abrir(sim);
+        }
+
         void AbrirAportes()
         {
             if (!svc.Sesion.Activa) return;
@@ -324,6 +349,8 @@ namespace Composta.App
             if (panelBuild != null) panelBuild.Ocultar();
             aportes.Cerrar();
             usuarios.Cerrar();
+            ajustes.Cerrar();
+            MostrarEspacioDeTrabajo(false);
             Notificador.CerrarDialogos();
             svc.Sesion.Cerrar();
             barra.Ocultar();

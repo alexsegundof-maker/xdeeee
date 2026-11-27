@@ -1,4 +1,4 @@
-using Composta.Core;
+﻿using Composta.Core;
 
 // Textos de ayuda de la ventana "Nueva composta". Centralizados para editarlos sin tocar la UI.
 // Los rangos de peso salen del perfil real: si cambias PerfilComposta, la ayuda se actualiza sola.
@@ -18,6 +18,12 @@ public static class AyudaBuild
             default: return "Con lombrices. Se mantiene fría (máx. ~28 °C) y más húmeda.";
         }
     }
+
+    public const string Modo =
+        "Simular: modo guiado. Rangos recomendados, el aviso PESO EXAGERADO bloquea el inicio y el control automático " +
+        "voltea y riega por ti.\n\nManual: variables libres para experimentar (valores fuera de rango, escritos a mano). " +
+        "Los avisos solo informan, el control automático empieza apagado y durante el monitoreo puedes regar con litros " +
+        "exactos o cambiar la temperatura ambiente. En ambos modos el simulador calcula temperatura, humedad y fases en tiempo real.";
 
     public const string Resumen =
         "Indica qué pasará con la configuración actual. Si dice 'No alcanza fase caliente (máx. ~28 °C)', " +

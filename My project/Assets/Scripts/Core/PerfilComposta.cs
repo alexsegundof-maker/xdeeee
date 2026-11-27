@@ -93,8 +93,9 @@ namespace Composta.Core
         {
             // NaN/Infinito no sobreviven a Math.Min/Max: se reemplazan por el peso por defecto
             if (float.IsNaN(kg) || float.IsInfinity(kg)) kg = PesoDefecto;
+            // Peso libre: dentro de los límites físicos del modelo (modo Manual). Antes el tope era 1-20000 kg.
             PesoKg = permitirExagerado
-                ? Math.Max(1f, Math.Min(kg, 20000f))
+                ? Math.Max(RangosParametros.PesoAbsMin, Math.Min(kg, RangosParametros.PesoAbsMax))
                 : Math.Max(PesoMin, Math.Min(kg, PesoMax));
         }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 
@@ -8,7 +8,8 @@ namespace Composta.Core.Lotes
 
     // Acciones hechas por personas. Las del control automático NO se guardan:
     // se vuelven a producir solas al reproducir el lote (el modelo es determinista).
-    public enum TipoComando { Voltear = 0, Regar = 1, Automatico = 2, ProbFalla = 3, InyectarFalla = 4, RepararSensores = 5 }
+    // Los valores numéricos se guardan en disco: solo se agregan al final
+    public enum TipoComando { Voltear = 0, Regar = 1, Automatico = 2, ProbFalla = 3, InyectarFalla = 4, RepararSensores = 5, TempAmbiente = 6 }
 
     public enum TipoMaterial { Verde = 0, Cafe = 1, Mixto = 2 }
 
@@ -44,6 +45,7 @@ namespace Composta.Core.Lotes
         public string Id;
         public string Nombre;
         public EstadoLote Estado;
+        public ModoLote Modo;         // lotes guardados antes de existir este campo se leen como Simular (0)
 
         // Parámetros del perfil YA resueltos (nunca -1), para poder reconstruirlo idéntico
         public TipoComposta Tipo;
@@ -69,11 +71,13 @@ namespace Composta.Core.Lotes
             }
         }
 
-        public static Lote Crear(PerfilComposta perfil, int semilla, string usuario, DateTime ahoraUtc)
+        public static Lote Crear(PerfilComposta perfil, int semilla, string usuario, DateTime ahoraUtc,
+                                 ModoLote modo = ModoLote.Simular)
         {
             if (perfil == null) throw new ArgumentNullException(nameof(perfil));
             return new Lote
             {
+                Modo = modo,
                 Id = Guid.NewGuid().ToString("N"),
                 Nombre = string.Format(CultureInfo.InvariantCulture, "{0} {1:F0} kg · {2:yyyy-MM-dd HH:mm}",
                                        perfil.Nombre, perfil.PesoKg, ahoraUtc.ToLocalTime()),

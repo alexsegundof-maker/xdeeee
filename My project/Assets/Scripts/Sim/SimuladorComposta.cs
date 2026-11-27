@@ -26,6 +26,10 @@ public class SimuladorComposta : MonoBehaviour
     [Tooltip("-1 = usar el valor del perfil")] public float aislamiento = -1f;
 
 
+    [Header("Modo del lote")]
+    [Tooltip("Simular = guiado con rangos recomendados; Manual = variables libres. Lo fija la ventana Nueva composta.")]
+    public ModoLote modo = ModoLote.Simular;
+
     [Header("Control y sensores")]
     public bool modoAutomatico = false;
     [Range(0f, 0.02f)] public float probFallaPorHora = 0f;
@@ -129,9 +133,13 @@ public class SimuladorComposta : MonoBehaviour
         Reiniciar();
     }
 
+    // Candado de sesión: sin una sesión válida no avanza ni una hora simulada, aunque algo quite la pausa
+    public bool SesionPermiteSimular => Autorizador == null || Autorizador(Permiso.VerPanel);
+
     void Update()
     {
         if (Sistema == null) return;
+        if (!SesionPermiteSimular) return;
         if (GuardiaEntrada.AtajosPermitidos) LeerTeclas();
         SincronizarAjustes();
         if (pausado) return;
@@ -243,6 +251,36 @@ public class SimuladorComposta : MonoBehaviour
         if (!Autorizado(Permiso.OperarComposta, "regar la composta")) return;
         Sistema.Regar();
         AlComando?.Invoke(TipoComando.Regar, -1f);
+    }
+
+    // ---- Ajustes manuales durante el monitoreo (los usa PanelAjustesManuales) ----
+    public const float LitrosMin = 0.1f, LitrosMax = 100000f;
+
+    public bool RegarLitros(float litros)
+    {
+        if (!Autorizado(Permiso.OperarComposta, "regar la composta")) return false;
+        if (float.IsNaN(litros) || litros < LitrosMin || litros > LitrosMax)
+        {
+            Informar($"Los litros deben estar entre {LitrosMin} y {LitrosMax:F0}.", TipoMensaje.Aviso);
+            return false;
+        }
+        Sistema.Regar(litros);
+        AlComando?.Invoke(TipoComando.Regar, litros);
+        return true;
+    }
+
+    public bool CambiarTempAmbiente(float grados)
+    {
+        if (!Autorizado(Permiso.OperarComposta, "cambiar la temperatura ambiente")) return false;
+        var rango = RangosParametros.De(ModoLote.Manual, Parametro.TempAmbiente);
+        if (!rango.Contiene(grados))
+        {
+            Informar($"La temperatura ambiente debe estar entre {rango.Min:F0} y {rango.Max:F0} °C.", TipoMensaje.Aviso);
+            return false;
+        }
+        Modelo.EstablecerTempAmbiente(grados);
+        AlComando?.Invoke(TipoComando.TempAmbiente, grados);
+        return true;
     }
 
     public void AlternarPausa() => pausado = !pausado;

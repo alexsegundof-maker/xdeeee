@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Composta.Core.Lotes
@@ -30,12 +30,15 @@ namespace Composta.Core.Lotes
             if (l.Aportes == null) l.Aportes = new List<Aporte>();
             if (!Enum.IsDefined(typeof(TipoComposta), l.Tipo)) { l.Tipo = TipoComposta.PilaAbierta; avisos.Add("tipo de composta desconocido"); }
 
+            if (!Enum.IsDefined(typeof(ModoLote), l.Modo)) { l.Modo = ModoLote.Simular; avisos.Add("modo desconocido"); }
+
+            // Se valida contra los rangos del modo Manual (los más amplios): un lote Simular siempre cabe
             var defecto = PerfilComposta.Crear(l.Tipo);
-            l.PesoKg = Valido(l.PesoKg, 1f, 20000f, defecto.PesoDefecto, "peso", avisos);
-            l.RelacionCN = Valido(l.RelacionCN, 5f, 100f, defecto.RelacionCN, "relación C/N", avisos);
-            l.HumedadInicial = Valido(l.HumedadInicial, 0f, 100f, defecto.HumedadInicial, "humedad inicial", avisos);
-            l.Aislamiento = Valido(l.Aislamiento, 0.1f, 5f, defecto.Aislamiento, "aislamiento", avisos);
-            l.TempAmbiente = Valido(l.TempAmbiente, -20f, 50f, defecto.TempAmbiente, "temperatura ambiente", avisos);
+            l.PesoKg = Valido(l.PesoKg, Parametro.Peso, defecto.PesoDefecto, "peso", avisos);
+            l.RelacionCN = Valido(l.RelacionCN, Parametro.RelacionCN, defecto.RelacionCN, "relación C/N", avisos);
+            l.HumedadInicial = Valido(l.HumedadInicial, Parametro.HumedadInicial, defecto.HumedadInicial, "humedad inicial", avisos);
+            l.Aislamiento = Valido(l.Aislamiento, Parametro.Aislamiento, defecto.Aislamiento, "aislamiento", avisos);
+            l.TempAmbiente = Valido(l.TempAmbiente, Parametro.TempAmbiente, defecto.TempAmbiente, "temperatura ambiente", avisos);
 
             if (l.TicksSimulados < 0 || l.TicksSimulados > MaxTicks)
             {
@@ -84,12 +87,13 @@ namespace Composta.Core.Lotes
                 case TipoComando.ProbFalla: s.Sensores.ProbFalla = c.Valor; break;
                 case TipoComando.InyectarFalla: s.Sensores.InyectarAleatoria(); break;
                 case TipoComando.RepararSensores: s.Sensores.RepararTodo(); break;
+                case TipoComando.TempAmbiente: s.Modelo.EstablecerTempAmbiente(c.Valor); break;
             }
         }
 
-        static float Valido(float v, float min, float max, float defecto, string nombre, List<string> avisos)
+        static float Valido(float v, Parametro p, float defecto, string nombre, List<string> avisos)
         {
-            if (float.IsNaN(v) || float.IsInfinity(v) || v < min || v > max)
+            if (!RangosParametros.De(ModoLote.Manual, p).Contiene(v) || float.IsInfinity(v))
             {
                 avisos.Add($"{nombre} inválido ({v})");
                 return defecto;
