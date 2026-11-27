@@ -1,10 +1,12 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Composta.Core;
 
 public static class DibujanteGrafica
 {
-    public static Texture2D Dibujar(Serie s, int w, int h, (float min, float max)? zona = null)
+    // reutilizar: textura previa del mismo tamaño para evitar crear/destruir una por refresco
+    public static Texture2D Dibujar(Serie s, int w, int h, (float min, float max)? zona = null, Texture2D reutilizar = null)
     {
+        w = Mathf.Max(w, 32); h = Mathf.Max(h, 32);       // con tamaños menores los márgenes quedan invertidos
         var buf = new Color32[w * h];
         Rellenar(buf, w, h, 0, 0, w - 1, h - 1, new Color32(24, 24, 28, 255));
 
@@ -28,7 +30,7 @@ public static class DibujanteGrafica
         // Zona ideal
         Rellenar(buf, w, h, x0, Y(zMin), x1, Y(zMax), new Color32(60, 180, 75, 60));
 
-        // Cuadr�cula (4 divisiones) y ejes
+        // Cuadrícula (4 divisiones) y ejes
         var rejilla = new Color32(50, 50, 58, 255);
         for (int i = 1; i < 4; i++)
         {
@@ -50,7 +52,7 @@ public static class DibujanteGrafica
             Linea(buf, w, h, cx, Y(pts[i].Min), cx, Y(pts[i].Max), tenue, 1);
         }
 
-        // L�nea del promedio
+        // Línea del promedio
         for (int i = 0; i < pts.Count; i++)
         {
             int cx = X(pts[i].X), cy = Y(pts[i].Prom);
@@ -58,8 +60,13 @@ public static class DibujanteGrafica
             else Rellenar(buf, w, h, cx - 2, cy - 2, cx + 2, cy + 2, c);
         }
 
-        var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Point;
+        var tex = reutilizar;
+        if (tex == null || tex.width != w || tex.height != h)
+        {
+            if (tex != null) Object.Destroy(tex);
+            tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+        }
         tex.SetPixels32(buf);
         tex.Apply();
         return tex;
@@ -103,7 +110,7 @@ public static class DibujanteGrafica
             }
     }
 
-    // L�nea de Bresenham
+    // Línea de Bresenham
     static void Linea(Color32[] buf, int w, int h, int x0, int y0, int x1, int y1, Color32 c, int grosor)
     {
         int dx = Mathf.Abs(x1 - x0), dy = -Mathf.Abs(y1 - y0);

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Composta.Core
 {
@@ -82,7 +82,7 @@ namespace Composta.Core
             Predictor.Reiniciar();
         }
 
-        // litros < 0 = riego est�ndar del perfil
+        // litros < 0 = riego estándar del perfil
         public void Regar(float litros = -1f)
         {
             Modelo.Regar(litros);

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
@@ -13,7 +13,7 @@ namespace Composta.Core
 
         public IEnumerable<Alerta> Activas => activas.Values;
 
-        // Recibe TODAS las alertas del tick: de reglas, de sensores y de predicci�n
+        // Recibe TODAS las alertas del tick: de reglas, de sensores y de predicción
         public List<EventoAlerta> Actualizar(IEnumerable<Alerta> actuales)
         {
             var eventos = new List<EventoAlerta>();

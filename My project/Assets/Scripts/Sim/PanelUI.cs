@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Events;
@@ -6,6 +7,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using Composta.Core;
+using Composta.Core.Seguridad;
 
 public class PanelUI : MonoBehaviour
 {
@@ -19,6 +21,15 @@ public class PanelUI : MonoBehaviour
     readonly Image[] fondoCard = new Image[4];
     readonly RawImage[] imgGrafica = new RawImage[4];
     int tickMostrado = -1;
+    bool pausaMostrada, autoMostrado;
+
+    // Botones protegidos por permiso (se habilitan según el rol de la sesión)
+    readonly List<(Button boton, Permiso permiso)> botonesProtegidos = new List<(Button, Permiso)>();
+    Func<Permiso, bool> permisos;
+
+    // Acciones que resuelve la capa de aplicación (ControlAcceso)
+    public event Action PedirAportes;
+    public event Action PedirExportar;
 
     static readonly Color ColFondo = new Color(0.08f, 0.09f, 0.11f);
     static readonly Color ColPanel = new Color(0.14f, 0.15f, 0.18f);
@@ -28,20 +39,37 @@ public class PanelUI : MonoBehaviour
 
     void Start()
     {
-        if (simulador == null) simulador = FindFirstObjectByType<SimuladorComposta>();
-        if (graficas == null) graficas = FindFirstObjectByType<GeneradorGraficas>();
+        if (simulador == null) simulador = FindAnyObjectByType<SimuladorComposta>();
+        if (graficas == null) graficas = FindAnyObjectByType<GeneradorGraficas>();
+        if (simulador == null)
+        {
+            Debug.LogError("PanelUI: no hay un SimuladorComposta en la escena.");
+            enabled = false;
+            return;
+        }
         if (graficas != null) graficas.mostrarEnPantalla = false;   // la UI las dibuja
 
         fuente = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         CrearEventSystem();
         Construir();
+        simulador.AlCargar += AlCambiarSistema;
+        simulador.AlReiniciar += AlCambiarSistema;
     }
+
+    void OnDestroy()
+    {
+        if (simulador == null) return;
+        simulador.AlCargar -= AlCambiarSistema;
+        simulador.AlReiniciar -= AlCambiarSistema;
+    }
+
+    void AlCambiarSistema(SistemaComposta _) => Invalidar();
 
     // ---------------- Construcción ----------------
     void CrearEventSystem()
     {
         // Con el Input System nuevo se necesita este módulo (el estándar da error)
-        if (FindFirstObjectByType<EventSystem>() == null)
+        if (FindAnyObjectByType<EventSystem>() == null)
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
     }
 
@@ -59,7 +87,9 @@ public class PanelUI : MonoBehaviour
 
         // Barra superior
         var barra = Panel("Barra", raiz, new Vector2(0.01f, 0.935f), new Vector2(0.99f, 0.99f), ColPanel);
-        txtCabecera = Texto(barra, "Cabecera", Vector2.zero, Vector2.one, 30, TextAnchor.MiddleLeft, Color.white);
+        // La cabecera ocupa la parte izquierda: el centro es de la sesión y la derecha de "Nueva composta"
+        txtCabecera = Texto(barra, "Cabecera", Vector2.zero, new Vector2(0.40f, 1f), 26, TextAnchor.MiddleLeft, Color.white);
+        txtCabecera.resizeTextForBestFit = true; txtCabecera.resizeTextMinSize = 14; txtCabecera.resizeTextMaxSize = 26;
 
         // 4 tarjetas (izquierda)
         for (int m = 0; m < 4; m++)
@@ -102,17 +132,34 @@ public class PanelUI : MonoBehaviour
         txtAlertas = Texto(panelAl, "Texto", Vector2.zero, Vector2.one, 22, TextAnchor.UpperLeft, Color.white);
         txtAlertas.verticalOverflow = VerticalWrapMode.Truncate;
 
-        // Botones
-        float ancho = 0.115f, paso = 0.1225f;
+        // Botones (10 en una fila)
+        const int total = 10;
+        float paso = 0.98f / total, ancho = paso - 0.0075f;
         int i = 0;
-        Boton("Voltear", i++, ancho, paso, simulador.Voltear);
-        Boton("Regar", i++, ancho, paso, simulador.Regar);
+        Boton("Voltear", i++, ancho, paso, simulador.Voltear, Permiso.OperarComposta);
+        Boton("Regar", i++, ancho, paso, simulador.Regar, Permiso.OperarComposta);
         txtPausa = Boton("Pausa", i++, ancho, paso, simulador.AlternarPausa);
         txtVel = Boton("Velocidad", i++, ancho, paso, simulador.CambiarVelocidad);
-        txtModo = Boton("Modo", i++, ancho, paso, simulador.AlternarAutomatico);
-        Boton("Falla sensor", i++, ancho, paso, simulador.InyectarFalla);
-        Boton("Reparar", i++, ancho, paso, simulador.RepararSensores);
+        txtModo = Boton("Modo", i++, ancho, paso, simulador.AlternarAutomatico, Permiso.OperarComposta);
+        Boton("Falla sensor", i++, ancho, paso, simulador.InyectarFalla, Permiso.InyectarFallas);
+        Boton("Reparar", i++, ancho, paso, simulador.RepararSensores, Permiso.RepararSensores);
         txtGraf = Boton("Gráficas", i++, ancho, paso, () => { if (graficas != null) graficas.CambiarGranularidad(); });
+        Boton("Aportes", i++, ancho, paso, () => PedirAportes?.Invoke());
+        Boton("Exportar", i++, ancho, paso, () => PedirExportar?.Invoke(), Permiso.Exportar);
+        RefrescarPermisos();
+    }
+
+    // La llama ControlAcceso al iniciar sesión. Puede llegar antes o después de Start.
+    public void AplicarPermisos(Func<Permiso, bool> puede)
+    {
+        permisos = puede;
+        RefrescarPermisos();
+    }
+
+    void RefrescarPermisos()
+    {
+        foreach (var (boton, permiso) in botonesProtegidos)
+            if (boton != null) boton.interactable = permisos == null || permisos(permiso);
     }
 
     RectTransform Panel(string nombre, Transform padre, Vector2 aMin, Vector2 aMax, Color color)
@@ -139,14 +186,15 @@ public class PanelUI : MonoBehaviour
         return t;
     }
 
-    Text Boton(string texto, int indice, float ancho, float paso, UnityAction accion)
+    Text Boton(string texto, int indice, float ancho, float paso, UnityAction accion, Permiso? permiso = null)
     {
         float x0 = 0.01f + indice * paso;
         var rt = Panel("Btn " + texto, raiz, new Vector2(x0, 0.015f), new Vector2(x0 + ancho, 0.085f), new Color(0.22f, 0.28f, 0.40f));
         var b = rt.gameObject.AddComponent<Button>();
         b.targetGraphic = rt.GetComponent<Image>();
         b.onClick.AddListener(accion);
-        var t = Texto(rt, "Etiqueta", Vector2.zero, Vector2.one, 22, TextAnchor.MiddleCenter, Color.white);
+        if (permiso.HasValue) botonesProtegidos.Add((b, permiso.Value));
+        var t = Texto(rt, "Etiqueta", Vector2.zero, Vector2.one, 20, TextAnchor.MiddleCenter, Color.white);
         t.text = texto;
         return t;
     }
@@ -162,19 +210,35 @@ public class PanelUI : MonoBehaviour
         if (graficas != null) txtGraf.text = "Gráficas: " + graficas.granularidad;
 
         var r = simulador.Ultimo;
-        if (r == null || r.Medida.Tick == tickMostrado) return;
-        tickMostrado = r.Medida.Tick;
+        if (r == null) return;
 
+        // Antes la cabecera solo se actualizaba con cada hora simulada: al pausar nunca mostraba "PAUSADO"
+        bool cambioEstado = simulador.pausado != pausaMostrada || simulador.modoAutomatico != autoMostrado;
+        if (r.Medida.Tick == tickMostrado && !cambioEstado) return;
+        bool tickNuevo = r.Medida.Tick != tickMostrado;
+        tickMostrado = r.Medida.Tick;
+        pausaMostrada = simulador.pausado;
+        autoMostrado = simulador.modoAutomatico;
+
+        ActualizarCabecera(r);
+        if (!tickNuevo) return;
         ActualizarTelemetria(r);
         ActualizarAlertas();
         ActualizarGraficas();
     }
 
+    void ActualizarCabecera(ResultadoPaso r)
+    {
+        txtCabecera.text = $"Día {r.Medida.Dias:F1}  ·  {r.Medida.Etapa}  ·  " +
+                           (simulador.modoAutomatico ? "Automático" : "Manual") +
+                           (simulador.pausado ? "  ·  <color=#ffd166>PAUSADO</color>" : "");
+    }
+
+    // Tras reanudar un lote o crear uno nuevo, forzar el redibujado completo
+    public void Invalidar() => tickMostrado = -1;
+
     void ActualizarTelemetria(ResultadoPaso r)
     {
-        txtCabecera.text = $"Día {r.Medida.Dias:F1}   |   Etapa: {r.Medida.Etapa}   |   " +
-                           (simulador.modoAutomatico ? "Control automático" : "Control manual") +
-                           (simulador.pausado ? "   |   PAUSADO" : "");
 
         for (int m = 0; m < 4; m++)
         {
@@ -210,8 +274,8 @@ public class PanelUI : MonoBehaviour
         foreach (var a in lista)
         {
             string col = a.Nivel == Nivel.Critico ? "#ff6b6b" : "#ffd166";
-            string tipo = a.Variable.StartsWith("Sensor") ? "SENSOR"
-                        : a.Variable.StartsWith("Predicción") ? "PREDICCIÓN" : "ALERTA";
+            string tipo = a.Variable.StartsWith("Sensor", StringComparison.Ordinal) ? "SENSOR"
+                        : a.Variable.StartsWith("Predicción", StringComparison.Ordinal) ? "PREDICCIÓN" : "ALERTA";
             sb.Append($"<color={col}>[{tipo}]</color> {a.Mensaje}");
             if (!string.IsNullOrEmpty(a.Accion)) sb.Append($"   →   <b>{a.Accion}</b>");
             sb.AppendLine();

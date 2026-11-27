@@ -1,15 +1,17 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
+using Composta.App;
 using Composta.Core;
+using Composta.Core.Seguridad;
 
 public class PanelBuild : MonoBehaviour
 {
     public SimuladorComposta simulador;
 
-    [Header("Iconos (opcional). Orden: Doméstica, Cerrada, Pila abierta, Industrial, Vermicomposta")]
+    [Header("Iconos (opcional). Orden: DomÃ©stica, Cerrada, Pila abierta, Industrial, Vermicomposta")]
     public Sprite[] iconosBuild = new Sprite[5];
     public Sprite iconoPesoExagerado;               // el caballo
 
@@ -22,7 +24,7 @@ public class PanelBuild : MonoBehaviour
     Font fuente;
     Transform raiz;
     GameObject ventana, insigniaHud, insigniaVentana;
-    Button btnCancelar;
+    Button btnCancelar, btnNueva;
     Text txtResumen;
     readonly Image[] fondoCards = new Image[5];
     readonly Slider[] sliders = new Slider[5];
@@ -31,7 +33,7 @@ public class PanelBuild : MonoBehaviour
     bool pausaPrevia;
 
     const float LogMax = 4.30103f;       // log10(20000)
-    static readonly string[] Etiquetas = { "Peso", "Relación C/N", "Humedad inicial", "Aislamiento", "Temp. ambiente" };
+    static readonly string[] Etiquetas = { "Peso", "RelaciÃ³n C/N", "Humedad inicial", "Aislamiento", "Temp. ambiente" };
     static readonly float[] Min = { 0f, 10f, 20f, 0.5f, 0f };
     static readonly float[] Max = { LogMax, 60f, 90f, 2f, 40f };
 
@@ -42,13 +44,51 @@ public class PanelBuild : MonoBehaviour
 
     void Start()
     {
-        if (simulador == null) simulador = FindFirstObjectByType<SimuladorComposta>();
+        if (simulador == null) simulador = FindAnyObjectByType<SimuladorComposta>();
+        if (simulador == null)
+        {
+            Debug.LogError("PanelBuild: no hay un SimuladorComposta en la escena.");
+            enabled = false;
+            return;
+        }
         fuente = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (FindFirstObjectByType<EventSystem>() == null)
+        if (FindAnyObjectByType<EventSystem>() == null)
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
         ConstruirUI();
-        if (abrirAlIniciar) Abrir(true); else ventana.SetActive(false);
+        // Con control de acceso, la ventana la abre ControlAcceso despuÃ©s del login
+        bool hayLogin = FindAnyObjectByType<ControlAcceso>() != null;
+        ventana.SetActive(false);
+        if (abrirAlIniciar && !hayLogin) Abrir(true);
+        btnNueva.interactable = permitirCrear;
+    }
+
+    void OnDestroy() => GuardiaEntrada.Liberar(this);
+
+    // ---------------- API para la capa de aplicaciÃ³n ----------------
+    bool permitirCrear = true;
+    public bool Abierta => ventana != null && ventana.activeSelf;
+
+    // obligatorio = sin botÃ³n Cancelar (no hay lote al que volver)
+    public void AbrirFormulario(bool obligatorio)
+    {
+        if (ventana == null || !permitirCrear) return;
+        Abrir(obligatorio);
+    }
+
+    public void PermitirCrear(bool valor)
+    {
+        permitirCrear = valor;
+        if (btnNueva != null) btnNueva.interactable = valor;
+        if (!valor && Abierta) Ocultar();
+    }
+
+    // Cierra sin tocar la pausa (la gestiona quien llama, p. ej. al cerrar sesiÃ³n)
+    public void Ocultar()
+    {
+        if (ventana == null) return;
+        ventana.SetActive(false);
+        GuardiaEntrada.Liberar(this);
     }
 
     void Update()
@@ -60,6 +100,8 @@ public class PanelBuild : MonoBehaviour
     // ---------------- Abrir / cerrar / aplicar ----------------
     void Abrir(bool inicio)
     {
+        if (Abierta) return;                            // evita perder la pausa previa al abrir dos veces
+        GuardiaEntrada.Bloquear(this);                  // los atajos (Espacio, V...) no actÃºan detrÃ¡s del modal
         pausaPrevia = simulador.pausado;
         simulador.pausado = true;
         CargarDesdeSimulador();
@@ -71,11 +113,16 @@ public class PanelBuild : MonoBehaviour
     void Cerrar()
     {
         simulador.pausado = pausaPrevia;
-        ventana.SetActive(false);
+        Ocultar();
     }
 
     void Iniciar()
     {
+        if (!simulador.PuedeHacer(Permiso.CrearLote))
+        {
+            Notificador.Mostrar("Tu rol no permite crear compostas nuevas.", TipoMensaje.Aviso);
+            return;
+        }
         simulador.tipo = tipoSel;
         simulador.pesoKg = peso;
         simulador.relacionCN = cn;
@@ -85,7 +132,7 @@ public class PanelBuild : MonoBehaviour
         simulador.permitirPesoExagerado = true;
         simulador.Reiniciar();
         simulador.pausado = false;
-        ventana.SetActive(false);
+        Ocultar();
     }
 
     void CargarDesdeSimulador()
@@ -172,7 +219,7 @@ public class PanelBuild : MonoBehaviour
         txtValores[1].text = cn.ToString("F0") + " : 1";
         txtValores[2].text = humIni.ToString("F0") + " %";
         txtValores[3].text = "x" + aisl.ToString("F2");
-        txtValores[4].text = amb.ToString("F0") + " °C";
+        txtValores[4].text = amb.ToString("F0") + " Â°C";
 
         var z = p.ZonaIdeal(Magnitud.Humedad);
         Banda(0, Mathf.Log10(p.PesoMin), Mathf.Log10(p.PesoMax));
@@ -186,10 +233,10 @@ public class PanelBuild : MonoBehaviour
             fondoCards[i].color = tipos[i] == tipoSel ? ColSel : ColCard;
 
         string fase = m.FaseCalientePosible
-            ? $"fase caliente ~{m.TempPlateau:F0} °C"
-            : $"no alcanza fase caliente (máx. ~{m.TempPlateau:F0} °C)";
-        txtResumen.text = $"{p.Nombre}  ·  peso recomendado {p.PesoMin:F0}-{p.PesoMax:F0} kg  ·  {fase}" +
-                          (p.PesoExagerado ? "  ·  <color=#ffb454>PESO EXAGERADO</color>" : "");
+            ? $"fase caliente ~{m.TempPlateau:F0} Â°C"
+            : $"no alcanza fase caliente (mÃ¡x. ~{m.TempPlateau:F0} Â°C)";
+        txtResumen.text = $"{p.Nombre}  Â·  peso recomendado {p.PesoMin:F0}-{p.PesoMax:F0} kg  Â·  {fase}" +
+                          (p.PesoExagerado ? "  Â·  <color=#ffb454>PESO EXAGERADO</color>" : "");
         insigniaVentana.SetActive(p.PesoExagerado);
     }
 
@@ -201,7 +248,7 @@ public class PanelBuild : MonoBehaviour
         bandas[i].anchorMax = new Vector2(t1, 1f);
     }
 
-    // ---------------- Construcción de la UI ----------------
+    // ---------------- ConstrucciÃ³n de la UI ----------------
     void ConstruirUI()
     {
         var cgo = new GameObject("Canvas Build", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -215,11 +262,11 @@ public class PanelBuild : MonoBehaviour
         raiz = cgo.transform;
 
         // --- HUD permanente (esquina superior derecha) ---
-        Boton(raiz, "Nueva composta", new Vector2(0.835f, 0.943f), new Vector2(0.985f, 0.982f), 20, ColBoton, () => Abrir(false), out _);
+        Boton(raiz, "Nueva composta", new Vector2(0.835f, 0.943f), new Vector2(0.985f, 0.982f), 20, ColBoton, () => Abrir(false), out btnNueva);
         insigniaHud = Insignia(raiz, new Vector2(0.66f, 0.943f), new Vector2(0.825f, 0.982f));
         insigniaHud.SetActive(false);
 
-        // --- Ventana de selección ---
+        // --- Ventana de selecciÃ³n ---
         ventana = Panel("Ventana", raiz, Vector2.zero, Vector2.one, new Color(0f, 0f, 0f, 0.78f)).gameObject;
         var w = Panel("Marco", ventana.transform, new Vector2(0.06f, 0.06f), new Vector2(0.94f, 0.94f), ColPanel);
 

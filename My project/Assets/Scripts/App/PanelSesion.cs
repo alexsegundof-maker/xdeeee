@@ -1,0 +1,43 @@
+using System;
+using Composta.Core.Seguridad;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Composta.App
+{
+    // Franja en la barra superior: quién está conectado + "Cuenta" + "Cerrar sesión"
+    public sealed class PanelSesion : MonoBehaviour
+    {
+        public event Action PedirCuenta;
+        public event Action PedirSalir;
+
+        RectTransform raiz;
+        Text txtUsuario;
+        Button btnCuenta;
+
+        public void Mostrar(Usuario u)
+        {
+            Asegurar();
+            txtUsuario.text = $"{UIFabrica.SinRich(u.NombreVisible)}  <color=#9aa3b5>· {PoliticaAcceso.Nombre(u.Rol)}</color>";
+            UIFabrica.Etiqueta(btnCuenta).text = u.EsAdministrador ? "Usuarios" : "Mi cuenta";
+            raiz.gameObject.SetActive(true);
+        }
+
+        public void Ocultar()
+        {
+            if (raiz != null) raiz.gameObject.SetActive(false);
+        }
+
+        void Asegurar()
+        {
+            if (raiz != null) return;
+            raiz = UIFabrica.Canvas("Canvas Sesion", transform, 20);
+            // Ocupa el hueco entre la cabecera de PanelUI (izquierda) y el HUD de PanelBuild (derecha)
+            var franja = UIFabrica.Panel("Sesion", raiz, new Vector2(0.405f, 0.943f), new Vector2(0.655f, 0.982f), new Color(0, 0, 0, 0));
+            txtUsuario = UIFabrica.Texto(franja, "Usuario", new Vector2(0f, 0f), new Vector2(0.52f, 1f), 18, TextAnchor.MiddleRight, Color.white);
+            txtUsuario.resizeTextForBestFit = true; txtUsuario.resizeTextMinSize = 11; txtUsuario.resizeTextMaxSize = 18;
+            btnCuenta = UIFabrica.Boton(franja, "Cuenta", new Vector2(0.53f, 0f), new Vector2(0.75f, 1f), 17, UIFabrica.ColBoton, () => PedirCuenta?.Invoke());
+            UIFabrica.Boton(franja, "Salir", new Vector2(0.77f, 0f), new Vector2(1f, 1f), 17, UIFabrica.ColPeligro, () => PedirSalir?.Invoke());
+        }
+    }
+}

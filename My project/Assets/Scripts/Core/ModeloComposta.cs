@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 
 namespace Composta.Core
 {
@@ -36,13 +36,13 @@ namespace Composta.Core
             TempAmbiente = perfil.TempAmbiente;
             Temperatura = perfil.TempAmbiente;
 
-            // Relación superficie/volumen ~ 1 / (peso^(1/3)); 500 kg es la pila de referencia
+            // RelaciÃ³n superficie/volumen ~ 1 / (peso^(1/3)); 500 kg es la pila de referencia
             cubica = (float)Math.Pow(perfil.PesoKg / 500f, 1.0 / 3.0);
             float act = perfil.Actividad();
 
             calor = Clamp(cubica * perfil.Aislamiento * act, 0.2f, 1.1f);
-            KTemp = Clamp(0.06f / cubica, 0.03f, 0.15f);                                  // más masa = más lenta
-            Evaporacion = Clamp(0.03f / (cubica * perfil.Aislamiento), 0.01f, 0.12f);    // más chica = se seca más
+            KTemp = Clamp(0.06f / cubica, 0.03f, 0.15f);                                  // mÃ¡s masa = mÃ¡s lenta
+            Evaporacion = Clamp(0.03f / (cubica * perfil.Aislamiento), 0.01f, 0.12f);    // mÃ¡s chica = se seca mÃ¡s
             ConsumoO2 = 0.08f * Clamp(act, 0.4f, 1.4f);
         }
 
@@ -65,10 +65,10 @@ namespace Composta.Core
             // pH
             PH += (PHObjetivo() - PH) * KPH + Ruido(0.01f);
 
-            // Humedad: se evapora más con calor
+            // Humedad: se evapora mÃ¡s con calor
             Humedad -= Evaporacion * (Temperatura / 60f);
 
-            // Oxígeno: lo consumen los microbios; muy húmedo = más compacto
+            // OxÃ­geno: lo consumen los microbios; muy hÃºmedo = mÃ¡s compacto
             float consumo = ConsumoO2 * (Temperatura > 30f ? 1f : 0.5f);
             if (Humedad > Perfil.LimitesDe(Magnitud.Humedad).AvisoMax + 5f) consumo *= 1.5f;
             Oxigeno -= consumo;
@@ -80,21 +80,21 @@ namespace Composta.Core
         public void Voltear()
         {
             Oxigeno = 20f;
-            Temperatura -= Clamp(5f / cubica, 2.5f, 7.5f);   // una pila grande se enfría menos
+            Temperatura -= Clamp(5f / cubica, 2.5f, 7.5f);   // una pila grande se enfrÃ­a menos
             Humedad -= 2f;
             Limitar();
         }
 
-        // litros < 0 = riego estándar del perfil (8% del peso). El efecto depende del peso.
+        // litros < 0 = riego estÃ¡ndar del perfil (8% del peso). El efecto depende del peso.
         public void Regar(float litros = -1f)
         {
-            if (litros < 0f) litros = Perfil.LitrosPorRiego;
+            if (float.IsNaN(litros) || float.IsInfinity(litros) || litros < 0f) litros = Perfil.LitrosPorRiego;
             Humedad += litros / Perfil.PesoKg * 100f;
             Temperatura -= 1f;
             Limitar();
         }
 
-        // ---- Parámetros por etapa (relativos a la fase caliente del perfil) ----
+        // ---- ParÃ¡metros por etapa (relativos a la fase caliente del perfil) ----
         float TempObjetivo()
         {
             float span = TempPlateau - TempAmbiente;
@@ -119,7 +119,7 @@ namespace Composta.Core
             }
             float v = 7f + (baseEtapa - 7f) * Perfil.AmplitudPH;
             if (Etapa == Etapa.Termofilica)
-                v += Clamp((28f - Perfil.RelacionCN) * 0.02f, -0.4f, 0.4f);   // poco carbono = más amoníaco
+                v += Clamp((28f - Perfil.RelacionCN) * 0.02f, -0.4f, 0.4f);   // poco carbono = mÃ¡s amonÃ­aco
             return v;
         }
 
@@ -130,7 +130,7 @@ namespace Composta.Core
             {
                 case Etapa.Mesofilica:
                     if (FaseCalientePosible && Temperatura >= TempAmbiente + 0.575f * span) Etapa = Etapa.Termofilica;
-                    else if (Dias >= 15f) Etapa = Etapa.Enfriamiento;   // pilas frías saltan la fase caliente
+                    else if (Dias >= 15f) Etapa = Etapa.Enfriamiento;   // pilas frÃ­as saltan la fase caliente
                     break;
                 case Etapa.Termofilica:
                     if (Dias >= 15f) Etapa = Etapa.Enfriamiento;

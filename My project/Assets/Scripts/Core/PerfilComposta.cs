@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 
 namespace Composta.Core
 {
@@ -17,15 +17,15 @@ namespace Composta.Core
         public float RelacionCN  = 28f;      // ideal ~25-30
         public float TempAmbiente = 22f;
         public float HumedadInicial = 55f;
-        public float Aislamiento = 1f;      // >1 retiene m·s calor y evapora menos
+        public float Aislamiento = 1f;      // >1 retiene m√°s calor y evapora menos
         public float CalorMax = 62f;        // temperatura de la fase caliente en una pila de 500 kg
-        public float AmplitudPH = 1f;       // 1 = cambios de pH normales; <1 = m·s estable
+        public float AmplitudPH = 1f;       // 1 = cambios de pH normales; <1 = m√°s estable
 
         public bool PesoExagerado => PesoKg < PesoMin || PesoKg > PesoMax;
-        public float LitrosPorRiego => 0.08f * PesoKg;   // riego est·ndar: agua = 8% del peso
+        public float LitrosPorRiego => 0.08f * PesoKg;   // riego est√°ndar: agua = 8% del peso
 
         readonly float[,] lim = new float[4, 4];    // [magnitud]: avisoMin, avisoMax, criticoMin, criticoMax
-        readonly float[,] zona = new float[4, 2];   // zona ideal para las gr·ficas
+        readonly float[,] zona = new float[4, 2];   // zona ideal para las gr√°ficas
 
         PerfilComposta(TipoComposta tipo)
         {
@@ -46,7 +46,7 @@ namespace Composta.Core
             switch (tipo)
             {
                 case TipoComposta.Domestica:
-                    p.Nombre = "Compostera domÈstica";
+                    p.Nombre = "Compostera dom√©stica";
                     p.FijarRango(40f, 50f, 45f);
                     p.FijarLimites(Magnitud.Temperatura, 5f, 50f, 0f, 60f);
                     p.FijarZona(Magnitud.Temperatura, 25f, 45f);
@@ -91,12 +91,14 @@ namespace Composta.Core
         // Sin permitirExagerado, el peso se limita al rango del perfil
         public void EstablecerPeso(float kg, bool permitirExagerado = false)
         {
+            // NaN/Infinito no sobreviven a Math.Min/Max: se reemplazan por el peso por defecto
+            if (float.IsNaN(kg) || float.IsInfinity(kg)) kg = PesoDefecto;
             PesoKg = permitirExagerado
                 ? Math.Max(1f, Math.Min(kg, 20000f))
                 : Math.Max(PesoMin, Math.Min(kg, PesoMax));
         }
 
-        // M·s nitrÛgeno (C/N bajo) = m·s activa; demasiado carbono = lenta
+        // M√°s nitr√≥geno (C/N bajo) = m√°s activa; demasiado carbono = lenta
         public float Actividad()
         {
             float cn = RelacionCN;
