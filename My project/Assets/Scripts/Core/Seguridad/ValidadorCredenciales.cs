@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -65,6 +65,29 @@ namespace Composta.Core.Seguridad
                 sb.Append(char.IsControl(c) ? ' ' : c);
             string r = sb.ToString().Trim();
             return r.Length > max ? r.Substring(0, max) : r;
+        }
+
+        // Código de recuperación: 16 caracteres sin ambiguos, mostrado en bloques de 4 (ABCD-EFGH-JKLM-NPQR)
+        public static string GenerarCodigoRecuperacion()
+        {
+            const string alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            var bytes = new byte[16];
+            using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(bytes);
+            var sb = new StringBuilder(19);
+            for (int i = 0; i < 16; i++)
+            {
+                if (i > 0 && i % 4 == 0) sb.Append('-');
+                sb.Append(alfabeto[bytes[i] % alfabeto.Length]);
+            }
+            return sb.ToString();
+        }
+
+        // Acepta el código con o sin guiones, espacios o minúsculas
+        public static string NormalizarCodigo(string codigo)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in codigo ?? "") if (char.IsLetterOrDigit(c)) sb.Append(char.ToUpperInvariant(c));
+            return sb.ToString();
         }
 
         // Contraseña temporal legible (sin 0/O, 1/l/I) con al menos una letra y un dígito

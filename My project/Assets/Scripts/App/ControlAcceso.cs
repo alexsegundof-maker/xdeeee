@@ -74,6 +74,8 @@ namespace Composta.App
             login.EnviarLogin += AlEnviarLogin;
             login.EnviarConfiguracion += AlEnviarConfiguracion;
             login.EnviarCambio += AlEnviarCambio;
+            login.EnviarRegistro += AlEnviarRegistro;
+            login.EnviarRecuperacion += AlEnviarRecuperacion;
             login.CancelarCambio += () => { pendienteDeCambio = null; MostrarPantallaAcceso(); };
             login.Reintentar += IniciarFlujo;
             barra.PedirSalir += () => CerrarSesion(null);
@@ -208,7 +210,48 @@ namespace Composta.App
             login.LimpiarContrasenas();
             if (!r.Exito) { login.MostrarError(r.Mensaje); return; }
             GuardarUltimoUsuario(r.Usuario.NombreUsuario);
+            MostrarCodigoRecuperacion(r.Extra, true);
             Entrar(r.Usuario);
+        }
+
+        async void AlEnviarRegistro(string usuario, string nombre, string contrasena, string confirmacion)
+        {
+            login.Ocupado(true);
+            var r = await EnSegundoPlano(() => svc.Autenticacion.RegistrarCuenta(usuario, nombre, contrasena, confirmacion));
+            if (this == null) return;
+            login.Ocupado(false);
+            login.LimpiarContrasenas();
+            if (!r.Exito) { login.MostrarError(r.Mensaje); return; }
+            GuardarUltimoUsuario(r.Usuario.NombreUsuario);
+            MostrarCodigoRecuperacion(r.Extra, true);
+            Notificador.Mostrar("Cuenta creada con permisos de consulta. Administración puede darte más permisos.", TipoMensaje.Info);
+            Entrar(r.Usuario);
+        }
+
+        async void AlEnviarRecuperacion(string usuario, string codigo, string nueva, string confirmacion)
+        {
+            login.Ocupado(true);
+            var r = await EnSegundoPlano(() => svc.Autenticacion.RecuperarConCodigo(usuario, codigo, nueva, confirmacion));
+            if (this == null) return;
+            login.Ocupado(false);
+            login.LimpiarContrasenas();
+            if (!r.Exito) { login.MostrarError(r.Mensaje); return; }
+            GuardarUltimoUsuario(r.Usuario.NombreUsuario);
+            Notificador.Mostrar("Contraseña restablecida.", TipoMensaje.Exito);
+            MostrarCodigoRecuperacion(r.Extra, false);
+            Entrar(r.Usuario);
+        }
+
+        // El código solo existe en este momento: en disco se guarda únicamente su hash
+        static void MostrarCodigoRecuperacion(string codigo, bool primeraVez)
+        {
+            if (string.IsNullOrEmpty(codigo)) return;
+            Notificador.Dialogo("Guarda tu código de recuperación",
+                (primeraVez ? "" : "El código que usaste ya no sirve. Este es el nuevo:\n\n") +
+                $"<size=34><b>{codigo}</b></size>\n\n" +
+                "Anótalo en papel o guárdalo en un lugar seguro. Si olvidas tu contraseña, lo necesitarás en " +
+                "«¿Olvidaste tu contraseña?». No se volverá a mostrar.",
+                new OpcionDialogo("Ya lo guardé", null, true));
         }
 
         async void AlEnviarCambio(string nueva, string confirmacion)

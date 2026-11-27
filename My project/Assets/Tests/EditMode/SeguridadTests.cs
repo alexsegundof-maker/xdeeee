@@ -238,5 +238,81 @@ namespace Composta.Tests
             Assert.IsFalse(PoliticaAcceso.Tiene(Rol.Operador, Permiso.GestionarUsuarios));
             Assert.IsTrue(PoliticaAcceso.Tiene(Rol.Administrador, Permiso.InyectarFallas));
         }
+
+    public class RecuperacionYRegistroTests
+    {
+        AlmacenMemoria almacen;
+        ServicioAutenticacion auth;
+
+        [SetUp]
+        public void Preparar()
+        {
+            almacen = new AlmacenMemoria();
+            auth = new ServicioAutenticacion(new RepositorioUsuariosJson(almacen, new SerializadorPruebas()), new HasherPbkdf2(1000), new RelojFalso());
+        }
+
+        [Test]
+        public void AdminInicial_RecibeCodigo_YRecuperaConEl()
+        {
+            var r = auth.CrearAdministradorInicial("admin", "Admin", "composta1", "composta1");
+            StringAssert.IsMatch("^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$", r.Extra);
+
+            var rec = auth.RecuperarConCodigo("ADMIN", r.Extra.ToLowerInvariant().Replace("-", " "), "nueva2026", "nueva2026");
+            Assert.IsTrue(rec.Exito, rec.Mensaje);
+            Assert.IsTrue(auth.IniciarSesion("admin", "nueva2026").Exito);
+            Assert.IsFalse(auth.IniciarSesion("admin", "composta1").Exito);
+
+            // El código usado deja de servir; el nuevo sí
+            Assert.IsFalse(auth.RecuperarConCodigo("admin", r.Extra, "otra20266", "otra20266").Exito);
+            Assert.IsTrue(auth.RecuperarConCodigo("admin", rec.Extra, "otra20266", "otra20266").Exito);
+        }
+
+        [Test]
+        public void CodigoIncorrecto_MensajeGenerico_YBloqueo()
+        {
+            auth.CrearAdministradorInicial("admin", "Admin", "composta1", "composta1");
+            var a = auth.RecuperarConCodigo("admin", "AAAA-BBBB-CCCC-DDDD", "nueva2026", "nueva2026");
+            var b = auth.RecuperarConCodigo("nadie", "AAAA-BBBB-CCCC-DDDD", "nueva2026", "nueva2026");
+            Assert.AreEqual(a.Mensaje, b.Mensaje);
+            for (int i = 0; i < ServicioAutenticacion.MaxIntentos; i++) auth.RecuperarConCodigo("admin", "XXXX", "nueva2026", "nueva2026");
+            Assert.AreEqual(CodigoAuth.CuentaBloqueada, auth.RecuperarConCodigo("admin", "XXXX", "nueva2026", "nueva2026").Codigo);
+        }
+
+        [Test]
+        public void Registro_CreaCuentaDeConsulta_ConCodigo()
+        {
+            auth.CrearAdministradorInicial("admin", "Admin", "composta1", "composta1");
+            var r = auth.RegistrarCuenta("vecina", "Vecina", "huerto2026", "huerto2026");
+            Assert.IsTrue(r.Exito, r.Mensaje);
+            Assert.AreEqual(Rol.Consulta, r.Usuario.Rol);
+            Assert.IsNotNull(r.Extra);
+            Assert.IsTrue(auth.IniciarSesion("vecina", "huerto2026").Exito);
+            Assert.AreEqual(CodigoAuth.YaExiste, auth.RegistrarCuenta("VECINA", "Otra", "huerto2026", "huerto2026").Codigo);
+        }
+
+        [Test]
+        public void Registro_NoReemplazaLaConfiguracionInicial()
+            => Assert.AreEqual(CodigoAuth.NoPermitido, auth.RegistrarCuenta("x123", "X", "huerto2026", "huerto2026").Codigo);
+
+        [Test]
+        public void CambiarRol_SoloAdmin_YSinQuedarseSinAdmin()
+        {
+            var admin = auth.CrearAdministradorInicial("admin", "Admin", "composta1", "composta1").Usuario;
+            var v = auth.RegistrarCuenta("vecina", "Vecina", "huerto2026", "huerto2026").Usuario;
+            Assert.AreEqual(CodigoAuth.SinPermiso, auth.CambiarRol(v, v.Id, Rol.Administrador).Codigo);
+            Assert.IsTrue(auth.CambiarRol(admin, v.Id, Rol.Operador).Exito);
+            Assert.AreEqual(Rol.Operador, auth.IniciarSesion("vecina", "huerto2026").Usuario.Rol);
+            Assert.AreEqual(CodigoAuth.NoPermitido, auth.CambiarRol(admin, admin.Id, Rol.Consulta).Codigo);
+        }
+
+        [Test]
+        public void ElCodigoNoSeGuardaEnTextoPlano()
+        {
+            var r = auth.CrearAdministradorInicial("admin", "Admin", "composta1", "composta1");
+            string archivo = almacen.Archivos[RepositorioUsuariosJson.Clave];
+            StringAssert.DoesNotContain(r.Extra.Replace("-", ""), archivo);
+            StringAssert.DoesNotContain("composta1", archivo);
+        }
+    }
     }
 }

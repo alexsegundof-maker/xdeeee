@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Composta.Core.Persistencia;
 
@@ -137,8 +137,11 @@ namespace Composta.Core.Seguridad
                     if (!RequiereConfiguracionInicial)
                         return ResultadoAuth.Error(CodigoAuth.NoPermitido, "Ya existe una cuenta de administración.");
                     var r = CrearInterno(usuario, nombreVisible, contrasena, confirmacion, Rol.Administrador, false);
-                    if (r.Exito) { r.Usuario.UltimoAccesoUtc = reloj.UtcAhora.Ticks; repo.Guardar(r.Usuario); }
-                    return r;
+                    if (!r.Exito) return r;
+                    r.Usuario.UltimoAccesoUtc = reloj.UtcAhora.Ticks;
+                    string codigo = AsignarCodigoRecuperacion(r.Usuario);
+                    repo.Guardar(r.Usuario);
+                    return ResultadoAuth.Ok(r.Usuario, r.Mensaje, codigo);     // Extra = código: se muestra UNA vez
                 });
             }
         }
@@ -198,6 +201,105 @@ namespace Composta.Core.Seguridad
                     u.Activo = activo;
                     repo.Guardar(u);
                     return ResultadoAuth.Ok(u, activo ? "Cuenta activada." : "Cuenta desactivada.");
+                });
+            }
+        }
+
+        // ---------------- Registro abierto ----------------
+        // Cualquiera puede crear una cuenta desde el login, pero nace con rol de CONSULTA (solo ver).
+        // Un administrador decide si le da más permisos. Así nunca se queda nadie sin poder entrar.
+        public ResultadoAuth RegistrarCuenta(string usuario, string nombreVisible, string contrasena, string confirmacion)
+        {
+            lock (candado)
+            {
+                return Proteger(() =>
+                {
+                    if (RequiereConfiguracionInicial)
+                        return ResultadoAuth.Error(CodigoAuth.NoPermitido, "Primero hay que crear la cuenta de administración.");
+                    var r = CrearInterno(usuario, nombreVisible, contrasena, confirmacion, Rol.Consulta, false);
+                    if (!r.Exito) return r;
+                    r.Usuario.UltimoAccesoUtc = reloj.UtcAhora.Ticks;
+                    string codigo = AsignarCodigoRecuperacion(r.Usuario);
+                    repo.Guardar(r.Usuario);
+                    return ResultadoAuth.Ok(r.Usuario, "Cuenta creada con permisos de consulta.", codigo);
+                });
+            }
+        }
+
+        // ---------------- Recuperación con código ----------------
+        public ResultadoAuth RecuperarConCodigo(string usuario, string codigo, string nueva, string confirmacion)
+        {
+            lock (candado)
+            {
+                return Proteger(() =>
+                {
+                    const string msg = "Usuario o código de recuperación incorrectos.";
+                    var ahora = reloj.UtcAhora;
+                    var u = repo.BuscarPorNombre(ValidadorCredenciales.NormalizarUsuario(usuario));
+                    string cod = ValidadorCredenciales.NormalizarCodigo(codigo);
+                    if (u == null || !u.TieneCodigoRecuperacion)
+                    {
+                        VerificarSenuelo(cod);
+                        return ResultadoAuth.Error(CodigoAuth.CredencialesInvalidas, msg);
+                    }
+                    if (u.EstaBloqueado(ahora))
+                        return ResultadoAuth.Error(CodigoAuth.CuentaBloqueada, "Demasiados intentos fallidos. Espera unos minutos.");
+                    if (!hasher.Verificar(cod, u.HashRecuperacion, u.SalRecuperacion, u.IteracionesRecuperacion))
+                    {
+                        u.IntentosFallidos++;
+                        if (u.IntentosFallidos >= MaxIntentos) { u.IntentosFallidos = 0; u.BloqueadoHastaUtc = (ahora + DuracionBloqueo).Ticks; }
+                        repo.Guardar(u);
+                        return ResultadoAuth.Error(CodigoAuth.CredencialesInvalidas, msg);
+                    }
+                    if (!u.Activo) return ResultadoAuth.Error(CodigoAuth.CuentaInactiva, "Esta cuenta está desactivada. Contacta a administración.");
+
+                    string err = ValidadorCredenciales.ErrorContrasena(nueva, u.NombreUsuario);
+                    if (err != null) return ResultadoAuth.Error(CodigoAuth.DatosInvalidos, err);
+                    if (nueva != confirmacion) return ResultadoAuth.Error(CodigoAuth.DatosInvalidos, "Las contraseñas no coinciden.");
+
+                    AsignarContrasena(u, nueva);
+                    u.DebeCambiarContrasena = false;
+                    u.IntentosFallidos = 0; u.BloqueadoHastaUtc = 0;
+                    u.UltimoAccesoUtc = ahora.Ticks;
+                    string nuevoCodigo = AsignarCodigoRecuperacion(u);      // el usado ya no sirve
+                    repo.Guardar(u);
+                    return ResultadoAuth.Ok(u, "Contraseña restablecida.", nuevoCodigo);
+                });
+            }
+        }
+
+        // La persona conectada genera un código nuevo (el anterior deja de servir)
+        public ResultadoAuth NuevoCodigoRecuperacion(Usuario usuario)
+        {
+            lock (candado)
+            {
+                return Proteger(() =>
+                {
+                    var u = usuario == null ? null : repo.BuscarPorId(usuario.Id);
+                    if (u == null || !u.Activo) return ResultadoAuth.Error(CodigoAuth.NoEncontrado, "La sesión ya no es válida.");
+                    string codigo = AsignarCodigoRecuperacion(u);
+                    repo.Guardar(u);
+                    return ResultadoAuth.Ok(u, "Código de recuperación nuevo generado.", codigo);
+                });
+            }
+        }
+
+        // ---------------- Roles ----------------
+        public ResultadoAuth CambiarRol(Usuario solicitante, string idObjetivo, Rol nuevo)
+        {
+            lock (candado)
+            {
+                return Proteger(() =>
+                {
+                    if (!EsAdminActivo(solicitante))
+                        return ResultadoAuth.Error(CodigoAuth.SinPermiso, "Solo administración puede cambiar roles.");
+                    var u = repo.BuscarPorId(idObjetivo);
+                    if (u == null) return ResultadoAuth.Error(CodigoAuth.NoEncontrado, "La cuenta no existe.");
+                    if (u.EsAdministrador && nuevo != Rol.Administrador && u.Activo && ContarAdminsActivos() <= 1)
+                        return ResultadoAuth.Error(CodigoAuth.NoPermitido, "Debe quedar al menos una cuenta de administración activa.");
+                    u.Rol = nuevo;
+                    repo.Guardar(u);
+                    return ResultadoAuth.Ok(u, $"{u.NombreUsuario} ahora tiene rol de {PoliticaAcceso.Nombre(nuevo)}.");
                 });
             }
         }
@@ -272,6 +374,14 @@ namespace Composta.Core.Seguridad
             AsignarContrasena(u, contrasena);
             repo.Guardar(u);
             return ResultadoAuth.Ok(u, $"Cuenta «{u.NombreUsuario}» creada.");
+        }
+
+        string AsignarCodigoRecuperacion(Usuario u)
+        {
+            string codigo = ValidadorCredenciales.GenerarCodigoRecuperacion();
+            hasher.Generar(ValidadorCredenciales.NormalizarCodigo(codigo), out var hash, out var sal, out var it);
+            u.HashRecuperacion = hash; u.SalRecuperacion = sal; u.IteracionesRecuperacion = it;
+            return codigo;
         }
 
         void AsignarContrasena(Usuario u, string contrasena)

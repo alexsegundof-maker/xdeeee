@@ -11,12 +11,14 @@ namespace Composta.App
     // La lógica (verificar, bloquear, crear cuentas) vive en ServicioAutenticacion; el flujo en ControlAcceso.
     public sealed class PanelLogin : MonoBehaviour
     {
-        public enum Modo { Login, ConfiguracionInicial, CambioObligatorio, ErrorFatal }
+        public enum Modo { Login, ConfiguracionInicial, CambioObligatorio, ErrorFatal, Registro, Recuperacion }
 
         public event Action<string, string> EnviarLogin;                       // usuario, contraseña
         public event Action<string, string, string, string> EnviarConfiguracion; // usuario, nombre, contraseña, confirmación
         public event Action<string, string> EnviarCambio;                      // nueva, confirmación
-        public event Action CancelarCambio;
+        public event Action CancelarCambio;                                    // también "Volver" desde registro/recuperación
+        public event Action<string, string, string, string> EnviarRegistro;     // usuario, nombre, contraseña, confirmación
+        public event Action<string, string, string, string> EnviarRecuperacion; // usuario, código, nueva, confirmación
 
         public Modo ModoActual { get; private set; }
         public bool Visible => raiz != null && raiz.gameObject.activeSelf;
@@ -24,9 +26,9 @@ namespace Composta.App
         RectTransform raiz, card;
         CanvasGroup grupo;
         Text txtTitulo, txtSubtitulo, txtError, txtPie;
-        InputField campoNombre, campoUsuario, campoContrasena, campoConfirmar;
-        Text lblNombre, lblUsuario, lblContrasena, lblConfirmar;
-        Button btnPrincipal, btnMostrar, btnSecundario;
+        InputField campoNombre, campoUsuario, campoCodigo, campoContrasena, campoConfirmar;
+        Text lblNombre, lblUsuario, lblCodigo, lblContrasena, lblConfirmar;
+        Button btnPrincipal, btnMostrar, btnSecundario, btnOlvide, btnRegistrarse;
         bool ocupado, mostrandoContrasena;
         Coroutine fade;
 
@@ -37,6 +39,23 @@ namespace Composta.App
             campoUsuario.text = ultimoUsuario ?? "";
             Mostrar(string.IsNullOrEmpty(campoUsuario.text) ? campoUsuario : campoContrasena);
             if (!string.IsNullOrEmpty(mensaje)) MostrarError(mensaje, false);
+        }
+
+        // Siempre disponible desde el login: la cuenta nace con rol de Consulta
+        public void MostrarRegistro()
+        {
+            Preparar(Modo.Registro, "Crear mi cuenta",
+                     "Crea tu cuenta para consultar los lotes. Una persona de administración puede darte más permisos.");
+            Mostrar(campoNombre);
+        }
+
+        public void MostrarRecuperacion(string usuario = null)
+        {
+            Preparar(Modo.Recuperacion, "Restablecer contraseña",
+                     "Escribe tu usuario y el código de recuperación que guardaste al crear la cuenta. " +
+                     "Si no lo tienes, pide a administración que restablezca tu contraseña.");
+            campoUsuario.text = usuario ?? "";
+            Mostrar(string.IsNullOrEmpty(campoUsuario.text) ? campoUsuario : campoCodigo);
         }
 
         public void MostrarConfiguracionInicial()
@@ -122,12 +141,17 @@ namespace Composta.App
             campoNombre.text = "";
 
             bool login = modo == Modo.Login, conf = modo == Modo.ConfiguracionInicial, cambio = modo == Modo.CambioObligatorio;
+            bool registro = modo == Modo.Registro, recuperar = modo == Modo.Recuperacion;
             var filas = new List<(Text lbl, InputField campo)>();
-            Fila(filas, lblNombre, campoNombre, conf);
-            Fila(filas, lblUsuario, campoUsuario, login || conf);
-            Fila(filas, lblContrasena, campoContrasena, login || conf || cambio);
-            Fila(filas, lblConfirmar, campoConfirmar, conf || cambio);
-            lblContrasena.text = cambio ? "Nueva contraseña" : "Contraseña";
+            Fila(filas, lblNombre, campoNombre, conf || registro);
+            Fila(filas, lblUsuario, campoUsuario, login || conf || registro || recuperar);
+            Fila(filas, lblCodigo, campoCodigo, recuperar);
+            Fila(filas, lblContrasena, campoContrasena, login || conf || cambio || registro || recuperar);
+            Fila(filas, lblConfirmar, campoConfirmar, conf || cambio || registro || recuperar);
+            lblContrasena.text = cambio || recuperar ? "Nueva contraseña" : "Contraseña";
+            btnOlvide.gameObject.SetActive(login);
+            btnRegistrarse.gameObject.SetActive(login);
+            UIFabrica.Etiqueta(btnSecundario).text = cambio ? "Cancelar" : "Volver";
 
             // Coloca las filas visibles de arriba hacia abajo
             float top = 0.76f;
@@ -139,9 +163,9 @@ namespace Composta.App
             }
 
             btnMostrar.gameObject.SetActive(modo != Modo.ErrorFatal);
-            btnSecundario.gameObject.SetActive(cambio);
+            btnSecundario.gameObject.SetActive(cambio || registro || recuperar);
             UIFabrica.Etiqueta(btnPrincipal).text = textoBoton;
-            txtPie.text = conf
+            txtPie.text = conf || registro || recuperar
                 ? $"La contraseña necesita {Core.Seguridad.ValidadorCredenciales.ContrasenaMin}+ caracteres con letras y números."
                 : "Tras 5 intentos fallidos la cuenta se bloquea 5 minutos.";
             Ocupado(false);
@@ -183,6 +207,13 @@ namespace Composta.App
                 case Modo.ErrorFatal:
                     Reintentar?.Invoke();
                     break;
+                case Modo.Registro:
+                    EnviarRegistro?.Invoke(campoUsuario.text, campoNombre.text, campoContrasena.text, campoConfirmar.text);
+                    break;
+                case Modo.Recuperacion:
+                    if (campoCodigo.text.Trim().Length == 0) { MostrarError("Escribe tu código de recuperación."); UIFabrica.Enfocar(campoCodigo); return; }
+                    EnviarRecuperacion?.Invoke(campoUsuario.text, campoCodigo.text, campoContrasena.text, campoConfirmar.text);
+                    break;
             }
         }
 
@@ -192,6 +223,7 @@ namespace Composta.App
             if (campoContrasena == null) return;
             campoContrasena.text = "";
             campoConfirmar.text = "";
+            campoCodigo.text = "";
         }
 
         void AlternarMostrar()
@@ -213,13 +245,15 @@ namespace Composta.App
                 case Modo.ConfiguracionInicial: return "Crear cuenta de administración";
                 case Modo.CambioObligatorio: return "Guardar contraseña";
                 case Modo.ErrorFatal: return "Reintentar";
+                case Modo.Registro: return "Crear mi cuenta";
+                case Modo.Recuperacion: return "Restablecer contraseña";
                 default: return "Ingresar";
             }
         }
 
         IEnumerable<InputField> Campos()
         {
-            yield return campoNombre; yield return campoUsuario; yield return campoContrasena; yield return campoConfirmar;
+            yield return campoNombre; yield return campoUsuario; yield return campoCodigo; yield return campoContrasena; yield return campoConfirmar;
         }
 
         IEnumerator Fundido(float desde, float hasta, Action alTerminar)
@@ -273,6 +307,10 @@ namespace Composta.App
             lblUsuario.text = "Usuario";
             campoUsuario = UIFabrica.Campo(card, "CampoUsuario", Vector2.zero, Vector2.zero, "usuario", false, Core.Seguridad.ValidadorCredenciales.UsuarioMax);
 
+            lblCodigo = UIFabrica.Texto(card, "LblCodigo", Vector2.zero, Vector2.zero, 20, TextAnchor.LowerLeft, Color.white);
+            lblCodigo.text = "Código de recuperación";
+            campoCodigo = UIFabrica.Campo(card, "CampoCodigo", Vector2.zero, Vector2.zero, "XXXX-XXXX-XXXX-XXXX", false, 24);
+
             lblContrasena = UIFabrica.Texto(card, "LblContrasena", Vector2.zero, Vector2.zero, 20, TextAnchor.LowerLeft, Color.white);
             lblContrasena.text = "Contraseña";
             campoContrasena = UIFabrica.Campo(card, "CampoContrasena", Vector2.zero, Vector2.zero, "••••••••", true, Core.Seguridad.ValidadorCredenciales.ContrasenaMax);
@@ -288,6 +326,16 @@ namespace Composta.App
             btnPrincipal = UIFabrica.Boton(card, "Ingresar", new Vector2(0.07f, 0.045f), new Vector2(0.93f, 0.125f), 26, UIFabrica.ColPrimario, Enviar);
             btnSecundario = UIFabrica.Boton(card, "Cancelar", new Vector2(0.55f, 0.215f), new Vector2(0.93f, 0.255f), 17, UIFabrica.ColCard,
                                             () => CancelarCambio?.Invoke());
+            // Enlaces del login: siempre hay una salida si se olvidó la contraseña o no se tiene cuenta
+            btnOlvide = UIFabrica.Boton(card, "¿Olvidaste tu contraseña?", new Vector2(0.07f, 0.40f), new Vector2(0.93f, 0.45f), 18,
+                                        new Color(0, 0, 0, 0), () => MostrarRecuperacion(campoUsuario.text));
+            UIFabrica.Etiqueta(btnOlvide).color = Tema.AcentoSimulacion;
+            btnOlvide.GetComponent<Image>().raycastTarget = true;
+            btnRegistrarse = UIFabrica.Boton(card, "¿No tienes cuenta? Crear cuenta nueva", new Vector2(0.07f, 0.33f), new Vector2(0.93f, 0.38f), 18,
+                                             new Color(0, 0, 0, 0), MostrarRegistro);
+            UIFabrica.Etiqueta(btnRegistrarse).color = Tema.AcentoSimulacion;
+            btnRegistrarse.GetComponent<Image>().raycastTarget = true;
+
             txtPie = UIFabrica.Texto(card, "Pie", new Vector2(0.05f, 0f), new Vector2(0.95f, 0.045f), 14, TextAnchor.MiddleCenter, UIFabrica.ColTextoTenue);
 
             raiz.gameObject.SetActive(false);

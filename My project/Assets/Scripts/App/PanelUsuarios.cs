@@ -112,6 +112,24 @@ namespace Composta.App
             Ejecutar(() => auth.CambiarEstado(solicitante, objetivo.Id, activar), null);
         }
 
+        void SiguienteRol(Usuario objetivo)
+        {
+            var solicitante = sesion.Actual;
+            var nuevo = objetivo.Rol == Rol.Consulta ? Rol.Operador : objetivo.Rol == Rol.Operador ? Rol.Administrador : Rol.Consulta;
+            Ejecutar(() => auth.CambiarRol(solicitante, objetivo.Id, nuevo), null);
+        }
+
+        void NuevoCodigo()
+        {
+            var yo = sesion.Actual;
+            Notificador.Dialogo("Nuevo código de recuperación",
+                "Se generará un código nuevo y el anterior dejará de servir. ¿Continuar?",
+                new OpcionDialogo("Cancelar"),
+                new OpcionDialogo("Generar", () => Ejecutar(() => auth.NuevoCodigoRecuperacion(yo), r =>
+                    Notificador.Dialogo("Guarda tu código de recuperación",
+                        $"<size=34><b>{r.Extra}</b></size>\n\nAnótalo en un lugar seguro. No se volverá a mostrar.")), true));
+        }
+
         void CambiarPropia()
         {
             var yo = sesion.Actual;
@@ -149,15 +167,20 @@ namespace Composta.App
                 string estado = !u.Activo ? "  <color=#ff8a8a>(inactiva)</color>"
                               : u.EstaBloqueado(ahora) ? "  <color=#ffd166>(bloqueada)</color>"
                               : u.DebeCambiarContrasena ? "  <color=#9aa3b5>(temporal)</color>" : "";
-                var t = UIFabrica.Texto(fila, "Texto", new Vector2(0f, 0f), new Vector2(0.62f, 1f), 17, TextAnchor.MiddleLeft, Color.white);
+                var t = UIFabrica.Texto(fila, "Texto", new Vector2(0f, 0f), new Vector2(0.48f, 1f), 17, TextAnchor.MiddleLeft, Color.white);
                 t.text = $"<b>{u.NombreUsuario}</b> · {UIFabrica.SinRich(u.NombreVisible)} · {PoliticaAcceso.Nombre(u.Rol)}{estado}";
                 t.resizeTextForBestFit = true; t.resizeTextMinSize = 11; t.resizeTextMaxSize = 17;
 
                 bool esYo = u.Id == sesion.Actual.Id;
-                var bEstado = UIFabrica.Boton(fila, u.Activo ? "Desactivar" : "Activar", new Vector2(0.63f, 0.1f), new Vector2(0.80f, 0.9f), 15,
+                // Rol: cada toque pasa al siguiente (Consulta → Operación → Administración)
+                var bRol = UIFabrica.Boton(fila, PoliticaAcceso.Nombre(u.Rol), new Vector2(0.49f, 0.1f), new Vector2(0.65f, 0.9f), 15,
+                                           UIFabrica.ColBoton, () => SiguienteRol(u));
+                UIFabrica.Etiqueta(bRol).resizeTextForBestFit = true;
+                UIFabrica.Etiqueta(bRol).resizeTextMinSize = 10; UIFabrica.Etiqueta(bRol).resizeTextMaxSize = 15;
+                var bEstado = UIFabrica.Boton(fila, u.Activo ? "Desactivar" : "Activar", new Vector2(0.66f, 0.1f), new Vector2(0.81f, 0.9f), 15,
                                               u.Activo ? UIFabrica.ColPeligro : UIFabrica.ColPrimario, () => AlternarActivo(u));
                 bEstado.interactable = !esYo;
-                UIFabrica.Boton(fila, "Restablecer", new Vector2(0.81f, 0.1f), new Vector2(0.99f, 0.9f), 15, UIFabrica.ColBoton, () => Restablecer(u));
+                UIFabrica.Boton(fila, "Restablecer", new Vector2(0.82f, 0.1f), new Vector2(0.99f, 0.9f), 15, UIFabrica.ColBoton, () => Restablecer(u));
             }
             if (lista.Count > FilasMax)
                 Mensaje($"Se muestran {FilasMax} de {lista.Count} cuentas.", true);
@@ -202,7 +225,8 @@ namespace Composta.App
             campoActual = UIFabrica.Campo(propia, "Actual", new Vector2(0.02f, 0.60f), new Vector2(0.98f, 0.78f), "Contraseña actual", true, ValidadorCredenciales.ContrasenaMax, 20);
             campoNueva = UIFabrica.Campo(propia, "NuevaC", new Vector2(0.02f, 0.40f), new Vector2(0.98f, 0.58f), "Nueva contraseña", true, ValidadorCredenciales.ContrasenaMax, 20);
             campoConfirmar = UIFabrica.Campo(propia, "Confirmar", new Vector2(0.02f, 0.20f), new Vector2(0.98f, 0.38f), "Confirmar nueva contraseña", true, ValidadorCredenciales.ContrasenaMax, 20);
-            UIFabrica.Boton(propia, "Cambiar mi contraseña", new Vector2(0.02f, 0.0f), new Vector2(0.98f, 0.17f), 20, UIFabrica.ColBoton, CambiarPropia);
+            UIFabrica.Boton(propia, "Cambiar mi contraseña", new Vector2(0.02f, 0.0f), new Vector2(0.49f, 0.17f), 18, UIFabrica.ColBoton, CambiarPropia);
+            UIFabrica.Boton(propia, "Nuevo código de recuperación", new Vector2(0.51f, 0.0f), new Vector2(0.98f, 0.17f), 16, UIFabrica.ColBoton, NuevoCodigo);
 
             txtMensaje = UIFabrica.Texto(w, "Mensaje", new Vector2(0.02f, 0.01f), new Vector2(0.78f, 0.08f), 18, TextAnchor.MiddleLeft, UIFabrica.ColExito);
             UIFabrica.Boton(w, "Cerrar", new Vector2(0.80f, 0.015f), new Vector2(0.98f, 0.08f), 22, UIFabrica.ColBoton, Cerrar);

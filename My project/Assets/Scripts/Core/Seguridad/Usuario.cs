@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Composta.Core.Seguridad
 {
@@ -19,6 +19,12 @@ namespace Composta.Core.Seguridad
 
         public bool Activo = true;
         public bool DebeCambiarContrasena;    // contraseña temporal asignada por administración
+
+        // Código de recuperación de un solo uso (se guarda solo su hash, igual que la contraseña)
+        public string HashRecuperacion;
+        public string SalRecuperacion;
+        public int IteracionesRecuperacion;
+        public bool TieneCodigoRecuperacion => !string.IsNullOrEmpty(HashRecuperacion);
         public int IntentosFallidos;
         public long BloqueadoHastaUtc;
         public long CreadoUtc;
