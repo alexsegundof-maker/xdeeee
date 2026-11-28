@@ -3,8 +3,9 @@ using Composta.Core;
 
 public static class DibujanteGrafica
 {
-    // reutilizar: textura previa del mismo tamaño para evitar crear/destruir una por refresco
-    // marcas: puntos medidos en campo (x en días), se dibujan como círculos blancos
+    // Dibuja una serie agregada (promedio + barras mínimo–máximo) en una textura.
+    // reutilizar: textura previa del mismo tamaño para no crear/destruir una por refresco.
+    // marcas: puntos medidos en campo (x en días), se dibujan como círculos blancos.
     public static Texture2D Dibujar(Serie s, int w, int h, (float min, float max)? zona = null, Texture2D reutilizar = null,
                                     System.Collections.Generic.IList<(float x, float v)> marcas = null)
     {
@@ -12,46 +13,52 @@ public static class DibujanteGrafica
         var buf = new Color32[w * h];
         Rellenar(buf, w, h, 0, 0, w - 1, h - 1, ColFondo);
 
+        var magnitud = s != null ? s.Magnitud : Magnitud.Temperatura;
         const int m = 12;
         int x0 = m, x1 = w - m - 1, y0 = m, y1 = h - m - 1;
-        var (rMin, rMax) = Agregador.Rango(s.Magnitud);
-        var z = zona ?? Agregador.ZonaIdeal(s.Magnitud);
+        var (rMin, rMax) = Agregador.Rango(magnitud);
+        if (rMax - rMin < 1e-3f) rMax = rMin + 1f;
+        var z = zona ?? Agregador.ZonaIdeal(magnitud);
         float zMin = z.Item1, zMax = z.Item2;
 
+        // Solo puntos válidos: un NaN/infinito daba coordenadas enormes y la línea de Bresenham no terminaba
+        var pts = new System.Collections.Generic.List<Punto>();
+        if (s != null && s.Puntos != null)
+            foreach (var p in s.Puntos)
+                if (p != null && Finito(p.X) && Finito(p.Prom) && Finito(p.Min) && Finito(p.Max)) pts.Add(p);
+        pts.Sort((a, b) => a.X.CompareTo(b.X));
+
         float xMin = 0f, xMax = 1f;
-        if (s.Puntos.Count > 0)
+        if (pts.Count > 0)
         {
-            xMin = s.Puntos[0].X;
-            xMax = s.Puntos[s.Puntos.Count - 1].X;
+            xMin = pts[0].X;
+            xMax = pts[pts.Count - 1].X;
             if (xMax - xMin < 0.01f) xMax = xMin + 1f;
         }
 
         int Y(float v) => y0 + Mathf.RoundToInt((Mathf.Clamp(v, rMin, rMax) - rMin) / (rMax - rMin) * (y1 - y0));
-        int X(float x) => x0 + Mathf.RoundToInt((x - xMin) / (xMax - xMin) * (x1 - x0));
+        int X(float x) => x0 + Mathf.RoundToInt((Mathf.Clamp(x, xMin, xMax) - xMin) / (xMax - xMin) * (x1 - x0));
 
         // Zona ideal
-        Rellenar(buf, w, h, x0, Y(zMin), x1, Y(zMax), ColZona);
+        if (Finito(zMin) && Finito(zMax)) Rellenar(buf, w, h, x0, Y(zMin), x1, Y(zMax), ColZona);
 
         // Cuadrícula (4 divisiones) y ejes
-        var rejilla = ColRejilla;
         for (int i = 1; i < 4; i++)
         {
             int y = y0 + (y1 - y0) * i / 4;
-            Rellenar(buf, w, h, x0, y, x1, y, rejilla);
+            Rellenar(buf, w, h, x0, y, x1, y, ColRejilla);
         }
-        var eje = ColEje;
-        Rellenar(buf, w, h, x0, y0, x1, y0, eje);
-        Rellenar(buf, w, h, x0, y0, x0, y1, eje);
+        Rellenar(buf, w, h, x0, y0, x1, y0, ColEje);
+        Rellenar(buf, w, h, x0, y0, x0, y1, ColEje);
 
-        Color32 c = ColorDe(s.Magnitud);
+        Color32 c = ColorDe(magnitud);
         Color32 tenue = new Color32((byte)(c.r * 0.5f), (byte)(c.g * 0.5f), (byte)(c.b * 0.5f), 255);
-        var pts = s.Puntos;
 
-        // Barras min-max de cada bloque
+        // Barras mínimo–máximo de cada bloque (2 px: con 1 px desaparecían al reducir la imagen en pantalla)
         for (int i = 0; i < pts.Count; i++)
         {
             int cx = X(pts[i].X);
-            Linea(buf, w, h, cx, Y(pts[i].Min), cx, Y(pts[i].Max), tenue, 1);
+            Linea(buf, w, h, cx, Y(pts[i].Min), cx, Y(pts[i].Max), tenue, 2);
         }
 
         // Línea del promedio
@@ -65,21 +72,36 @@ public static class DibujanteGrafica
         if (marcas != null)
             foreach (var (mx, mv) in marcas)
             {
+                if (!Finito(mx) || !Finito(mv)) continue;
                 // Con agrupación diaria/semanal el último punto es el inicio del bloque: se ajusta al borde
-                int cx = X(Mathf.Clamp(mx, xMin, xMax)), cy = Y(mv);
+                int cx = X(mx), cy = Y(mv);
                 Circulo(buf, w, h, cx, cy, 5, new Color32(20, 20, 24, 255));
                 Circulo(buf, w, h, cx, cy, 3, new Color32(255, 255, 255, 255));
             }
 
+        return VolcarEnTextura(buf, w, h, reutilizar);
+    }
+
+    static bool Finito(float v) => !float.IsNaN(v) && !float.IsInfinity(v);
+
+    // Copia el búfer a la textura (reutilizada si es del mismo tamaño). Filtro bilineal con mipmaps:
+    // con FilterMode.Point, al mostrarla más chica que 640×320 (móvil, tarjetas angostas) se perdían
+    // líneas enteras de 1–2 px y la gráfica se veía cortada o vacía.
+    static Texture2D VolcarEnTextura(Color32[] buf, int w, int h, Texture2D reutilizar)
+    {
         var tex = reutilizar;
-        if (tex == null || tex.width != w || tex.height != h)
+        if (tex == null || tex.width != w || tex.height != h || tex.mipmapCount <= 1)
         {
             if (tex != null) Object.Destroy(tex);
-            tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            tex.filterMode = FilterMode.Point;
+            tex = new Texture2D(w, h, TextureFormat.RGBA32, true)
+            {
+                filterMode = FilterMode.Trilinear,
+                wrapMode = TextureWrapMode.Clamp,       // sin "sangrado" del borde opuesto al filtrar
+                name = "Grafica"
+            };
         }
         tex.SetPixels32(buf);
-        tex.Apply();
+        tex.Apply(true);                             // regenera los mipmaps con el contenido nuevo
         return tex;
     }
 

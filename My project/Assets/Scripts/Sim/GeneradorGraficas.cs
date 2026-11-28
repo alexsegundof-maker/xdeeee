@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Composta.App;
@@ -17,6 +18,11 @@ public class GeneradorGraficas : MonoBehaviour
         { Magnitud.Temperatura, Magnitud.PH, Magnitud.Humedad, Magnitud.Oxigeno };
     readonly Texture2D[] texturas = new Texture2D[4];
 
+    // Se dispara DESPUÉS de redibujar. La UI asigna aquí las texturas: antes las pedía en su Update, que corre
+    // antes que el LateUpdate de este componente, y en ese cuadro recibía null (o una textura ya destruida);
+    // si la simulación se pausaba justo entonces, las gráficas se quedaban vacías.
+    public event Action AlActualizar;
+
     void Start()
     {
         if (simulador == null) simulador = FindAnyObjectByType<SimuladorComposta>();
@@ -29,6 +35,9 @@ public class GeneradorGraficas : MonoBehaviour
         simulador.AlTick += AlTick;
         simulador.AlReiniciar += AlCambiarSistema;
         simulador.AlCargar += AlCambiarSistema;
+        // El simulador pudo crear o cargar su sistema antes de este Start (orden de Start no garantizado):
+        // sin esto no había gráficas hasta la hora simulada 12
+        if (simulador.Sistema != null) Regenerar();
     }
 
     void OnDestroy()
@@ -64,16 +73,25 @@ public class GeneradorGraficas : MonoBehaviour
     public void Regenerar()
     {
         if (simulador == null || simulador.Sistema == null) return;
+        pendiente = false;                                   // ya quedó al día: no repetir en LateUpdate
+        var lecturas = simulador.Historial.Lecturas;
         for (int i = 0; i < Todas.Length; i++)
         {
-            var serie = Agregador.Construir(simulador.Historial.Lecturas, Todas[i], granularidad);
+            var serie = Agregador.Construir(lecturas, Todas[i], granularidad);
             // Reutiliza la textura: antes se creaba y destruía una de 640x320 cuatro veces cada 12 horas simuladas
             texturas[i] = DibujanteGrafica.Dibujar(serie, ancho, alto, simulador.Sistema.Perfil.ZonaIdeal(Todas[i]), texturas[i]);
         }
+        AlActualizar?.Invoke();
     }
 
-    // La UI usará esto para pintar cada gráfica en un RawImage
-    public Texture2D ObtenerTextura(Magnitud m) => texturas[(int)m];
+    public bool HayGraficas => Array.TrueForAll(texturas, t => t != null);
+
+    // Textura de una magnitud. Busca su posición en Todas: no depende del orden numérico del enum Magnitud.
+    public Texture2D ObtenerTextura(Magnitud m)
+    {
+        int i = Array.IndexOf(Todas, m);
+        return i >= 0 ? texturas[i] : null;
+    }
 
     public void CambiarGranularidad()
     {
@@ -90,6 +108,12 @@ public class GeneradorGraficas : MonoBehaviour
         try
         {
             Regenerar();
+            if (!HayGraficas)
+            {
+                // Antes: NullReferenceException al codificar una textura que todavía no existía
+                Notificador.Mostrar("Todavía no hay datos para graficar: inicia o reanuda una simulación.", TipoMensaje.Aviso);
+                return;
+            }
             for (int i = 0; i < Todas.Length; i++)
             {
                 string ruta = Path.Combine(Application.persistentDataPath,
@@ -99,7 +123,7 @@ public class GeneradorGraficas : MonoBehaviour
             Debug.Log($"Gráficas guardadas en: {Application.persistentDataPath}");
             Notificador.Mostrar($"Gráficas PNG guardadas en: {Application.persistentDataPath}", TipoMensaje.Exito);
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             Debug.LogException(e);
             Notificador.Mostrar("No se pudieron guardar las gráficas: " + e.Message, TipoMensaje.Error);

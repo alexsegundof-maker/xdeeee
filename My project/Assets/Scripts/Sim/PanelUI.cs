@@ -53,10 +53,16 @@ public class PanelUI : MonoBehaviour
         Construir();
         simulador.AlCargar += AlCambiarSistema;
         simulador.AlReiniciar += AlCambiarSistema;
+        if (graficas != null)
+        {
+            graficas.AlActualizar += ActualizarGraficas;     // las texturas se asignan cuando ya existen
+            ActualizarGraficas();                            // por si ya se generaron antes de este Start
+        }
     }
 
     void OnDestroy()
     {
+        if (graficas != null) graficas.AlActualizar -= ActualizarGraficas;
         if (simulador == null) return;
         simulador.AlCargar -= AlCambiarSistema;
         simulador.AlReiniciar -= AlCambiarSistema;
@@ -304,7 +310,7 @@ public class PanelUI : MonoBehaviour
 
     void ActualizarGraficas()
     {
-        if (graficas == null) return;
+        if (graficas == null || imgGrafica[0] == null) return;    // la UI todavía no se construyó
         for (int m = 0; m < 4; m++)
         {
             var tex = graficas.ObtenerTextura((Magnitud)m);

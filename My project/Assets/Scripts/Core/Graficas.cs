@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Composta.Core
 {
@@ -24,17 +25,25 @@ namespace Composta.Core
 
     public static class Agregador
     {
+        // Agrupa las lecturas por bloques (hora, día o semana) con promedio, mínimo y máximo.
+        // Se omiten lecturas nulas o con valores no finitos (NaN/infinito): una sola de ellas dejaba el
+        // promedio del bloque en NaN y el dibujo calculaba coordenadas inválidas.
         public static Serie Construir(IList<Lectura> lecturas, Magnitud m, Granularidad g)
         {
             var s = new Serie { Magnitud = m, Granularidad = g };
-            int bloque = (int)g;
-            int actual = -1, n = 0;
+            if (lecturas == null) return s;
+            int bloque = Math.Max(1, (int)g);
+            int actual = int.MinValue, n = 0;
             float suma = 0, min = 0, max = 0;
 
             for (int i = 0; i < lecturas.Count; i++)
             {
                 var l = lecturas[i];
-                int idx = (l.Tick - 1) / bloque;
+                if (l == null) continue;
+                float valor = Valor(l, m);
+                if (float.IsNaN(valor) || float.IsInfinity(valor)) continue;
+                // Math.Max: el tick 0 (estado inicial) pertenece al primer bloque, como los ticks 1..bloque
+                int idx = Math.Max(0, l.Tick - 1) / bloque;
 
                 if (idx != actual)
                 {
@@ -42,7 +51,7 @@ namespace Composta.Core
                     actual = idx; suma = 0; n = 0;
                 }
 
-                float v = Valor(l, m);
+                float v = valor;
                 if (n == 0) { min = max = v; }
                 else { if (v < min) min = v; if (v > max) max = v; }
                 suma += v; n++;
