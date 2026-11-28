@@ -62,13 +62,16 @@ namespace Composta.Core.Pronostico
             var regs = Campo.AnalisisCampo.Ordenados(lote);
             var ultimo = regs.Count > 0 ? regs[regs.Count - 1] : null;
             var p = PerfilComposta.Crear(lote.Tipo, ultimo != null ? ultimo.PesoKg : lote.PesoKg, true);
-            p.RelacionCN = lote.RelacionCN;
+            // C:N real de la mezcla (carga inicial + aportaciones): así lo que aportas cambia el pronóstico
+            var balance = Campo.BalanceLote.Calcular(lote);
+            p.RelacionCN = balance.TieneDatos ? RangosParametros.De(ModoLote.Manual, Parametro.RelacionCN).Limitar(balance.RelacionCN) : lote.RelacionCN;
             p.Aislamiento = lote.Aislamiento;
             p.TempAmbiente = lote.TempAmbiente;
             p.HumedadInicial = ultimo != null ? ultimo.Humedad : lote.HumedadInicial;
             var r = Proyectar(new SistemaComposta(p, semilla), p);
             r.Supuestos = (ultimo != null
-                ? string.Format(CultureInfo.InvariantCulture, "Parte de tu última medición ({0:0.#} kg, {1:F0} % de humedad). ", ultimo.PesoKg, ultimo.Humedad)
+                ? string.Format(CultureInfo.InvariantCulture, "Parte de tu última medición ({0:0.#} kg, {1:F0} % de humedad) y de la C:N de tu mezcla ({2:F0}). ",
+                                ultimo.PesoKg, ultimo.Humedad, p.RelacionCN)
                 : "Aún no hay mediciones: parte de los valores típicos del tipo de compostera. ") + r.Supuestos;
             return r;
         }

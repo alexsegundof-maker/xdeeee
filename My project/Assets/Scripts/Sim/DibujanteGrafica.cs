@@ -84,6 +84,50 @@ public static class DibujanteGrafica
 
     static bool Finito(float v) => !float.IsNaN(v) && !float.IsInfinity(v);
 
+    static readonly Color32 ColVolteo = new Color32(232, 177, 58, 255);
+    static readonly Color32 ColSemana = new Color32(31, 36, 45, 255);
+
+    // Curva de un pronóstico, hora a hora, ocupando TODA la textura (sin márgenes): así los números de los ejes
+    // y la línea guía que pone la UI alrededor coinciden con lo dibujado. x = días desde ahora (0..diasTotales).
+    //  · franja de la zona ideal · rejilla en 0/25/50/75/100 % del eje Y · una línea tenue por semana
+    //  · volteos programados como líneas verticales punteadas (ámbar) en la misma posición en las 3 gráficas
+    public static Texture2D DibujarPronostico(System.Collections.Generic.IList<Lectura> lecturas, Magnitud magnitud, float yMin, float yMax,
+                                              (float min, float max)? zona, System.Collections.Generic.IList<float> diasVolteo, float diasTotales,
+                                              int w, int h, Texture2D reutilizar = null)
+    {
+        w = Mathf.Max(w, 32); h = Mathf.Max(h, 32);
+        if (!(yMax - yMin > 1e-3f)) yMax = yMin + 1f;
+        if (!(diasTotales > 0.01f)) diasTotales = 1f;
+        var buf = new Color32[w * h];
+        Rellenar(buf, w, h, 0, 0, w - 1, h - 1, ColFondo);
+        int Y(float v) => Mathf.RoundToInt((Mathf.Clamp(v, yMin, yMax) - yMin) / (yMax - yMin) * (h - 3)) + 1;
+        int X(float d) => Mathf.RoundToInt(Mathf.Clamp(d, 0f, diasTotales) / diasTotales * (w - 3)) + 1;
+
+        if (zona.HasValue && Finito(zona.Value.min) && Finito(zona.Value.max)) Rellenar(buf, w, h, 0, Y(zona.Value.min), w - 1, Y(zona.Value.max), ColZona);
+        for (float d = 7f; d < diasTotales; d += 7f) { int x = X(d); Rellenar(buf, w, h, x, 0, x, h - 1, ColSemana); }
+        for (int i = 1; i < 4; i++) { int y = (h - 1) * i / 4; Rellenar(buf, w, h, 0, y, w - 1, y, ColRejilla); }
+        Rellenar(buf, w, h, 0, 0, w - 1, 1, ColEje);
+        Rellenar(buf, w, h, 0, 0, 1, h - 1, ColEje);
+
+        if (diasVolteo != null)
+            foreach (var d in diasVolteo)
+                if (Finito(d)) { int x = X(d); LineaPunteada(buf, w, h, x, 0, x, h - 1, ColVolteo); }
+
+        Color32 c = ColorDe(magnitud);
+        int px = -1, py = -1;
+        if (lecturas != null)
+            foreach (var l in lecturas)
+            {
+                if (l == null) continue;
+                float v = Agregador.Valor(l, magnitud);
+                if (!Finito(v) || !Finito(l.Dias)) continue;
+                int x = X(l.Dias), y = Y(v);
+                if (px >= 0) Linea(buf, w, h, px, py, x, y, c, 2);
+                px = x; py = y;
+            }
+        return VolcarEnTextura(buf, w, h, reutilizar);
+    }
+
     // Copia el búfer a la textura (reutilizada si es del mismo tamaño). Filtro bilineal con mipmaps:
     // con FilterMode.Point, al mostrarla más chica que 640×320 (móvil, tarjetas angostas) se perdían
     // líneas enteras de 1–2 px y la gráfica se veía cortada o vacía.

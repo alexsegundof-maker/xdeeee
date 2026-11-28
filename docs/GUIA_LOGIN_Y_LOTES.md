@@ -228,3 +228,19 @@ hereda el estilo; cambiar la identidad visual es editar `Tema.cs`.
 - Al iniciar sin lotes se ofrece **«Cargar datos DEMO»** (también en el historial): 3 composteras activas (exceso de
   nitrógeno, fase termófila óptima y estabilizada) y 4 cosechadas (calidad A, B, A y C). Se crean con las mismas validaciones
   que los datos reales (`DatosDemo.cs`), se marcan **DEMO** en tarjetas, tablero y Excel, y «Quitar datos DEMO» los mueve a la papelera.
+
+## Ventana de Predicción (versión 1.1.2)
+
+- **Diagnóstico y recomendaciones personalizadas** (arriba, a todo lo ancho; `Core/Pronostico/DiagnosticoPronostico.cs`):
+  estado actual vs. ideal (peso, humedad, temperatura y potencial térmico, balance C:N) con semáforo; hasta 3 acciones
+  prioritarias (medición atrasada, riego o material seco, kilos para corregir la C:N, próximo volteo con el oxígeno mínimo
+  previsto, hasta cuándo aportar verde); alertas de riesgo (humedad crítica, medición atrasada, aportación reciente que
+  movió la C:N, fecha de madurez recorrida, diferencia entre la cosecha del pronóstico y la de tus registros).
+  Usa la última medición real; si no hay, el estado simulado o los parámetros elegidos, y lo dice.
+- El pronóstico de un lote de Control Manual parte de la **C:N real de la mezcla** (carga inicial + aportaciones).
+- **Gráficas**: curva hora a hora, eje Y con valores y unidad, fechas reales en el eje X (cada semana; cada 2 si el
+  horizonte supera 70 días), franja verde rotulada con la zona del perfil, volteos programados como líneas punteadas
+  ámbar en las 3 gráficas y una frase de ayuda por gráfica. Al pasar el cursor (o tocar) aparece una línea guía en las
+  3 gráficas y una ficha con fecha, valores, fase y eventos del día.
+- **Hitos**: «Hitos clave» (fase caliente, pico, fin, maduración, cosecha) o «Todos los eventos»; el próximo se marca
+  como SIGUIENTE.

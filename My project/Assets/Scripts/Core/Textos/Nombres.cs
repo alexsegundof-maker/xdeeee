@@ -71,6 +71,13 @@ namespace Composta.Core.Textos
         public static string DetalleComando(Comando c)
             => ValorNumerico(c, out double v, out string u) ? v.ToString("0.####", C) + " " + u : u;
 
+        // Fechas en español sin depender de la cultura del sistema (en Android/IL2CPP puede no estar "es-ES")
+        static readonly string[] Meses = { "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic" };
+        static readonly string[] DiasSemana = { "dom", "lun", "mar", "mié", "jue", "vie", "sáb" };
+
+        public static string FechaCorta(System.DateTime local) => local.Day.ToString(C) + " " + Meses[local.Month - 1];          // "28 nov"
+        public static string FechaConDia(System.DateTime local) => DiasSemana[(int)local.DayOfWeek] + " " + FechaCorta(local);   // "sáb 28 nov"
+
         public static string Cobertura(float aislamiento) => aislamiento > 1.15f ? "Tapada o cubierta" : "Al aire libre";
 
         public static string MaterialPredominante(float relacionCN)

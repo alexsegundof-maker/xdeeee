@@ -595,10 +595,11 @@ namespace Composta.App
             // Lectura de una COPIA: nunca altera el lote ni el simulador en vivo
             AbrirPrediccion(() => lote.Modo == ModoLote.Manual ? Core.Pronostico.MotorPronostico.DesdeMediciones(lote)
                                                                : Core.Pronostico.MotorPronostico.DesdeLoteSimulado(lote),
-                            Core.Pronostico.PlanCalendario.ClavePrediccion(lote.Id, null), lote.Nombre);
+                            Core.Pronostico.PlanCalendario.ClavePrediccion(lote.Id, null), lote.Nombre, lote);
         }
 
-        void AbrirPrediccion(Func<Core.Pronostico.ResultadoPronostico> calcular, string clave, string nombre)
+        // lote: el lote real del que salen el diagnóstico y las recomendaciones (null = plan desde «Nueva composta»)
+        void AbrirPrediccion(Func<Core.Pronostico.ResultadoPronostico> calcular, string clave, string nombre, Lote lote = null)
         {
             Core.Pronostico.ResultadoPronostico r;
             try { r = calcular(); }
@@ -608,7 +609,7 @@ namespace Composta.App
                 Notificador.Mostrar("No se pudo calcular la predicción: " + e.Message, TipoMensaje.Error);
                 return;
             }
-            prediccion.Abrir(r, clave, nombre);
+            prediccion.Abrir(r, clave, nombre, lote);
         }
 
         static bool HuboActividad()
